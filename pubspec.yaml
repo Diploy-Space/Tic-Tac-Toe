@@ -1,0 +1,33 @@
+name: tic_tac_game
+description: Tic Tac Toe with a dark geometric survival-game theme.
+publish_to: "none"
+version: 1.0.1+2
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_fonts: ^6.2.1
+  shared_preferences: ^2.5.6
+  supabase_flutter: ^2.18.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_logo.png"
+  remove_alpha_ios: true
+  adaptive_icon_background: "#0A0A0C"
+  adaptive_icon_foreground: "assets/icon/app_logo.png"

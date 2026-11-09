@@ -40,3 +40,4 @@ Shared UI is in lib/widgets (common.dart, extras.dart, painters.dart). Global st
 - Never show other players' emails on the leaderboard.
 - Characters and colours are inspired by a TV show's mood, not copied. Do not add the show's
   name, logo or real masks/characters.
+# Tic-Tac-Toe

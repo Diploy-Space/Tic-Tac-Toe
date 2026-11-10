@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
 import '../services/auth_service.dart';
+import '../services/match_sync_service.dart';
 import '../services/profile_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -15,6 +16,12 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _avatarBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (AuthService.isSignedIn) MatchSyncService.refresh();
+  }
 
   void _toast(String msg) {
     if (!mounted) return;
@@ -111,20 +118,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ]),
           ValueListenableBuilder<int>(
               valueListenable: statsTick,
-              builder: (_, __, ___) {
-                final s = playerStats;
-                final rank = s.rankEstimate == 0 ? '–' : '#${s.rankEstimate}';
-                return _ProfileHeaderCard(
-                  stats: [
-                    MapEntry('Rank', rank),
-                    MapEntry('Score', '${s.score}'),
-                    MapEntry('Played', '${s.played}'),
-                    MapEntry('Wins', '${s.wins}'),
-                  ],
-                  avatarBusy: _avatarBusy,
-                  onAvatarTap: _avatarActions,
-                );
-              }),
+              builder: (_, __, ___) => ValueListenableBuilder<int>(
+                  valueListenable: MatchSyncService.tick,
+                  builder: (_, ___, ____) {
+                    final s = playerStats;
+                    final cloud = MatchSyncService.myStats.value;
+                    final useCloud = AuthService.isSignedIn && cloud != null;
+                    final rankNum = MatchSyncService.myRank.value;
+                    final rank = useCloud
+                        ? (rankNum == null ? '–' : '#$rankNum')
+                        : (s.rankEstimate == 0 ? '–' : '#${s.rankEstimate}');
+                    return _ProfileHeaderCard(
+                      stats: [
+                        MapEntry('Rank', rank),
+                        MapEntry(
+                            'Score', '${useCloud ? cloud.score : s.score}'),
+                        MapEntry('Played',
+                            '${useCloud ? cloud.played : s.played}'),
+                        MapEntry(
+                            'Wins', '${useCloud ? cloud.wins : s.wins}'),
+                      ],
+                      avatarBusy: _avatarBusy,
+                      onAvatarTap: _avatarActions,
+                    );
+                  })),
           ValueListenableBuilder<bool>(
               valueListenable: soundOn,
               builder: (_, on, __) => SegRow(

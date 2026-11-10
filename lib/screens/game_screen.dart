@@ -6,6 +6,8 @@ import '../game/ai.dart';
 import '../game/ai_callback_gate.dart';
 import '../game/board.dart';
 import '../models.dart';
+import '../services/match_sync_service.dart';
+import '../services/progress_sync_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
@@ -211,6 +213,29 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     }
 
     playerStats.recordMatch(winner: winner, args: args, coinDelta: coinDelta);
+    // Cloud sync for signed-in AI / quick_match only (pass & play stays local).
+    final sync = await MatchSyncService.syncCompletedMatch(
+      winner: winner,
+      args: args,
+      coinDelta: coinDelta,
+    );
+    await ProgressSyncService.onMatchFinished();
+    if (mounted && args.vsAi && sync.message != null) {
+      final failed = sync.attempted && !sync.ok;
+      final skippedGuest = !sync.attempted;
+      if (failed || skippedGuest || sync.ok && sync.attempted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              failed
+                  ? 'Cloud save failed: ${sync.message}'
+                  : sync.message!,
+            ),
+            backgroundColor: failed ? const Color(0xFFB3123E) : null,
+          ),
+        );
+      }
+    }
 
     await Future<void>.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/auth_service.dart';
+import '../services/progress_sync_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
@@ -23,6 +25,13 @@ class MissionsScreen extends StatefulWidget {
 
 class _MissionsScreenState extends State<MissionsScreen> {
   int tab = 0;
+  bool _claiming = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (AuthService.isSignedIn) ProgressSyncService.refresh();
+  }
 
   List<_Mission> get daily => [
         _Mission('d_win3', 'Win 3 games', () => playerStats.dailyWins, 3, 20),
@@ -34,8 +43,30 @@ class _MissionsScreenState extends State<MissionsScreen> {
   List<_Mission> get weekly => [
         _Mission('w_win15', 'Win 15 games', () => playerStats.weeklyWins, 15, 100),
         _Mission('w_play30', 'Play 30 matches', () => playerStats.weeklyPlays, 30, 80),
-        _Mission('w_tourney', 'Join a tournament', () => playerStats.tournamentsJoined, 1, 60),
+        _Mission(
+            'w_tourney', 'Join a tournament', () => playerStats.tournamentsJoined, 1, 60),
       ];
+
+  Future<void> _claim(_Mission m) async {
+    if (_claiming || m.claimed || !m.ready) return;
+    setState(() => _claiming = true);
+    try {
+      await ProgressSyncService.claimMission(
+          missionId: m.id, reward: m.reward);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AuthService.isSignedIn
+              ? '+${m.reward} coins (saved to cloud)'
+              : '+${m.reward} coins')));
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AuthService.messageFromError(e))));
+    } finally {
+      if (mounted) setState(() => _claiming = false);
+    }
+  }
 
   Widget _card(_Mission m) {
     final cur = m.current().clamp(0, m.total);
@@ -43,12 +74,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
     if (m.claimed) {
       right = const Tag('Done');
     } else if (m.ready) {
-      right = SmallButton('Claim', onTap: () {
-        coins.value += m.reward;
-        playerStats.claimedMissions = {...playerStats.claimedMissions, m.id};
-        statsTick.value++;
-        setState(() {});
-      });
+      right = SmallButton('Claim', onTap: _claiming ? null : () => _claim(m));
     } else {
       right = Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -83,37 +109,45 @@ class _MissionsScreenState extends State<MissionsScreen> {
     return AppScaffold(
       child: ValueListenableBuilder<int>(
         valueListenable: statsTick,
-        builder: (_, __, ___) {
-          final list = tab == 0 ? daily : weekly;
-          final done = list.where((m) => m.claimed).length;
-          return SingleChildScrollView(
-            child: staggered([
-              const TopBar('Missions'),
-              SegRow(
-                  options: const ['Daily', 'Weekly'],
-                  selected: tab,
-                  onChanged: (i) => setState(() => tab = i)),
-              AppCard(
-                  borderColor: C.magenta,
-                  child: Row(children: [
-                    const IconCircle(Icons.card_giftcard, size: 52),
-                    const SizedBox(width: 12),
-                    Expanded(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                          Text(tab == 0 ? 'Daily chest' : 'Weekly chest',
-                              style: const TextStyle(fontWeight: FontWeight.w700)),
-                          Text('$done of ${list.length} missions done',
-                              style: const TextStyle(color: C.muted, fontSize: 13)),
-                          const SizedBox(height: 8),
-                          AppProgress(done / list.length),
-                        ])),
-                  ])),
-              for (final m in list) _card(m),
-            ]),
-          );
-        },
+        builder: (_, __, ___) => ValueListenableBuilder<int>(
+          valueListenable: ProgressSyncService.tick,
+          builder: (_, ___, ____) {
+            final list = tab == 0 ? daily : weekly;
+            final done = list.where((m) => m.claimed).length;
+            return SingleChildScrollView(
+              child: staggered([
+                const TopBar('Missions'),
+                if (AuthService.isSignedIn)
+                  const Text('Claims sync to your cloud account',
+                      style: TextStyle(color: C.muted, fontSize: 13)),
+                SegRow(
+                    options: const ['Daily', 'Weekly'],
+                    selected: tab,
+                    onChanged: (i) => setState(() => tab = i)),
+                AppCard(
+                    borderColor: C.magenta,
+                    child: Row(children: [
+                      const IconCircle(Icons.card_giftcard, size: 52),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                            Text(tab == 0 ? 'Daily chest' : 'Weekly chest',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700)),
+                            Text('$done of ${list.length} missions done',
+                                style: const TextStyle(
+                                    color: C.muted, fontSize: 13)),
+                            const SizedBox(height: 8),
+                            AppProgress(done / list.length),
+                          ])),
+                    ])),
+                for (final m in list) _card(m),
+              ]),
+            );
+          },
+        ),
       ),
     );
   }

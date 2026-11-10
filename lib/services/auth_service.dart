@@ -2,7 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
 import '../models.dart';
+import 'friend_service.dart';
+import 'match_sync_service.dart';
 import 'profile_service.dart';
+import 'progress_sync_service.dart';
 
 class AuthService {
   AuthService._();
@@ -11,6 +14,9 @@ class AuthService {
   static User? get user => client.auth.currentUser;
   static Session? get session => client.auth.currentSession;
   static bool get isSignedIn => session != null;
+
+  /// True after recovery OTP until the user finishes [updatePassword].
+  static bool pendingPasswordReset = false;
 
   static String get displayName {
     final u = user;
@@ -39,6 +45,10 @@ class AuthService {
     if (isSignedIn) {
       // Fire-and-forget; UI listens via ValueNotifiers.
       ProfileService.loadMyProfile(fallbackName: displayName);
+      MatchSyncService.refresh().then((_) async {
+        await FriendService.refresh();
+        await ProgressSyncService.refresh();
+      });
     }
     client.auth.onAuthStateChange.listen((data) async {
       _syncProfileNotifiers();
@@ -47,9 +57,15 @@ class AuthService {
         case AuthChangeEvent.tokenRefreshed:
         case AuthChangeEvent.userUpdated:
           await ProfileService.loadMyProfile(fallbackName: displayName);
+          await MatchSyncService.refresh();
+          await FriendService.refresh();
+          await ProgressSyncService.refresh();
           break;
         case AuthChangeEvent.signedOut:
           ProfileService.clear();
+          MatchSyncService.clear();
+          FriendService.clear();
+          ProgressSyncService.clear();
           _syncProfileNotifiers();
           break;
         default:
@@ -95,6 +111,7 @@ class AuthService {
     );
     _syncProfileNotifiers();
     await ProfileService.loadMyProfile(fallbackName: displayName);
+    await MatchSyncService.refresh();
     return res;
   }
 
@@ -126,6 +143,7 @@ class AuthService {
     _syncProfileNotifiers();
     if (res.session != null) {
       await ProfileService.loadMyProfile(fallbackName: displayName);
+      await MatchSyncService.refresh();
     }
     return res.session == null;
   }
@@ -135,6 +153,31 @@ class AuthService {
       email.trim(),
       redirectTo: kIsWeb ? null : SupabaseConfig.redirectUrl,
     );
+  }
+
+  /// Verify the 6-digit recovery code from the reset-password email.
+  static Future<AuthResponse> verifyRecoveryOtp({
+    required String email,
+    required String token,
+  }) async {
+    final res = await client.auth.verifyOTP(
+      type: OtpType.recovery,
+      email: email.trim(),
+      token: token.trim(),
+    );
+    pendingPasswordReset = true;
+    _syncProfileNotifiers();
+    return res;
+  }
+
+  /// Set a new password after a successful recovery OTP / recovery session.
+  static Future<UserResponse> updatePassword(String newPassword) async {
+    final res = await client.auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
+    pendingPasswordReset = false;
+    _syncProfileNotifiers();
+    return res;
   }
 
   static Future<bool> signInWithGoogle() async {
@@ -148,6 +191,7 @@ class AuthService {
   static Future<void> signOut() async {
     await client.auth.signOut();
     ProfileService.clear();
+    MatchSyncService.clear();
     _syncProfileNotifiers();
   }
 }

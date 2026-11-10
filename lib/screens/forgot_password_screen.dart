@@ -38,7 +38,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       await AuthService.resetPassword(email);
       if (!mounted) return;
       setState(() => _sent = true);
-      Navigator.pushNamed(context, '/verify', arguments: email);
+      Navigator.pushNamed(context, '/verify', arguments: {
+        'email': email,
+        'mode': 'recovery',
+      });
     } catch (e) {
       _toast(AuthService.messageFromError(e));
     } finally {
@@ -58,7 +61,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               child: IconCircle(Icons.lock_outline, size: 84)),
           const Heading('Reset password'),
           const Text(
-              'Enter your email and we’ll send a reset link. Open it on this device to continue.',
+              'Enter your email and we’ll send a reset code. Type that code in the app — no need to open the email link.',
               style: TextStyle(color: C.muted, fontSize: 14, height: 1.5)),
           AppField(
               icon: Icons.mail_outline,
@@ -71,8 +74,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               _loading
                   ? 'Sending…'
                   : _sent
-                      ? 'Email sent'
-                      : 'Send reset link',
+                      ? 'Code sent'
+                      : 'Send reset code',
               onTap: _loading ? null : _send),
           const Spacer(),
           Center(

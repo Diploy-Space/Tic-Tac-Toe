@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
@@ -13,20 +14,28 @@ class HomeScreen extends StatelessWidget {
       child: ScrollFill(
         child: staggered([
           Row(children: [
-            Container(
-                width: 52,
-                height: 52,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: C.border2)),
-                child: const AvatarFace(size: 50)),
+            ValueListenableBuilder<String?>(
+                valueListenable: authAvatarUrl,
+                builder: (_, url, __) => Container(
+                    width: 52,
+                    height: 52,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: C.border2)),
+                    child: ProfileAvatar(url: url, size: 50))),
             const SizedBox(width: 12),
-            const Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Tag('Player 042'),
-              Text('Guest', style: TextStyle(fontWeight: FontWeight.w700)),
-            ])),
+            Expanded(
+                child: ValueListenableBuilder<String>(
+                    valueListenable: authDisplayName,
+                    builder: (_, name, __) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Tag('Player 042'),
+                              Text(name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700)),
+                            ]))),
             IconButton(
                 tooltip: 'How to play',
                 onPressed: () => showHowToDialog(context),
@@ -49,14 +58,20 @@ class HomeScreen extends StatelessWidget {
           _ModeCard(
               shape: ShapeKind.triangle,
               title: 'Random match',
-              subtitle: 'Find a rival worldwide',
+              subtitle: 'Quick match vs AI',
               number: '02',
               onTap: () => startRandom(context)),
           _ModeCard(
               shape: ShapeKind.square,
+              title: 'Online match',
+              subtitle: 'Find · private room · join code',
+              number: '03',
+              onTap: () => startOnlineMatch(context)),
+          _ModeCard(
+              shape: ShapeKind.circle,
               title: 'Pass & Play',
               subtitle: 'Two players, one phone',
-              number: '03',
+              number: '04',
               onTap: () => startPassAndPlay(context)),
           const Spacer(),
           const AppBottomNav(current: 0),

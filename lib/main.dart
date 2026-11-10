@@ -22,6 +22,7 @@ import 'screens/logo_screen.dart';
 import 'screens/intro_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/verify_code_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'screens/offline_screen.dart';
 import 'screens/daily_reward_screen.dart';
 import 'screens/missions_screen.dart';
@@ -31,6 +32,10 @@ import 'screens/friends_screen.dart';
 import 'screens/tournament_screen.dart';
 import 'screens/customize_screen.dart';
 import 'screens/matching_screen.dart';
+import 'screens/online_matching_screen.dart';
+import 'screens/online_game_screen.dart';
+import 'screens/private_room_lobby_screen.dart';
+import 'screens/join_private_room_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/stats_screen.dart';
 
@@ -55,10 +60,22 @@ class _TicTacAppState extends State<TicTacApp> {
   void initState() {
     super.initState();
     // After Google / email deep-link, jump into the game once session exists.
+    // Recovery OTP / magic-link goes to set-new-password instead of home.
     AuthService.client.auth.onAuthStateChange.listen((data) {
-      if (data.event == AuthChangeEvent.signedIn) {
+      if (data.event == AuthChangeEvent.passwordRecovery) {
+        AuthService.pendingPasswordReset = true;
+        _nav.currentState
+            ?.pushNamedAndRemoveUntil('/reset-password', (route) => false);
+      } else if (data.event == AuthChangeEvent.signedIn) {
+        if (AuthService.pendingPasswordReset) {
+          _nav.currentState
+              ?.pushNamedAndRemoveUntil('/reset-password', (route) => false);
+          return;
+        }
         _nav.currentState
             ?.pushNamedAndRemoveUntil('/home', (route) => false);
+      } else if (data.event == AuthChangeEvent.signedOut) {
+        AuthService.pendingPasswordReset = false;
       }
     });
   }
@@ -91,6 +108,7 @@ class _TicTacAppState extends State<TicTacApp> {
           '/intro': (_) => const IntroScreen(),
           '/forgot': (_) => const ForgotPasswordScreen(),
           '/verify': (_) => const VerifyCodeScreen(),
+          '/reset-password': (_) => const ResetPasswordScreen(),
           '/offline': (_) => const OfflineScreen(),
           '/daily': (_) => const DailyRewardScreen(),
           '/missions': (_) => const MissionsScreen(),
@@ -100,6 +118,10 @@ class _TicTacAppState extends State<TicTacApp> {
           '/events': (_) => const TournamentScreen(),
           '/customize': (_) => const CustomizeScreen(),
           '/matching': (_) => const MatchingScreen(),
+          '/online-matching': (_) => const OnlineMatchingScreen(),
+          '/online-room': (_) => const OnlineGameScreen(),
+          '/private-room-lobby': (_) => const PrivateRoomLobbyScreen(),
+          '/join-private-room': (_) => const JoinPrivateRoomScreen(),
           '/settings': (_) => const SettingsScreen(),
           '/stats': (_) => const StatsScreen(),
         },

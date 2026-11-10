@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/auth_service.dart';
+import '../services/private_room_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
@@ -238,6 +240,68 @@ Future<void> startPassAndPlay(BuildContext c) async {
   if (s == null || !c.mounted) return;
   Navigator.pushNamed(c, '/game',
       arguments: GameArgs(size: s, vsAi: false, opponentName: 'Player 2'));
+}
+
+/// Online hub: find match (C1), create private room, or join by code (C3).
+Future<void> startOnlineMatch(BuildContext c) async {
+  if (!AuthService.isSignedIn) {
+    ScaffoldMessenger.of(c).showSnackBar(
+        const SnackBar(content: Text('Sign in to play online multiplayer')));
+    return;
+  }
+  final mode = await showAppDialog<String>(
+    c,
+    (_) => const _ChoiceDialog<String>(
+      title: 'Online multiplayer',
+      options: [
+        MapEntry('Find a match', 'find'),
+        MapEntry('Create private room', 'create'),
+        MapEntry('Join with code', 'join'),
+      ],
+      initial: 0,
+      action: 'Continue',
+    ),
+  );
+  if (mode == null || !c.mounted) return;
+
+  if (mode == 'join') {
+    Navigator.pushNamed(c, '/join-private-room');
+    return;
+  }
+
+  final stake = await showRandomDialog(c);
+  if (stake == null || !c.mounted) return;
+  if (coins.value < stake) {
+    ScaffoldMessenger.of(c).showSnackBar(
+        const SnackBar(content: Text('Not enough coins for this stake.')));
+    return;
+  }
+  final s = await showGameModeDialog(c);
+  if (s == null || !c.mounted) return;
+
+  if (mode == 'find') {
+    Navigator.pushNamed(c, '/online-matching', arguments: {
+      'boardSize': s,
+      'stake': stake,
+    });
+    return;
+  }
+
+  // create private room
+  try {
+    final room = await PrivateRoomService.create(boardSize: s, stake: stake);
+    if (!c.mounted) return;
+    Navigator.pushNamed(c, '/private-room-lobby', arguments: {
+      'roomId': room.roomId,
+      'code': room.code,
+      'boardSize': room.boardSize,
+      'stake': room.stake,
+    });
+  } catch (e) {
+    if (!c.mounted) return;
+    ScaffoldMessenger.of(c).showSnackBar(
+        SnackBar(content: Text(AuthService.messageFromError(e))));
+  }
 }
 
 /// Returns 'resume', 'restart', 'settings' or 'quit'.

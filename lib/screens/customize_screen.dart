@@ -19,7 +19,7 @@ class _CustomizeScreenState extends State<CustomizeScreen> {
   void _msg(String t) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
 
-  Widget _preview(String board) {
+  Widget _preview(String board, {required String markSkin}) {
     const marks = [true, null, null, null, false, null, null, null, true];
     return Center(
         child: SizedBox(
@@ -39,7 +39,9 @@ class _CustomizeScreenState extends State<CustomizeScreen> {
                             border: Border.all(color: C.border)),
                         child: m == null
                             ? null
-                            : Center(child: MarkIcon(isX: m, size: 28))),
+                            : Center(
+                                child: MarkIcon(
+                                    isX: m, size: 28, skin: markSkin))),
                 ])));
   }
 
@@ -103,7 +105,10 @@ class _CustomizeScreenState extends State<CustomizeScreen> {
                 const TopBar('Customize'),
                 AppCard(
                     borderColor: C.magenta,
-                    child: _preview(tab == 1 ? (selBoard ?? eqBoard) : eqBoard)),
+                    child: _preview(
+                      tab == 1 ? (selBoard ?? eqBoard) : eqBoard,
+                      markSkin: tab == 0 ? (selMark ?? eqMark) : eqMark,
+                    )),
                 SegRow(
                     options: const ['Marks', 'Boards', 'Avatars'],
                     selected: tab,

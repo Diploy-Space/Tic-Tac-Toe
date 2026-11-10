@@ -12,6 +12,7 @@ import 'screens/home_screen.dart';
 import 'screens/game_screen.dart';
 import 'screens/leaderboard_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/public_profile_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/language_screen.dart';
 import 'screens/more_games_screen.dart';
@@ -77,6 +78,10 @@ class _TicTacAppState extends State<TicTacApp> {
           '/game': (_) => const GameScreen(),
           '/ranks': (_) => const LeaderboardScreen(),
           '/profile': (_) => const ProfileScreen(),
+          '/public-profile': (ctx) {
+            final id = ModalRoute.of(ctx)?.settings.arguments as String? ?? '';
+            return PublicProfileScreen(userId: id);
+          },
           '/history': (_) => const HistoryScreen(),
           '/language': (_) => const LanguageScreen(),
           '/games': (_) => const MoreGamesScreen(),

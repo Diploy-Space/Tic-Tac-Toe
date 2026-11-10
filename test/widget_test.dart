@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tic_tac_game/config/supabase_config.dart';
 import 'package:tic_tac_game/main.dart';
+import 'package:tic_tac_game/models.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -16,9 +17,13 @@ void main() {
   });
 
   testWidgets('TicTacApp shows the onboarding screen', (tester) async {
+    introSeen.value = false;
     await tester.pumpWidget(const TicTacApp());
-    await tester.pumpAndSettle();
+    // AppScaffold / landing use looping animations — avoid pumpAndSettle.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
 
-    expect(find.text('Outsmart the Doll'), findsOneWidget);
+    // Heading renders labels in uppercase.
+    expect(find.text('OUTSMART THE DOLL'), findsOneWidget);
   });
 }

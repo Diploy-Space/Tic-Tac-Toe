@@ -83,6 +83,42 @@ class AvatarFace extends StatelessWidget {
               : PlayerFace(size: size));
 }
 
+/// Network avatar when [url] is set; otherwise falls back to [AvatarFace].
+class ProfileAvatar extends StatelessWidget {
+  final String? url;
+  final double size;
+  const ProfileAvatar({super.key, this.url, this.size = 50});
+
+  @override
+  Widget build(BuildContext context) {
+    final u = url?.trim();
+    if (u == null || u.isEmpty) {
+      return AvatarFace(size: size);
+    }
+    return Image.network(
+      u,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => AvatarFace(size: size),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return SizedBox(
+          width: size,
+          height: size,
+          child: const Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class ToggleRow extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -138,19 +174,14 @@ class CosmeticTile extends StatelessWidget {
               color: boardColor(item.name),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: C.border2)),
-          child: const Center(child: MarkIcon(isX: true, size: 24)));
+          child: const Center(
+              child: MarkIcon(isX: true, size: 24, skin: 'Classic')));
     }
-    if (item.name == 'Shapes') {
-      return Row(mainAxisSize: MainAxisSize.min, children: const [
-        ShapeIcon(ShapeKind.circle, size: 26),
-        SizedBox(width: 6),
-        ShapeIcon(ShapeKind.triangle, size: 26),
-      ]);
-    }
-    return Row(mainAxisSize: MainAxisSize.min, children: const [
-      MarkIcon(isX: true, size: 26),
-      SizedBox(width: 6),
-      MarkIcon(isX: false, size: 26),
+    // Each mark tile renders its own skin (not the currently equipped mark).
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      MarkIcon(isX: true, size: 26, skin: item.name),
+      const SizedBox(width: 6),
+      MarkIcon(isX: false, size: 26, skin: item.name),
     ]);
   }
 

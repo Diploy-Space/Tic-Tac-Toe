@@ -58,18 +58,31 @@ class _ShapePainter extends CustomPainter {
       o.kind != kind || o.color != color || o.stroke != stroke;
 }
 
-/// X (magenta) or O (teal) game mark — respects equipped mark skin.
+/// X (magenta) or O (teal) game mark.
+///
+/// When [skin] is null, follows [equippedMark] (in-game / live equip).
+/// Pass an explicit [skin] for catalog previews so each tile shows its own design.
 class MarkIcon extends StatelessWidget {
   final bool isX;
   final double size;
-  const MarkIcon({super.key, required this.isX, this.size = 44});
+  final String? skin;
+  const MarkIcon({super.key, required this.isX, this.size = 44, this.skin});
+
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<String>(
-      valueListenable: equippedMark,
-      builder: (_, skin, __) => ExcludeSemantics(
+  Widget build(BuildContext context) {
+    if (skin != null) {
+      return ExcludeSemantics(
           child: CustomPaint(
               size: Size.square(size),
-              painter: _MarkPainter(isX, skin))));
+              painter: _MarkPainter(isX, skin!)));
+    }
+    return ValueListenableBuilder<String>(
+        valueListenable: equippedMark,
+        builder: (_, equipped, __) => ExcludeSemantics(
+            child: CustomPaint(
+                size: Size.square(size),
+                painter: _MarkPainter(isX, equipped))));
+  }
 }
 
 class _MarkPainter extends CustomPainter {

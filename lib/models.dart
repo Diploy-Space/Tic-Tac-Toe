@@ -11,6 +11,8 @@ final ValueNotifier<bool> introSeen = ValueNotifier<bool>(false);
 final ValueNotifier<bool> authSignedIn = ValueNotifier<bool>(false);
 final ValueNotifier<String> authDisplayName = ValueNotifier<String>('Guest');
 final ValueNotifier<String> authEmail = ValueNotifier<String>('');
+/// Supabase Storage public URL for the signed-in user's avatar (null = cosmetic face).
+final ValueNotifier<String?> authAvatarUrl = ValueNotifier<String?>(null);
 
 class GameArgs {
   final int size; // 3, 4 or 5

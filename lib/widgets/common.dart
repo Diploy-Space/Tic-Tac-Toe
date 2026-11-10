@@ -471,14 +471,16 @@ class UserCard extends StatelessWidget {
       borderColor: C.magenta,
       child: Column(children: [
         Row(children: [
-          Container(
-              width: 52,
-              height: 52,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: C.border2)),
-              child: const AvatarFace(size: 50)),
+          ValueListenableBuilder<String?>(
+              valueListenable: authAvatarUrl,
+              builder: (_, url, __) => Container(
+                  width: 52,
+                  height: 52,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: C.border2)),
+                  child: ProfileAvatar(url: url, size: 50))),
           const SizedBox(width: 12),
           Expanded(
               child: ValueListenableBuilder<String>(

@@ -41,6 +41,16 @@ class AppStorage {
     equippedMark.value = p.getString(_kMark) ?? 'Classic';
     equippedBoard.value = p.getString(_kBoard) ?? 'Dark';
     equippedAvatar.value = p.getInt(_kAvatar) ?? 0;
+    // Drop invalid equip state (e.g. owned list reset / corrupt prefs).
+    if (!owned.value.contains(equippedMark.value)) {
+      equippedMark.value = 'Classic';
+    }
+    if (!owned.value.contains(equippedBoard.value)) {
+      equippedBoard.value = 'Dark';
+    }
+    if (equippedAvatar.value < 0 || equippedAvatar.value > 2) {
+      equippedAvatar.value = 0;
+    }
     final raw = p.getString(_kStats);
     if (raw != null && raw.isNotEmpty) {
       try {

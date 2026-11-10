@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/profile_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
@@ -34,11 +35,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _signUp() async {
     final email = _email.text.trim();
-    final username = _username.text.trim();
+    final username = ProfileService.normalizeUsername(_username.text);
     final password = _password.text;
     final confirm = _confirm.text;
     if (email.isEmpty || username.isEmpty || password.isEmpty) {
       _toast('Fill in all fields');
+      return;
+    }
+    final usernameErr = ProfileService.validateUsername(username);
+    if (usernameErr != null) {
+      _toast(usernameErr);
       return;
     }
     if (password.length < 6) {
@@ -87,7 +93,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               textInputAction: TextInputAction.next),
           AppField(
               icon: Icons.person_outline,
-              hint: 'Username',
+              hint: 'Username (a-z, 0-9, _)',
               controller: _username,
               textInputAction: TextInputAction.next),
           AppField(

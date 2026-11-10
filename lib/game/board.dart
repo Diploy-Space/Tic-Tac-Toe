@@ -10,6 +10,16 @@ class Board {
 
   Board._(this.size, this.winLength, this.cells);
 
+  /// Rebuild a board for isolates / snapshots.
+  factory Board.fromCells(int size, List<String?> cells) {
+    final b = Board(size);
+    final n = b.cells.length;
+    for (var i = 0; i < n && i < cells.length; i++) {
+      b.cells[i] = cells[i];
+    }
+    return b;
+  }
+
   Board clone() => Board._(size, winLength, List<String?>.from(cells));
 
   List<int> get emptyCells => [
@@ -82,25 +92,53 @@ class Board {
     return best;
   }
 
-  /// Heuristic score from AI (X) perspective.
+  static const _dirs = [
+    [0, 1],
+    [1, 0],
+    [1, 1],
+    [1, -1],
+  ];
+
+  /// Heuristic from the AI mark's perspective (positive = good for [ai]).
+  ///
+  /// Scores each sliding window of [winLength] so lines are not double-counted
+  /// per occupied cell. Mixed windows (both marks) score 0.
   int evaluate(String ai, String human) {
     var score = 0;
-    for (var i = 0; i < cells.length; i++) {
-      if (cells[i] == null) continue;
-      final s = lineStrength(i, cells[i]!);
-      final weight = s >= winLength
-          ? 100000
-          : s == winLength - 1
-              ? 5000
-              : s == winLength - 2
-                  ? 200
-                  : s * 10;
-      score += cells[i] == ai ? weight : -weight;
+    for (final d in _dirs) {
+      final dr = d[0], dc = d[1];
+      for (var r = 0; r < size; r++) {
+        for (var c = 0; c < size; c++) {
+          final er = r + dr * (winLength - 1);
+          final ec = c + dc * (winLength - 1);
+          if (er < 0 || er >= size || ec < 0 || ec >= size) continue;
+
+          var aiCount = 0, humanCount = 0;
+          for (var k = 0; k < winLength; k++) {
+            final v = cells[(r + dr * k) * size + (c + dc * k)];
+            if (v == ai) {
+              aiCount++;
+            } else if (v == human) {
+              humanCount++;
+            }
+          }
+          if (aiCount > 0 && humanCount > 0) continue;
+          if (aiCount > 0) score += _windowWeight(aiCount);
+          if (humanCount > 0) score -= _windowWeight(humanCount);
+        }
+      }
     }
-    // Prefer center control.
     final mid = (size ~/ 2) * size + size ~/ 2;
     if (cells[mid] == ai) score += 30;
     if (cells[mid] == human) score -= 30;
     return score;
+  }
+
+  int _windowWeight(int count) {
+    if (count >= winLength) return 100000;
+    if (count == winLength - 1) return 5000;
+    if (count == winLength - 2) return 200;
+    if (count == 1) return 10;
+    return count * 40;
   }
 }

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../game/ai.dart';
+import '../game/ai_callback_gate.dart';
 import '../game/board.dart';
 import '../models.dart';
 import '../theme.dart';
@@ -20,11 +21,13 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateMixin {
   static const turnSeconds = 20;
+  static const _aiDelay = Duration(milliseconds: 520);
+
   late GameArgs args;
   late Board board;
   late final AnimationController timer;
   final _rnd = Random();
-  final _aiEngine = GameAi();
+  final _aiGate = AiCallbackGate();
   Timer? _aiTimer;
   String turn = 'O';
   bool over = false;
@@ -56,9 +59,39 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   @override
   void dispose() {
-    _aiTimer?.cancel();
+    _cancelPendingAi();
     if (_init) timer.dispose();
     super.dispose();
+  }
+
+  void _cancelPendingAi() {
+    _aiTimer?.cancel();
+    _aiTimer = null;
+    _aiGate.invalidate();
+  }
+
+  void _scheduleAi() {
+    _cancelPendingAi();
+    final token = _aiGate.token;
+    _aiTimer = Timer(_aiDelay, () => _ai(token));
+  }
+
+  void _stopTurnTimer() {
+    if (_init) timer.stop();
+  }
+
+  void _leaveToHome() {
+    _cancelPendingAi();
+    _stopTurnTimer();
+    if (!mounted) return;
+    Navigator.popUntil(context, ModalRoute.withName('/home'));
+  }
+
+  void _leaveGame() {
+    _cancelPendingAi();
+    _stopTurnTimer();
+    if (!mounted) return;
+    Navigator.pop(context);
   }
 
   void _haptic() {
@@ -83,26 +116,56 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     timer.forward(from: 0);
 
     if (args.vsAi && turn == 'X') {
-      _aiTimer = Timer(const Duration(milliseconds: 520), _ai);
+      _scheduleAi();
+    } else {
+      // Human / P2 turn — drop any stale AI callback.
+      _cancelPendingAi();
     }
   }
 
   void _timeout() {
-    if (over) return;
+    if (over || !mounted) return;
+    // Timeout owns the move; invalidate any delayed AI for this turn.
+    _cancelPendingAi();
     final empty = board.emptyCells;
     if (empty.isNotEmpty) _place(empty[_rnd.nextInt(empty.length)]);
   }
 
-  void _ai() {
-    if (over || !mounted) return;
+  Future<void> _ai(int scheduledToken) async {
+    if (!_aiGate.allowMove(
+      scheduledToken: scheduledToken,
+      mounted: mounted,
+      over: over,
+      vsAi: args.vsAi,
+      turn: turn,
+    )) {
+      return;
+    }
     if (board.emptyCells.isEmpty) return;
-    final pick = _aiEngine.chooseMove(board, args.difficulty);
+    // Snapshot + isolate search so Medium/Hard never stall the UI isolate.
+    final snapshot = board.clone();
+    final difficulty = args.difficulty;
+    final pick = await GameAi.chooseMoveAsync(snapshot, difficulty);
+    if (!_aiGate.allowMove(
+      scheduledToken: scheduledToken,
+      mounted: mounted,
+      over: over,
+      vsAi: args.vsAi,
+      turn: turn,
+    )) {
+      return;
+    }
+    if (pick < 0 || pick >= board.cells.length) return;
+    if (board.cells[pick] != null) return;
     _place(pick);
   }
 
   Future<void> _finish(String? winner) async {
-    over = true;
-    timer.stop();
+    _cancelPendingAi();
+    _stopTurnTimer();
+    if (!mounted) return;
+    setState(() => over = true);
+
     final vsAi = args.vsAi;
     String title, subtitle;
     String? coinText;
@@ -159,11 +222,12 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
         if (coins.value < args.stake) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Not enough coins for another stake.')));
-          Navigator.popUntil(context, ModalRoute.withName('/home'));
+          _leaveToHome();
           return;
         }
         coins.value -= args.stake;
       }
+      _cancelPendingAi();
       setState(() {
         board = Board(args.size);
         turn = 'O';
@@ -171,18 +235,19 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       });
       timer.forward(from: 0);
     } else {
-      Navigator.popUntil(context, ModalRoute.withName('/home'));
+      _leaveToHome();
     }
   }
 
   Future<void> _pause() async {
     if (over) return;
+    _cancelPendingAi();
     timer.stop();
     final r = await showPauseDialog(context);
     if (!mounted) return;
     switch (r) {
       case 'restart':
-        _aiTimer?.cancel();
+        _cancelPendingAi();
         setState(() {
           board = Board(args.size);
           turn = 'O';
@@ -192,13 +257,17 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
         break;
       case 'settings':
         await Navigator.pushNamed(context, '/settings');
-        if (mounted) timer.forward();
+        if (!mounted || over) return;
+        timer.forward();
+        if (args.vsAi && turn == 'X') _scheduleAi();
         break;
       case 'quit':
-        Navigator.popUntil(context, ModalRoute.withName('/home'));
+        _leaveToHome();
         break;
       default:
+        if (over) return;
         timer.forward();
+        if (args.vsAi && turn == 'X') _scheduleAi();
     }
   }
 
@@ -223,13 +292,14 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   Widget _cell(int i) {
     final v = board.cells[i];
+    final canTap = !over && !(args.vsAi && turn != 'O');
     return Padding(
         padding: const EdgeInsets.all(5),
         child: PopIn(
             delayMs: i * 40,
             child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: (args.vsAi && turn != 'O') ? null : () => _place(i),
+                onTap: canTap ? () => _place(i) : null,
                 child: Container(
                     decoration: BoxDecoration(
                         color: boardColor(equippedBoard.value),
@@ -255,9 +325,11 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final mover = args.vsAi
-        ? (turn == 'O' ? 'Your move' : '${args.opponentName} is thinking')
-        : (turn == 'O' ? "Player 1's move" : "Player 2's move");
+    final mover = over
+        ? 'Game over'
+        : args.vsAi
+            ? (turn == 'O' ? 'Your move' : '${args.opponentName} is thinking')
+            : (turn == 'O' ? "Player 1's move" : "Player 2's move");
     return AppScaffold(
       child: Column(children: [
         Row(children: [
@@ -312,8 +384,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                     ])))),
         SizedBox(
             width: double.infinity,
-            child: GhostButton('Leave game',
-                onTap: () => Navigator.pop(context))),
+            child: GhostButton('Leave game', onTap: _leaveGame)),
       ]),
     );
   }

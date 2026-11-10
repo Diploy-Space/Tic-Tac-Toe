@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
 import '../models.dart';
+import 'profile_service.dart';
 
 class AuthService {
   AuthService._();
@@ -35,19 +36,43 @@ class AuthService {
       ),
     );
     _syncProfileNotifiers();
-    client.auth.onAuthStateChange.listen((data) {
+    if (isSignedIn) {
+      // Fire-and-forget; UI listens via ValueNotifiers.
+      ProfileService.loadMyProfile(fallbackName: displayName);
+    }
+    client.auth.onAuthStateChange.listen((data) async {
       _syncProfileNotifiers();
+      switch (data.event) {
+        case AuthChangeEvent.signedIn:
+        case AuthChangeEvent.tokenRefreshed:
+        case AuthChangeEvent.userUpdated:
+          await ProfileService.loadMyProfile(fallbackName: displayName);
+          break;
+        case AuthChangeEvent.signedOut:
+          ProfileService.clear();
+          _syncProfileNotifiers();
+          break;
+        default:
+          break;
+      }
     });
   }
 
   static void _syncProfileNotifiers() {
-    authDisplayName.value = displayName;
     authEmail.value = email;
     authSignedIn.value = isSignedIn;
+    if (!isSignedIn) {
+      authDisplayName.value = 'Guest';
+      authAvatarUrl.value = null;
+    } else if (ProfileService.current.value == null) {
+      authDisplayName.value = displayName;
+    }
   }
 
   static String messageFromError(Object e) {
     if (e is AuthException) return e.message;
+    if (e is PostgrestException) return e.message;
+    if (e is StorageException) return e.message;
     return e.toString().replaceFirst('Exception: ', '');
   }
 
@@ -69,6 +94,7 @@ class AuthService {
       password: password,
     );
     _syncProfileNotifiers();
+    await ProfileService.loadMyProfile(fallbackName: displayName);
     return res;
   }
 
@@ -87,13 +113,20 @@ class AuthService {
     required String password,
     required String username,
   }) async {
+    final normalized = ProfileService.normalizeUsername(username);
+    final err = ProfileService.validateUsername(normalized);
+    if (err != null) throw Exception(err);
+
     final res = await client.auth.signUp(
       email: email.trim(),
       password: password,
-      data: {'username': username.trim()},
+      data: {'username': normalized},
       emailRedirectTo: kIsWeb ? null : SupabaseConfig.redirectUrl,
     );
     _syncProfileNotifiers();
+    if (res.session != null) {
+      await ProfileService.loadMyProfile(fallbackName: displayName);
+    }
     return res.session == null;
   }
 
@@ -114,6 +147,7 @@ class AuthService {
 
   static Future<void> signOut() async {
     await client.auth.signOut();
+    ProfileService.clear();
     _syncProfileNotifiers();
   }
 }

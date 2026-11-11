@@ -6,6 +6,7 @@ import '../services/profile_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
+import 'dialogs.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -33,6 +34,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _toast('Sign in to change your avatar');
       return;
     }
+    if (!await requireInternet(context)) return;
+    if (!mounted) return;
     final hasAvatar =
         (ProfileService.current.value?.avatarUrl ?? authAvatarUrl.value)
                 ?.isNotEmpty ==
@@ -66,7 +69,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               if (hasAvatar)
                 ListTile(
-                  leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  leading:
+                      const Icon(Icons.delete_outline, color: Colors.redAccent),
                   title: const Text('Remove photo',
                       style: TextStyle(color: Colors.redAccent)),
                   onTap: () => Navigator.pop(ctx, 'remove'),
@@ -133,10 +137,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         MapEntry('Rank', rank),
                         MapEntry(
                             'Score', '${useCloud ? cloud.score : s.score}'),
-                        MapEntry('Played',
-                            '${useCloud ? cloud.played : s.played}'),
                         MapEntry(
-                            'Wins', '${useCloud ? cloud.wins : s.wins}'),
+                            'Played', '${useCloud ? cloud.played : s.played}'),
+                        MapEntry('Wins', '${useCloud ? cloud.wins : s.wins}'),
                       ],
                       avatarBusy: _avatarBusy,
                       onAvatarTap: _avatarActions,
@@ -242,11 +245,11 @@ class _ProfileHeaderCard extends StatelessWidget {
                   builder: (_, name, __) => Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                        const Tag('Player 042'),
-                        Text(name,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w700)),
-                      ]))),
+                            const Tag('Player 042'),
+                            Text(name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700)),
+                          ]))),
           const CoinChip(),
         ]),
         const SizedBox(height: 12),

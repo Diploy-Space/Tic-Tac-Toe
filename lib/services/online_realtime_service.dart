@@ -149,6 +149,46 @@ class OnlineRealtimeService {
     await snapFuture;
   }
 
+  /// Resign: server awards the win to the opponent and settles matches.
+  static Future<OnlineRoomState?> forfeit() async {
+    final roomId = _roomId;
+    if (roomId == null) {
+      error.value = 'No active room';
+      return null;
+    }
+    if (submitInFlight.value) return state.value;
+    submitInFlight.value = true;
+    error.value = null;
+    try {
+      final raw = await _db.rpc(
+        'forfeit_online_room',
+        params: {'p_room_id': roomId},
+      );
+      final map = _asMap(raw);
+      if (map == null) {
+        error.value = 'Unexpected forfeit response';
+        await fetchSnapshot(roomId);
+        return state.value;
+      }
+      if ('${map['status']}' == 'error') {
+        error.value = '${map['message'] ?? 'Forfeit failed'}';
+        await fetchSnapshot(roomId);
+        return state.value;
+      }
+      final snap = OnlineRoomState.fromJson(map);
+      _applyIfNewer(snap);
+      error.value = null;
+      return snap;
+    } catch (e, st) {
+      debugPrint('OnlineRealtimeService.forfeit: $e\n$st');
+      error.value = AuthService.messageFromError(e);
+      await fetchSnapshot(roomId);
+      return null;
+    } finally {
+      submitInFlight.value = false;
+    }
+  }
+
   /// Optimistic paint, then server ACK. Rolls back via snapshot on failure.
   static Future<OnlineRoomState?> submitMove(int cellIndex) async {
     final roomId = _roomId;
@@ -158,7 +198,7 @@ class OnlineRealtimeService {
       return null;
     }
     if (submitInFlight.value) return current;
-    if (!current.isMyTurn) return current;
+    if (current.isFinished || !current.isMyTurn) return current;
     if (cellIndex < 0 ||
         cellIndex >= current.cells.length ||
         current.cells[cellIndex] != null) {

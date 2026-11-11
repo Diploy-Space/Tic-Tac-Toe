@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../models.dart';
 import '../models/cloud_match.dart';
 import 'auth_service.dart';
+import 'connectivity_service.dart';
 import 'match_repository.dart';
 
 /// Result of attempting to sync a finished match to Supabase.
@@ -124,6 +125,12 @@ class MatchSyncService {
     required GameArgs args,
     required int coinDelta,
   }) async {
+    // Only sync when confirmed online — avoids misleading cloud errors offline.
+    if (!ConnectivityService.instance.isOnline) {
+      debugPrint('MatchSync: skipped (not online)');
+      return MatchSyncResult.skipped;
+    }
+
     final session = AuthService.session;
     final uid = AuthService.user?.id;
     if (session == null || uid == null) {

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models.dart';
 import 'auth_service.dart';
+import 'connectivity_service.dart';
 import 'friend_service.dart';
 import 'match_sync_service.dart';
 import 'progress_repository.dart';
@@ -66,7 +67,8 @@ class ProgressSyncService {
     ensureMissionResets();
     if (playerStats.claimedMissions.contains(missionId)) return;
 
-    if (AuthService.isSignedIn) {
+    // Cloud claim only when reachable; local reward still applies offline.
+    if (AuthService.isSignedIn && ConnectivityService.instance.isOnline) {
       await ProgressRepository.claimMission(
         missionId: missionId,
         periodKey: periodKeyForMission(missionId),
@@ -98,9 +100,11 @@ class ProgressSyncService {
     };
 
     final have = {...unlockedAchievements.value};
+    final canCloud =
+        AuthService.isSignedIn && ConnectivityService.instance.isOnline;
     for (final e in candidates.entries) {
       if (!e.value || have.contains(e.key)) continue;
-      if (AuthService.isSignedIn) {
+      if (canCloud) {
         await ProgressRepository.unlockAchievement(e.key);
       }
       have.add(e.key);

@@ -1,13 +1,38 @@
 import 'package:flutter/material.dart';
+import '../services/connectivity_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
 import 'dialogs.dart';
 
-/// Show this when online features are used without a connection.
-/// TODO: detect connectivity with the connectivity_plus package and push '/offline'.
-class OfflineScreen extends StatelessWidget {
+/// Shown when online features are used without a connection.
+class OfflineScreen extends StatefulWidget {
   const OfflineScreen({super.key});
+
+  @override
+  State<OfflineScreen> createState() => _OfflineScreenState();
+}
+
+class _OfflineScreenState extends State<OfflineScreen> {
+  bool _retrying = false;
+
+  Future<void> _tryAgain() async {
+    if (_retrying) return;
+    setState(() => _retrying = true);
+    final online = await ConnectivityService.instance.retry();
+    if (!mounted) return;
+    setState(() => _retrying = false);
+    if (online) {
+      Navigator.maybePop(context);
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Still offline. Check your connection and try again.'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
@@ -23,7 +48,10 @@ class OfflineScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(color: C.muted, fontSize: 15, height: 1.5))),
             const SizedBox(height: 6),
-            PrimaryButton('Try again', onTap: () => Navigator.maybePop(context)),
+            PrimaryButton(
+              _retrying ? 'Checking…' : 'Try again',
+              onTap: _retrying ? null : _tryAgain,
+            ),
             GhostButton('Play vs The Doll offline',
                 onTap: () => startVsDoll(context)),
           ], gap: 16),

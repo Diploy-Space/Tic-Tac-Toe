@@ -28,9 +28,15 @@ class OnlineRoomState {
     this.updatedAt,
   });
 
+  bool get isFinished =>
+      winner != null ||
+      roomStatus == 'finished' ||
+      roomStatus == 'completed' ||
+      roomStatus == 'abandoned';
+
   bool get isMyTurn =>
-      winner == null &&
-      roomStatus == 'active' &&
+      !isFinished &&
+      (roomStatus == 'active' || roomStatus == 'matched') &&
       currentTurn == myMark;
 
   String get opponentId {

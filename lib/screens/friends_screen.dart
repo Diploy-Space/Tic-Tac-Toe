@@ -40,6 +40,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
       _msg('Sign in to find friends');
       return;
     }
+    if (!await requireInternet(context)) return;
+    if (!mounted) return;
     setState(() => _searching = true);
     try {
       final hits = await FriendService.search(q);
@@ -53,6 +55,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   Future<void> _send(ProfileSearchHit hit) async {
+    if (!await requireInternet(context)) return;
+    if (!mounted) return;
     setState(() => _busy = true);
     try {
       await FriendService.sendRequest(hit.id);
@@ -93,6 +97,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
             onPressed: _busy
                 ? null
                 : () async {
+                    if (!await requireInternet(context)) return;
+                    if (!mounted) return;
                     setState(() => _busy = true);
                     try {
                       await FriendService.remove(f.id);
@@ -121,6 +127,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
           SmallButton('Accept', color: C.teal, onTap: _busy
               ? null
               : () async {
+                  if (!await requireInternet(context)) return;
+                  if (!mounted) return;
                   setState(() => _busy = true);
                   try {
                     await FriendService.accept(f.id);
@@ -135,6 +143,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
           SmallButton('Decline', color: C.border2, onTap: _busy
               ? null
               : () async {
+                  if (!await requireInternet(context)) return;
+                  if (!mounted) return;
                   setState(() => _busy = true);
                   try {
                     await FriendService.decline(f.id);

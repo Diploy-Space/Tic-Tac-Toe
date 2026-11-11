@@ -1,10 +1,35 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
 import '../services/auth_service.dart';
+import '../services/connectivity_service.dart';
 import '../services/private_room_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
+import 'offline_ai_picker_screen.dart';
+
+/// Recheck reachability before an online-only action.
+/// When [openOfflineScreen] is true, opens `/offline` instead of a snackbar.
+Future<bool> requireInternet(
+  BuildContext context, {
+  bool openOfflineScreen = false,
+}) async {
+  final online = await ConnectivityService.instance.ensureOnline();
+  if (online) return true;
+  if (!context.mounted) return false;
+  if (openOfflineScreen) {
+    await Navigator.pushNamed(context, '/offline');
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Internet connection required. You can still play vs The Doll offline.',
+        ),
+      ),
+    );
+  }
+  return false;
+}
 
 const _tealFg = Color(0xFF04201F);
 
@@ -141,6 +166,35 @@ Future<void> showHowToDialog(BuildContext c) => showAppDialog<void>(
               child: PrimaryButton('Got it', onTap: () => Navigator.pop(ctx))),
         ]));
 
+/// Generic confirm — returns true if the user confirmed.
+Future<bool?> showConfirmDialog(
+  BuildContext c, {
+  required String title,
+  required String body,
+  String confirmLabel = 'Confirm',
+  String cancelLabel = 'Cancel',
+}) =>
+    showAppDialog<bool>(
+      c,
+      (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [
+            Heading(title, size: 22),
+            const SizedBox(height: 8),
+            Text(body,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: C.muted)),
+            const SizedBox(height: 18),
+            Row(children: [
+              Expanded(
+                  child: GhostButton(cancelLabel,
+                      onTap: () => Navigator.pop(ctx, false))),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: PrimaryButton(confirmLabel,
+                      onTap: () => Navigator.pop(ctx, true))),
+            ]),
+          ]),
+    );
+
 /// Returns true if the user confirmed.
 Future<bool?> showDeleteDialog(BuildContext c) => showAppDialog<bool>(
     c,
@@ -216,6 +270,8 @@ Future<void> startVsDoll(BuildContext c) async {
   Navigator.pushNamed(c, '/game', arguments: GameArgs(size: s, difficulty: d));
 }
 
+/// Unified Random Match: real queue when online, local AI picker when offline.
+/// Never swaps an active online room into AI; never fakes online opponents.
 Future<void> startRandom(BuildContext c) async {
   final stake = await showRandomDialog(c);
   if (stake == null || !c.mounted) return;
@@ -226,13 +282,33 @@ Future<void> startRandom(BuildContext c) async {
   }
   final s = await showGameModeDialog(c);
   if (s == null || !c.mounted) return;
-  Navigator.pushNamed(c, '/matching',
-      arguments: GameArgs(
-          size: s,
-          difficulty: 'Medium',
-          stake: stake,
-          opponentName: 'Rival',
-          quickMatch: true));
+
+  final online = await ConnectivityService.instance.ensureOnline();
+  if (!c.mounted) return;
+
+  if (online) {
+    if (!AuthService.isSignedIn) {
+      ScaffoldMessenger.of(c).showSnackBar(
+        const SnackBar(
+          content: Text('Sign in to play Random Match against real players'),
+        ),
+      );
+      return;
+    }
+    // Existing C1 flow — do not fall through to AI if this later fails.
+    await Navigator.pushNamed(c, '/online-matching', arguments: {
+      'boardSize': s,
+      'stake': stake,
+    });
+    return;
+  }
+
+  // Offline: local AI profiles only — zero matchmaking RPCs.
+  await Navigator.pushNamed(
+    c,
+    '/offline-ai-picker',
+    arguments: OfflineAiPickerArgs(boardSize: s, stake: stake),
+  );
 }
 
 Future<void> startPassAndPlay(BuildContext c) async {
@@ -244,6 +320,10 @@ Future<void> startPassAndPlay(BuildContext c) async {
 
 /// Online hub: find match (C1), create private room, or join by code (C3).
 Future<void> startOnlineMatch(BuildContext c) async {
+  // Connectivity first — do not auto-join anything on restore.
+  if (!await requireInternet(c, openOfflineScreen: true)) return;
+  if (!c.mounted) return;
+
   if (!AuthService.isSignedIn) {
     ScaffoldMessenger.of(c).showSnackBar(
         const SnackBar(content: Text('Sign in to play online multiplayer')));
@@ -265,6 +345,8 @@ Future<void> startOnlineMatch(BuildContext c) async {
   if (mode == null || !c.mounted) return;
 
   if (mode == 'join') {
+    if (!await requireInternet(c, openOfflineScreen: true)) return;
+    if (!c.mounted) return;
     Navigator.pushNamed(c, '/join-private-room');
     return;
   }
@@ -278,6 +360,10 @@ Future<void> startOnlineMatch(BuildContext c) async {
   }
   final s = await showGameModeDialog(c);
   if (s == null || !c.mounted) return;
+
+  // Recheck right before network RPCs / navigation.
+  if (!await requireInternet(c, openOfflineScreen: true)) return;
+  if (!c.mounted) return;
 
   if (mode == 'find') {
     Navigator.pushNamed(c, '/online-matching', arguments: {

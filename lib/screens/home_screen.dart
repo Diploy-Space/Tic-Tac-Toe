@@ -4,6 +4,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
 import '../widgets/extras.dart';
+import '../widgets/offline_banner.dart';
 import 'dialogs.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -42,7 +43,8 @@ class HomeScreen extends StatelessWidget {
                 icon: const Icon(Icons.help_outline, color: C.muted)),
             const CoinChip(),
           ]),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const OfflineBanner(),
+          const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             _Quick(Icons.card_giftcard, 'Daily', '/daily', dot: true),
             _Quick(Icons.track_changes, 'Missions', '/missions'),
             _Quick(Icons.shopping_bag_outlined, 'Shop', '/shop'),
@@ -58,7 +60,7 @@ class HomeScreen extends StatelessWidget {
           _ModeCard(
               shape: ShapeKind.triangle,
               title: 'Random match',
-              subtitle: 'Quick match vs AI',
+              subtitle: 'Online Players · Offline AI',
               number: '02',
               onTap: () => startRandom(context)),
           _ModeCard(

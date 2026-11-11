@@ -56,4 +56,22 @@ void main() {
     });
     expect(s.isMyTurn, isFalse);
   });
+
+  test('finished room blocks turns even if current_turn matches', () {
+    final s = OnlineRoomState.fromJson({
+      'room_id': 'r1',
+      'board_size': 3,
+      'stake': 10,
+      'player_o': 'a',
+      'player_x': 'b',
+      'my_mark': 'O',
+      'board': ['O', 'O', 'O', 'X', 'X', null, null, null, null],
+      'current_turn': 'O',
+      'move_count': 5,
+      'winner': 'O',
+      'room_status': 'finished',
+    });
+    expect(s.isFinished, isTrue);
+    expect(s.isMyTurn, isFalse);
+  });
 }

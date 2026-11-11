@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models.dart';
 import 'services/auth_service.dart';
+import 'services/connectivity_service.dart';
 import 'services/storage.dart';
 import 'theme.dart';
 import 'screens/landing_screen.dart';
@@ -32,6 +33,7 @@ import 'screens/friends_screen.dart';
 import 'screens/tournament_screen.dart';
 import 'screens/customize_screen.dart';
 import 'screens/matching_screen.dart';
+import 'screens/offline_ai_picker_screen.dart';
 import 'screens/online_matching_screen.dart';
 import 'screens/online_game_screen.dart';
 import 'screens/private_room_lobby_screen.dart';
@@ -44,6 +46,7 @@ Future<void> main() async {
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
   await AppStorage.init();
   await AuthService.init();
+  await ConnectivityService.instance.init();
   runApp(const TicTacApp());
 }
 
@@ -55,6 +58,64 @@ class TicTacApp extends StatefulWidget {
 
 class _TicTacAppState extends State<TicTacApp> {
   final _nav = GlobalKey<NavigatorState>();
+
+  /// Only these screens may be replaced by post-login `/home` redirect.
+  static const _authEntryRoutes = {
+    '/',
+    '/signin',
+    '/signup',
+    '/verify',
+    '/forgot',
+    '/intro',
+    '/logo',
+  };
+
+  /// In-app play routes — never clear the stack on re-emitted SIGNED_IN.
+  static const _protectFromAuthRedirect = {
+    '/home',
+    '/online-matching',
+    '/online-room',
+    '/private-room-lobby',
+    '/join-private-room',
+    '/offline-ai-picker',
+    '/matching',
+    '/game',
+    '/profile',
+    '/friends',
+    '/ranks',
+    '/history',
+    '/stats',
+    '/settings',
+    '/shop',
+    '/missions',
+    '/achievements',
+    '/daily',
+    '/events',
+    '/customize',
+  };
+
+  String? _currentRouteName() {
+    final nav = _nav.currentState;
+    if (nav == null) return null;
+    // Prefer ModalRoute name from navigator context (safer than popUntil).
+    final ctx = _nav.currentContext;
+    if (ctx != null) {
+      final named = ModalRoute.of(ctx)?.settings.name;
+      if (named != null) return named;
+    }
+    String? name;
+    nav.popUntil((route) {
+      name = route.settings.name;
+      return true;
+    });
+    return name;
+  }
+
+  @override
+  void dispose() {
+    ConnectivityService.instance.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -72,8 +133,17 @@ class _TicTacAppState extends State<TicTacApp> {
               ?.pushNamedAndRemoveUntil('/reset-password', (route) => false);
           return;
         }
-        _nav.currentState
-            ?.pushNamedAndRemoveUntil('/home', (route) => false);
+        // Re-emitted SIGNED_IN must not cancel matchmaking / wipe in-app stack.
+        final route = _currentRouteName();
+        debugPrint('Auth signedIn; currentRoute=$route');
+        if (route != null && _protectFromAuthRedirect.contains(route)) {
+          return;
+        }
+        if (route != null && _authEntryRoutes.contains(route)) {
+          _nav.currentState
+              ?.pushNamedAndRemoveUntil('/home', (route) => false);
+        }
+        // route == null → no-op (do not guess / wipe)
       } else if (data.event == AuthChangeEvent.signedOut) {
         AuthService.pendingPasswordReset = false;
       }
@@ -118,6 +188,7 @@ class _TicTacAppState extends State<TicTacApp> {
           '/events': (_) => const TournamentScreen(),
           '/customize': (_) => const CustomizeScreen(),
           '/matching': (_) => const MatchingScreen(),
+          '/offline-ai-picker': (_) => const OfflineAiPickerScreen(),
           '/online-matching': (_) => const OnlineMatchingScreen(),
           '/online-room': (_) => const OnlineGameScreen(),
           '/private-room-lobby': (_) => const PrivateRoomLobbyScreen(),

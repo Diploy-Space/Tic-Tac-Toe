@@ -74,6 +74,12 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen> {
           ),
           PrimaryButton(_busy ? 'Joining…' : 'Join room',
               onTap: _busy ? null : _join),
+          GhostButton(
+            'Scan QR code',
+            onTap: _busy
+                ? null
+                : () => Navigator.pushNamed(context, '/scan-private-room'),
+          ),
         ]),
       ),
     );

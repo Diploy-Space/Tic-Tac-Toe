@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../models/challenge_args.dart';
 import '../models/cloud_match.dart';
 import '../services/auth_service.dart';
 import '../services/match_sync_service.dart';
@@ -91,7 +92,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           onTap: () => Navigator.pushNamed(
             context,
             '/public-profile',
-            arguments: e.userId,
+            arguments: PublicProfileArgs(
+              userId: e.userId,
+              username: e.username,
+              avatarUrl: e.avatarUrl,
+              rank: e.rank,
+              score: e.score,
+              wins: e.wins,
+            ),
           ),
           borderRadius: BorderRadius.circular(14),
           child: Row(children: [

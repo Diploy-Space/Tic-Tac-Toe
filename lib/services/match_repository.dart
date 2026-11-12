@@ -73,13 +73,18 @@ class MatchRepository {
   static Future<LeaderboardEntry?> fetchOwnLeaderboardRow() async {
     final uid = _db.auth.currentUser?.id;
     if (uid == null) return null;
+    return fetchLeaderboardEntry(uid);
+  }
+
+  /// Public leaderboard row for any user (rank / score / wins).
+  static Future<LeaderboardEntry?> fetchLeaderboardEntry(String userId) async {
     final row = await _db
         .from('leaderboard')
         .select(
           'user_id, username, avatar_url, played, wins, losses, draws, '
           'score, win_rate, rank',
         )
-        .eq('user_id', uid)
+        .eq('user_id', userId)
         .maybeSingle();
     if (row == null) return null;
     return LeaderboardEntry.fromJson(Map<String, dynamic>.from(row));

@@ -28,8 +28,24 @@ class SettingsScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Column(children: [
                 MenuTile(Icons.translate, 'Language', onTap: () => go('/language')),
+                MenuTile(Icons.sports_esports_outlined, 'Challenges',
+                    onTap: () => go('/challenges')),
+                MenuTile(Icons.lock_outline, 'Challenge privacy',
+                    onTap: () => go('/challenge-privacy')),
+                MenuTile(Icons.chat_bubble_outline, 'Chat rules',
+                    onTap: () => go('/chat-rules')),
+                MenuTile(Icons.bolt_outlined, 'Quick chat demo',
+                    onTap: () => go('/ephemeral-chat')),
+                MenuTile(Icons.ondemand_video_outlined, 'Ad placement',
+                    onTap: () => go('/ad-placement')),
+                MenuTile(Icons.wifi_off_outlined, 'Connection demo',
+                    onTap: () => go('/connection-unstable')),
                 MenuTile(Icons.phone_outlined, 'Contact & about', onTap: () => go('/contact')),
                 MenuTile(Icons.description_outlined, 'Privacy & terms', onTap: () => go('/privacy')),
+                MenuTile(Icons.shield_outlined, 'Admin moderation',
+                    onTap: () => go('/admin-moderation')),
+                MenuTile(Icons.emoji_events_outlined, 'Admin tournament',
+                    onTap: () => go('/admin-tournament')),
                 MenuTile(Icons.star_outline, 'Rate the app', onTap: () {
                   // TODO: use the in_app_review package.
                   ScaffoldMessenger.of(context).showSnackBar(

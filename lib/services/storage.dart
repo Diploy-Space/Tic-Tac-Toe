@@ -15,9 +15,67 @@ class AppStorage {
   static const _kBoard = 'equippedBoard';
   static const _kAvatar = 'equippedAvatar';
   static const _kStats = 'playerStats';
+  static const _kBlocked = 'blockedPlayers';
+  static const _kChallengeWho = 'challengePrivacyWho';
+  static const _kFreeVideosDay = 'freeVideosDay';
+  static const _kFreeVideosUsed = 'freeVideosUsed';
 
   static SharedPreferences? _prefs;
   static bool _bound = false;
+
+  static int get challengePrivacyWho =>
+      _prefs?.getInt(_kChallengeWho) ?? 0;
+
+  static Future<void> setChallengePrivacyWho(int v) async {
+    await _prefs?.setInt(_kChallengeWho, v.clamp(0, 2));
+  }
+
+  static String get _todayKey {
+    final n = DateTime.now();
+    return '${n.year}-${n.month}-${n.day}';
+  }
+
+  static int get freeVideosUsedToday {
+    final p = _prefs;
+    if (p == null) return 0;
+    if (p.getString(_kFreeVideosDay) != _todayKey) return 0;
+    return p.getInt(_kFreeVideosUsed) ?? 0;
+  }
+
+  static Future<void> incrementFreeVideosUsed() async {
+    final p = _prefs;
+    if (p == null) return;
+    if (p.getString(_kFreeVideosDay) != _todayKey) {
+      await p.setString(_kFreeVideosDay, _todayKey);
+      await p.setInt(_kFreeVideosUsed, 1);
+      return;
+    }
+    await p.setInt(_kFreeVideosUsed, freeVideosUsedToday + 1);
+  }
+
+  static bool isPlayerBlocked(String userId) {
+    final id = userId.trim();
+    if (id.isEmpty) return false;
+    return _prefs?.getStringList(_kBlocked)?.contains(id) ?? false;
+  }
+
+  static Future<void> blockPlayer(String userId) async {
+    final id = userId.trim();
+    if (id.isEmpty || _prefs == null) return;
+    final list = _prefs!.getStringList(_kBlocked) ?? <String>[];
+    if (!list.contains(id)) {
+      list.add(id);
+      await _prefs!.setStringList(_kBlocked, list);
+    }
+  }
+
+  static Future<void> unblockPlayer(String userId) async {
+    final id = userId.trim();
+    if (id.isEmpty || _prefs == null) return;
+    final list = _prefs!.getStringList(_kBlocked) ?? <String>[];
+    list.remove(id);
+    await _prefs!.setStringList(_kBlocked, list);
+  }
 
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();

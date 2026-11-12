@@ -1,0 +1,14 @@
+# Supabase local/CLI config for project gaiyalhrcozftudbmzgb
+# Apply remote migrations via Dashboard SQL Editor or:
+#   supabase link --project-ref gaiyalhrcozftudbmzgb
+#   supabase db push
+
+project_id = "gaiyalhrcozftudbmzgb"
+
+[api]
+enabled = true
+port = 54321
+
+[db]
+port = 54322
+major_version = 15

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../models/moderation_models.dart';
 import '../services/auth_service.dart';
+import '../services/moderation_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
@@ -31,6 +33,22 @@ class _SignInScreenState extends State<SignInScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  void _routeAfterAuth() {
+    final s = ModerationService.status.value;
+    if (s?.accountStatus == AccountStatus.suspended) {
+      Navigator.pushNamedAndRemoveUntil(
+          context, '/account-suspended', (r) => false);
+      return;
+    }
+    if (s?.accountStatus == AccountStatus.underReview ||
+        (s?.hasActiveAppeal ?? false)) {
+      Navigator.pushNamedAndRemoveUntil(
+          context, '/appeal-under-review', (r) => false);
+      return;
+    }
+    _goHome();
+  }
+
   Future<void> _signIn() async {
     final email = _email.text.trim();
     final password = _password.text;
@@ -42,7 +60,7 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       await AuthService.signIn(email: email, password: password);
       if (!mounted) return;
-      _goHome();
+      _routeAfterAuth();
     } catch (e) {
       if (!mounted) return;
       if (AuthService.isEmailNotConfirmed(e)) {

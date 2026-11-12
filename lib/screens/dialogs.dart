@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../models/moderation_models.dart';
 import '../services/auth_service.dart';
 import '../services/connectivity_service.dart';
+import '../services/moderation_service.dart';
 import '../services/private_room_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -29,6 +31,41 @@ Future<bool> requireInternet(
     );
   }
   return false;
+}
+
+/// Fail-closed gate for online multiplayer / matchmaking.
+Future<bool> requireActiveAccount(BuildContext context) async {
+  if (!AuthService.isSignedIn) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sign in required')),
+    );
+    return false;
+  }
+  var s = ModerationService.status.value;
+  s ??= await ModerationService.refresh();
+  if (!context.mounted) return false;
+  if (s == null || s.accountStatus == AccountStatus.unknown) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ModerationService.error.value ??
+              'Could not verify account status. Try again.',
+        ),
+      ),
+    );
+    return false;
+  }
+  if (s.accountStatus == AccountStatus.suspended) {
+    Navigator.pushNamedAndRemoveUntil(
+        context, '/account-suspended', (r) => false);
+    return false;
+  }
+  if (s.accountStatus == AccountStatus.underReview) {
+    Navigator.pushNamedAndRemoveUntil(
+        context, '/appeal-under-review', (r) => false);
+    return false;
+  }
+  return s.accountStatus == AccountStatus.active;
 }
 
 const _tealFg = Color(0xFF04201F);
@@ -295,6 +332,8 @@ Future<void> startRandom(BuildContext c) async {
       );
       return;
     }
+    if (!await requireActiveAccount(c)) return;
+    if (!c.mounted) return;
     // Existing C1 flow — do not fall through to AI if this later fails.
     await Navigator.pushNamed(c, '/online-matching', arguments: {
       'boardSize': s,
@@ -329,6 +368,8 @@ Future<void> startOnlineMatch(BuildContext c) async {
         const SnackBar(content: Text('Sign in to play online multiplayer')));
     return;
   }
+  if (!await requireActiveAccount(c)) return;
+  if (!c.mounted) return;
   final mode = await showAppDialog<String>(
     c,
     (_) => const _ChoiceDialog<String>(

@@ -4,8 +4,10 @@ import '../config/supabase_config.dart';
 import '../models.dart';
 import 'friend_service.dart';
 import 'match_sync_service.dart';
+import 'moderation_service.dart';
 import 'profile_service.dart';
 import 'progress_sync_service.dart';
+import 'wallet_service.dart';
 
 class AuthService {
   AuthService._();
@@ -45,6 +47,8 @@ class AuthService {
     if (isSignedIn) {
       // Fire-and-forget; UI listens via ValueNotifiers.
       ProfileService.loadMyProfile(fallbackName: displayName);
+      ModerationService.refresh();
+      WalletService.refresh();
       MatchSyncService.refresh().then((_) async {
         await FriendService.refresh();
         await ProgressSyncService.refresh();
@@ -57,6 +61,8 @@ class AuthService {
         case AuthChangeEvent.tokenRefreshed:
         case AuthChangeEvent.userUpdated:
           await ProfileService.loadMyProfile(fallbackName: displayName);
+          await ModerationService.refresh();
+          await WalletService.refresh();
           await MatchSyncService.refresh();
           await FriendService.refresh();
           await ProgressSyncService.refresh();
@@ -66,6 +72,8 @@ class AuthService {
           MatchSyncService.clear();
           FriendService.clear();
           ProgressSyncService.clear();
+          ModerationService.clear();
+          WalletService.clear();
           _syncProfileNotifiers();
           break;
         default:
@@ -111,6 +119,7 @@ class AuthService {
     );
     _syncProfileNotifiers();
     await ProfileService.loadMyProfile(fallbackName: displayName);
+    await ModerationService.refresh();
     await MatchSyncService.refresh();
     return res;
   }
@@ -192,6 +201,7 @@ class AuthService {
     await client.auth.signOut();
     ProfileService.clear();
     MatchSyncService.clear();
+    ModerationService.clear();
     _syncProfileNotifiers();
   }
 }

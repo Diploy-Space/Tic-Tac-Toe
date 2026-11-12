@@ -154,6 +154,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           AppCard(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Column(children: [
+                MenuTile(Icons.person_outline, 'Edit profile',
+                    onTap: () => go('/edit-profile')),
+                MenuTile(Icons.account_balance_wallet_outlined, 'Wallet',
+                    onTap: () => go('/wallet')),
                 MenuTile(Icons.bar_chart, 'Stats', onTap: () => go('/stats')),
                 MenuTile(Icons.emoji_events_outlined, 'Achievements',
                     onTap: () => go('/achievements')),

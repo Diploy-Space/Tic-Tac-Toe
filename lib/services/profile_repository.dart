@@ -6,13 +6,28 @@ class ProfileRepository {
 
   static SupabaseClient get _db => Supabase.instance.client;
 
+  static Map<String, dynamic>? _asMap(dynamic raw) {
+    if (raw is Map<String, dynamic>) return raw;
+    if (raw is Map) return Map<String, dynamic>.from(raw);
+    return null;
+  }
+
   static Future<UserProfile?> fetchOwn() async {
     final uid = _db.auth.currentUser?.id;
     if (uid == null) return null;
+    try {
+      final raw = await _db.rpc('get_my_profile');
+      final map = _asMap(raw);
+      if (map != null && '${map['status']}' == 'ok') {
+        return UserProfile.fromJson(map);
+      }
+    } catch (_) {
+      // Migration not applied yet — fall back to public view.
+    }
     return fetchById(uid);
   }
 
-  /// Public profile by UUID — never includes email.
+  /// Public profile by UUID — never includes email/phone.
   static Future<UserProfile?> fetchById(String userId) async {
     final row = await _db
         .from('public_profiles')
@@ -39,5 +54,22 @@ class ProfileRepository {
     final uid = _db.auth.currentUser?.id;
     if (uid == null) throw Exception('Not signed in');
     await _db.from('profiles').update({'avatar_url': url}).eq('id', uid);
+  }
+
+  static Future<UserProfile> updateContact({
+    required String callingCode,
+    required String nationalNumber,
+    required String countryIso2,
+  }) async {
+    final raw = await _db.rpc('update_my_profile_contact', params: {
+      'p_calling_code': callingCode,
+      'p_national_number': nationalNumber,
+      'p_country_iso2': countryIso2,
+    });
+    final map = _asMap(raw);
+    if (map == null || '${map['status']}' != 'ok') {
+      throw Exception('${map?['message'] ?? 'Update failed'}');
+    }
+    return UserProfile.fromJson(map);
   }
 }

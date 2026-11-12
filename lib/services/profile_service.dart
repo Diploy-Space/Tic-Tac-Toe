@@ -103,4 +103,18 @@ class ProfileService {
       authAvatarUrl.value = null;
     }
   }
+
+  static Future<UserProfile> updateContact({
+    required String callingCode,
+    required String nationalNumber,
+    required String countryIso2,
+  }) async {
+    final p = await ProfileRepository.updateContact(
+      callingCode: callingCode,
+      nationalNumber: nationalNumber,
+      countryIso2: countryIso2,
+    );
+    _apply(p);
+    return p;
+  }
 }

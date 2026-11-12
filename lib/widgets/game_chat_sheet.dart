@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../services/game_chat_service.dart';
 import '../theme.dart';
 import 'extras.dart';
+import 'report_user_sheet.dart';
 
 /// Opens in-game chat bottom sheet for a real PvP room.
 Future<void> openGameChatSheet(BuildContext context, {required String roomId}) {
@@ -111,6 +112,17 @@ class _GameChatPanelState extends State<GameChatPanel> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+              ),
+              TextButton(
+                onPressed: () => openReportUserSheet(
+                  context,
+                  roomId: widget.roomId,
+                ),
+                child: const Text('Report',
+                    style: TextStyle(
+                        color: C.danger,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13)),
               ),
               IconButton(
                 tooltip: 'Close',

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/multiplayer_match.dart';
 import '../services/auth_service.dart';
 import '../services/online_realtime_service.dart';
 import '../services/private_room_service.dart';
+import '../services/qr_code_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -63,7 +65,6 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
     if (_navigated || !mounted) return;
     _navigated = true;
     OnlineRealtimeService.state.removeListener(_onState);
-    // Detach lobby subscription; game screen re-attaches.
     OnlineRealtimeService.detach().then((_) {
       if (!mounted) return;
       Navigator.pushReplacementNamed(
@@ -85,6 +86,16 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Room code copied')));
+  }
+
+  Future<void> _share() async {
+    try {
+      await QrCodeService.shareRoomCode(code);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AuthService.messageFromError(e))));
+    }
   }
 
   Future<void> _cancel() async {
@@ -145,8 +156,33 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: QrImageView(
+                          data: QrCodeService.encodeRoomCode(code),
+                          version: QrVersions.auto,
+                          size: 180,
+                          backgroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Center(
+                      child: Text(
+                        'Same code as above — scan to join',
+                        style: TextStyle(color: C.muted, fontSize: 12),
+                      ),
+                    ),
                     const SizedBox(height: 14),
                     PrimaryButton('Copy code', onTap: _busy ? null : _copy),
+                    const SizedBox(height: 10),
+                    GhostButton('Share code', onTap: _busy ? null : _share),
                     const SizedBox(height: 12),
                     Text(
                       'Board ${boardSize}×$boardSize · Stake $stake\n'

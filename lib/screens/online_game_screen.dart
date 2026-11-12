@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models.dart';
@@ -26,12 +28,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   bool _attached = false;
   bool _resultShown = false;
   String? _listenedRoomId;
+  Timer? _reconnectTimer;
+  int _reconnectLeft = 30;
+  bool _showingUnstable = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     OnlineRealtimeService.state.addListener(_onRoomChanged);
+    OnlineRealtimeService.connected.addListener(_onConnectionChanged);
   }
 
   @override
@@ -55,11 +61,52 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
 
   @override
   void dispose() {
+    _reconnectTimer?.cancel();
+    OnlineRealtimeService.connected.removeListener(_onConnectionChanged);
     OnlineRealtimeService.state.removeListener(_onRoomChanged);
     WidgetsBinding.instance.removeObserver(this);
     GameChatService.detach();
     OnlineRealtimeService.detach();
     super.dispose();
+  }
+
+  void _onConnectionChanged() {
+    final live = OnlineRealtimeService.connected.value;
+    final room = OnlineRealtimeService.state.value;
+    if (!mounted || room == null || room.isFinished || _resultShown) return;
+    if (live) {
+      _reconnectTimer?.cancel();
+      _reconnectTimer = null;
+      if (_showingUnstable) setState(() => _showingUnstable = false);
+      return;
+    }
+    if (_reconnectTimer != null) return;
+    _reconnectLeft = 30;
+    setState(() => _showingUnstable = true);
+    _reconnectTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      if (!mounted) return;
+      if (OnlineRealtimeService.connected.value) {
+        _reconnectTimer?.cancel();
+        _reconnectTimer = null;
+        setState(() => _showingUnstable = false);
+        return;
+      }
+      if (_reconnectLeft <= 1) {
+        _reconnectTimer?.cancel();
+        _reconnectTimer = null;
+        await GameChatService.detach();
+        await OnlineRealtimeService.detach();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/match-abandoned',
+          (r) => false,
+        );
+        return;
+      }
+      setState(() => _reconnectLeft--);
+      OnlineRealtimeService.refresh();
+    });
   }
 
   bool _chatEligible(OnlineRoomState room) {
@@ -95,48 +142,25 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   }
 
   Future<void> _showServerResult(OnlineRoomState room) async {
-    // Cloud history was settled server-side; refresh signed-in stats if possible.
     MatchSyncService.refresh();
-
-    final String title;
-    final String subtitle;
-    final Widget art;
-    String? coinText;
-    if (room.winner == 'draw') {
-      title = 'Draw';
-      subtitle = 'Board is full — server confirmed.';
-      art = const Row(mainAxisSize: MainAxisSize.min, children: [
-        ShapeIcon(ShapeKind.circle, size: 40),
-        SizedBox(width: 8),
-        ShapeIcon(ShapeKind.triangle, size: 40),
-        SizedBox(width: 8),
-        ShapeIcon(ShapeKind.square, size: 40),
-      ]);
-    } else if (room.winner == room.myMark) {
-      title = 'You win';
-      subtitle = 'Result verified by the server.';
-      coinText = room.stake > 0 ? '+${room.stake} stake' : null;
-      art = const PlayerFace(size: 100);
-    } else {
-      title = 'You lose';
-      subtitle = 'Result verified by the server.';
-      coinText = room.stake > 0 ? '-${room.stake} stake' : null;
-      art = const DollFace(size: 100);
-    }
-
-    if (!mounted) return;
-    await showResultDialog(
-      context,
-      art: art,
-      title: title,
-      subtitle: subtitle,
-      coinText: coinText,
-    );
-    if (!mounted) return;
+    _reconnectTimer?.cancel();
+    final victory = room.winner == room.myMark;
+    final draw = room.winner == 'draw';
     await GameChatService.detach();
     await OnlineRealtimeService.detach();
     if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/match-result',
+      (r) => false,
+      arguments: {
+        'victory': victory,
+        'draw': draw,
+        'duration': '—',
+        'coins': victory ? room.stake : (draw ? 0 : -room.stake),
+        'stake': room.stake,
+      },
+    );
   }
 
   Future<void> _tap(int i) async {
@@ -272,6 +296,36 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                         : "Opponent's move");
                 const youLabel = 'You';
                 const oppLabel = 'Rival';
+
+                if (_showingUnstable && !live && !room.isFinished) {
+                  return Column(children: [
+                    const TopBar('Online'),
+                    const Spacer(),
+                    const Icon(Icons.wifi_off_rounded,
+                        size: 56, color: C.danger),
+                    const SizedBox(height: 16),
+                    const Heading('Connection unstable', size: 22),
+                    const SizedBox(height: 8),
+                    const Text('Attempting to reconnect…',
+                        style: TextStyle(color: C.muted)),
+                    const SizedBox(height: 20),
+                    Text(
+                      '${_reconnectLeft}s',
+                      style: const TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.w800,
+                          color: C.teal),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'The board is hidden until you are back.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: C.muted),
+                    ),
+                    const Spacer(),
+                    GhostButton('Leave game', onTap: _leave),
+                  ]);
+                }
 
                 return Column(children: [
                   Row(children: [

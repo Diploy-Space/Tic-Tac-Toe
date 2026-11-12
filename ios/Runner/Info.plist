@@ -29,7 +29,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose a profile photo for your account.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Take a profile photo for your account.</string>
+	<string>Scan a private room QR code or take a profile photo.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

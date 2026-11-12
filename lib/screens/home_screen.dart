@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../models/moderation_models.dart';
+import '../services/auth_service.dart';
+import '../services/moderation_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
@@ -7,8 +10,33 @@ import '../widgets/extras.dart';
 import '../widgets/offline_banner.dart';
 import 'dialogs.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _enforceModeration());
+  }
+
+  Future<void> _enforceModeration() async {
+    if (!AuthService.isSignedIn || !mounted) return;
+    final s = ModerationService.status.value ??
+        await ModerationService.refresh();
+    if (!mounted || s == null) return;
+    if (s.accountStatus == AccountStatus.suspended) {
+      Navigator.pushNamedAndRemoveUntil(
+          context, '/account-suspended', (r) => false);
+    } else if (s.accountStatus == AccountStatus.underReview) {
+      Navigator.pushNamedAndRemoveUntil(
+          context, '/appeal-under-review', (r) => false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
@@ -39,14 +67,15 @@ class HomeScreen extends StatelessWidget {
                             ]))),
             IconButton(
                 tooltip: 'How to play',
-                onPressed: () => showHowToDialog(context),
+                onPressed: () =>
+                    Navigator.pushNamed(context, '/how-to-play'),
                 icon: const Icon(Icons.help_outline, color: C.muted)),
             const CoinChip(),
           ]),
           const OfflineBanner(),
           const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             _Quick(Icons.card_giftcard, 'Daily', '/daily', dot: true),
-            _Quick(Icons.track_changes, 'Missions', '/missions'),
+            _Quick(Icons.sports_esports_outlined, 'Challenges', '/challenges'),
             _Quick(Icons.shopping_bag_outlined, 'Shop', '/shop'),
             _Quick(Icons.emoji_events_outlined, 'Events', '/events'),
           ]),

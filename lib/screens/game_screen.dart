@@ -8,6 +8,7 @@ import '../game/board.dart';
 import '../models.dart';
 import '../services/match_sync_service.dart';
 import '../services/progress_sync_service.dart';
+import '../services/wallet_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
@@ -48,8 +49,15 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     board = Board(args.size);
     if (args.stake > 0 && !_stakeTaken) {
       final take = min(args.stake, coins.value);
-      coins.value -= take;
       _stakeTaken = true;
+      unawaited(WalletService.debit(
+        amount: take,
+        reason: 'match_stake',
+        idempotencyKey:
+            'match_stake_${DateTime.now().millisecondsSinceEpoch}',
+        refType: 'match',
+        refId: args.opponentName,
+      ));
     }
     timer = AnimationController(
         vsync: this, duration: const Duration(seconds: turnSeconds))
@@ -177,7 +185,14 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     if (winner == null) {
       // Return stake on draw for quick matches.
       if (args.stake > 0) {
-        coins.value += args.stake;
+        await WalletService.credit(
+          amount: args.stake,
+          reason: 'match_reward',
+          idempotencyKey:
+              'draw_return_${DateTime.now().millisecondsSinceEpoch}',
+          refType: 'match_draw',
+          refId: args.opponentName,
+        );
         coinDelta = 0;
       }
       title = 'Draw';
@@ -195,8 +210,15 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       art = const PlayerFace(size: 100);
     } else if (winner == 'O') {
       final pot = args.stake > 0 ? args.stake * 2 : 10;
-      coins.value += pot;
       coinDelta = args.stake > 0 ? args.stake : 10;
+      await WalletService.credit(
+        amount: pot,
+        reason: 'match_reward',
+        idempotencyKey:
+            'match_win_${DateTime.now().millisecondsSinceEpoch}',
+        refType: 'match',
+        refId: args.opponentName,
+      );
       title = 'You survived';
       subtitle = '${args.opponentName} wants a rematch.';
       coinText = '+$coinDelta coins';
@@ -204,7 +226,16 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     } else {
       // Stake already deducted at start for quick match.
       final loss = args.stake > 0 ? args.stake : min(10, coins.value);
-      if (args.stake == 0) coins.value -= loss;
+      if (args.stake == 0 && loss > 0) {
+        await WalletService.debit(
+          amount: loss,
+          reason: 'match_stake',
+          idempotencyKey:
+              'match_loss_${DateTime.now().millisecondsSinceEpoch}',
+          refType: 'match',
+          refId: args.opponentName,
+        );
+      }
       coinDelta = -loss;
       title = 'Eliminated';
       subtitle = '${args.opponentName} wins this round.';
@@ -250,7 +281,22 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
           _leaveToHome();
           return;
         }
-        coins.value -= args.stake;
+        final ok = await WalletService.debit(
+          amount: args.stake,
+          reason: 'match_stake',
+          idempotencyKey:
+              'match_stake_rematch_${DateTime.now().millisecondsSinceEpoch}',
+          refType: 'match',
+          refId: args.opponentName,
+        );
+        if (!ok) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(
+                  WalletService.error.value ?? 'Not enough coins')));
+          _leaveToHome();
+          return;
+        }
       }
       _cancelPendingAi();
       setState(() {

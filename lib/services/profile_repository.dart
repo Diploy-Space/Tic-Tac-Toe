@@ -72,4 +72,24 @@ class ProfileRepository {
     }
     return UserProfile.fromJson(map);
   }
+
+  /// Username (+ optional phone). Requires migration 017.
+  static Future<UserProfile> updateProfile({
+    required String username,
+    String? callingCode,
+    String? nationalNumber,
+    String? countryIso2,
+  }) async {
+    final raw = await _db.rpc('update_my_profile', params: {
+      'p_username': username,
+      'p_calling_code': callingCode,
+      'p_national_number': nationalNumber,
+      'p_country_iso2': countryIso2,
+    });
+    final map = _asMap(raw);
+    if (map == null || '${map['status']}' != 'ok') {
+      throw Exception('${map?['message'] ?? 'Update failed'}');
+    }
+    return UserProfile.fromJson(map);
+  }
 }

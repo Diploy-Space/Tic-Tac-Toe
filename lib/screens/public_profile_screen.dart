@@ -357,7 +357,6 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Tag('Player 042'),
                             Text(
                               p.username,
                               style: const TextStyle(

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../theme.dart';
 
-enum ShapeKind { circle, triangle, square }
+enum ShapeKind { circle, triangle, square, bullseye }
 
 Paint _fill(Color c) => Paint()..color = c;
 Paint _line(Color c, double w) => Paint()
@@ -48,7 +48,17 @@ class _ShapePainter extends CustomPainter {
             p);
         break;
       case ShapeKind.square:
-        canvas.drawRect(const Rect.fromLTWH(4, 4, 16, 16), p);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(4, 4, 16, 16),
+            const Radius.circular(3),
+          ),
+          p,
+        );
+        break;
+      case ShapeKind.bullseye:
+        canvas.drawCircle(const Offset(12, 12), 8, p);
+        canvas.drawCircle(const Offset(12, 12), 2.8, _fill(color));
         break;
     }
   }

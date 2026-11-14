@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -24,6 +26,7 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
   bool _ready = false;
   bool _busy = false;
   bool _navigated = false;
+  Timer? _poll;
 
   @override
   void didChangeDependencies() {
@@ -38,13 +41,21 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
     _ready = true;
     OnlineRealtimeService.state.addListener(_onState);
     OnlineRealtimeService.attach(roomId);
+    // Safety net if Realtime update is delayed / missed.
+    _poll = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (_navigated) return;
+      OnlineRealtimeService.refresh();
+    });
   }
 
   void _onState() {
     final s = OnlineRealtimeService.state.value;
     if (s == null || _navigated) return;
-    if (s.roomStatus == 'active' && s.hasOpponent) {
+    final ready = s.hasOpponent &&
+        (s.roomStatus == 'active' || s.roomStatus == 'matched');
+    if (ready) {
       _goGame(s.roomId, s.myMark, s.opponentId, s.boardSize, s.stake);
+      return;
     }
     if (s.roomStatus == 'expired' || s.roomStatus == 'cancelled') {
       if (!mounted) return;
@@ -64,6 +75,7 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
   ) {
     if (_navigated || !mounted) return;
     _navigated = true;
+    _poll?.cancel();
     OnlineRealtimeService.state.removeListener(_onState);
     OnlineRealtimeService.detach().then((_) {
       if (!mounted) return;
@@ -116,6 +128,7 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
 
   @override
   void dispose() {
+    _poll?.cancel();
     OnlineRealtimeService.state.removeListener(_onState);
     if (!_navigated) {
       OnlineRealtimeService.detach();

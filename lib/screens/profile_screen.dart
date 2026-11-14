@@ -6,7 +6,6 @@ import '../services/profile_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
-import 'dialogs.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,90 +15,12 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _avatarBusy = false;
-
   @override
   void initState() {
     super.initState();
-    if (AuthService.isSignedIn) MatchSyncService.refresh();
-  }
-
-  void _toast(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
-
-  Future<void> _avatarActions() async {
-    if (!AuthService.isSignedIn) {
-      _toast('Sign in to change your avatar');
-      return;
-    }
-    if (!await requireInternet(context)) return;
-    if (!mounted) return;
-    final hasAvatar =
-        (ProfileService.current.value?.avatarUrl ?? authAvatarUrl.value)
-                ?.isNotEmpty ==
-            true;
-
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: C.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: C.border2,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: Text(hasAvatar ? 'Replace photo' : 'Upload photo'),
-                onTap: () => Navigator.pop(ctx, 'upload'),
-              ),
-              if (hasAvatar)
-                ListTile(
-                  leading:
-                      const Icon(Icons.delete_outline, color: Colors.redAccent),
-                  title: const Text('Remove photo',
-                      style: TextStyle(color: Colors.redAccent)),
-                  onTap: () => Navigator.pop(ctx, 'remove'),
-                ),
-              ListTile(
-                leading: const Icon(Icons.close),
-                title: const Text('Cancel'),
-                onTap: () => Navigator.pop(ctx),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (choice == null || !mounted) return;
-    setState(() => _avatarBusy = true);
-    try {
-      if (choice == 'upload') {
-        await ProfileService.changeAvatarFromGallery();
-        _toast('Avatar updated');
-      } else if (choice == 'remove') {
-        await ProfileService.removeAvatar();
-        _toast('Avatar removed');
-      }
-    } catch (e) {
-      _toast(AuthService.messageFromError(e));
-    } finally {
-      if (mounted) setState(() => _avatarBusy = false);
+    if (AuthService.isSignedIn) {
+      MatchSyncService.refresh();
+      ProfileService.loadMyProfile(retry: false);
     }
   }
 
@@ -141,8 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             'Played', '${useCloud ? cloud.played : s.played}'),
                         MapEntry('Wins', '${useCloud ? cloud.wins : s.wins}'),
                       ],
-                      avatarBusy: _avatarBusy,
-                      onAvatarTap: _avatarActions,
+                      onEdit: () => go('/edit-profile'),
                     );
                   })),
           ValueListenableBuilder<bool>(
@@ -154,18 +74,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           AppCard(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Column(children: [
-                MenuTile(Icons.person_outline, 'Edit profile',
-                    onTap: () => go('/edit-profile')),
-                MenuTile(Icons.account_balance_wallet_outlined, 'Wallet',
-                    onTap: () => go('/wallet')),
                 MenuTile(Icons.bar_chart, 'Stats', onTap: () => go('/stats')),
                 MenuTile(Icons.emoji_events_outlined, 'Achievements',
                     onTap: () => go('/achievements')),
                 MenuTile(Icons.group_outlined, 'Friends',
                     onTap: () => go('/friends')),
-                MenuTile(Icons.edit_outlined, 'Customize',
+                MenuTile(Icons.palette_outlined, 'Customize',
                     onTap: () => go('/customize')),
                 MenuTile(Icons.history, 'History', onTap: () => go('/history')),
+                MenuTile(Icons.receipt_long_outlined, 'Match History',
+                    onTap: () => go('/match-history')),
                 MenuTile(Icons.sports_esports_outlined, 'More games',
                     onTap: () => go('/games')),
                 MenuTile(Icons.settings_outlined, 'Settings',
@@ -177,16 +95,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-/// Same layout as [UserCard], with tappable avatar for upload/replace/delete.
+/// Profile header — edit icon opens Edit Profile (camera lives there).
 class _ProfileHeaderCard extends StatelessWidget {
   final List<MapEntry<String, String>> stats;
-  final bool avatarBusy;
-  final VoidCallback onAvatarTap;
+  final VoidCallback onEdit;
 
   const _ProfileHeaderCard({
     required this.stats,
-    required this.avatarBusy,
-    required this.onAvatarTap,
+    required this.onEdit,
   });
 
   @override
@@ -194,66 +110,48 @@ class _ProfileHeaderCard extends StatelessWidget {
       borderColor: C.magenta,
       child: Column(children: [
         Row(children: [
-          GestureDetector(
-            onTap: avatarBusy ? null : onAvatarTap,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                ValueListenableBuilder<String?>(
-                  valueListenable: authAvatarUrl,
-                  builder: (_, url, __) => Container(
-                    width: 52,
-                    height: 52,
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: C.border2),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ValueListenableBuilder<String?>(
+                valueListenable: authAvatarUrl,
+                builder: (_, url, __) => Container(
+                  width: 52,
+                  height: 52,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: C.border2),
+                  ),
+                  child: ProfileAvatar(url: url, size: 50),
+                ),
+              ),
+              Positioned(
+                right: -2,
+                bottom: -2,
+                child: Material(
+                  color: C.magenta,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onEdit,
+                    child: const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: Icon(Icons.edit, size: 12, color: Colors.white),
                     ),
-                    child: ProfileAvatar(url: url, size: 50),
                   ),
                 ),
-                if (avatarBusy)
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.black.withValues(alpha: 0.45),
-                    ),
-                    child: const Padding(
-                      padding: EdgeInsets.all(14),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                else
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: C.magenta,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.camera_alt,
-                          size: 12, color: Colors.white),
-                    ),
-                  ),
-              ],
-            ),
+              ),
+            ],
           ),
           const SizedBox(width: 12),
           Expanded(
               child: ValueListenableBuilder<String>(
                   valueListenable: authDisplayName,
-                  builder: (_, name, __) => Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Tag('Player 042'),
-                            Text(name,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700)),
-                          ]))),
+                  builder: (_, name, __) => Text(name,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 16)))),
           const CoinChip(),
         ]),
         const SizedBox(height: 12),

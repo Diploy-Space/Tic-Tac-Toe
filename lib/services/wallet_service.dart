@@ -61,11 +61,13 @@ class WalletService {
     return null;
   }
 
-  static void clear() {
+  static void clear({bool clearTransactions = true}) {
     serverBalance.value = null;
     currencyCode.value = 'COIN';
     error.value = null;
-    transactions.value = const [];
+    if (clearTransactions) {
+      transactions.value = const [];
+    }
   }
 
   static void _applyBalance(int bal, String code) {
@@ -77,7 +79,9 @@ class WalletService {
   /// Load wallet + one-time local migrate (capped). Falls back to local coins offline.
   static Future<void> refresh({bool migrateLocal = true}) async {
     if (!_signedIn) {
-      clear();
+      // Keep any local (guest) ledger rows so Free Coins history still shows.
+      clear(clearTransactions: false);
+      serverBalance.value = coins.value;
       return;
     }
     loading.value = true;
@@ -145,6 +149,13 @@ class WalletService {
       if (coins.value < amount) return false;
       coins.value -= amount;
       await AppStorage.save();
+      _prependLocalTx(
+        amount: amount,
+        direction: 'debit',
+        reason: reason,
+        refType: refType,
+        refId: refId,
+      );
       return true;
     }
     final raw = await _db.rpc('wallet_debit', params: {
@@ -164,6 +175,7 @@ class WalletService {
       '${map['currency_code'] ?? currencyCode.value}',
     );
     await AppStorage.save();
+    await loadTransactions(limit: 80);
     return true;
   }
 
@@ -177,6 +189,13 @@ class WalletService {
     if (!_signedIn) {
       coins.value += amount;
       await AppStorage.save();
+      _prependLocalTx(
+        amount: amount,
+        direction: 'credit',
+        reason: reason,
+        refType: refType,
+        refId: refId,
+      );
       return true;
     }
     final raw = await _db.rpc('wallet_credit', params: {
@@ -196,6 +215,28 @@ class WalletService {
       '${map['currency_code'] ?? currencyCode.value}',
     );
     await AppStorage.save();
+    await loadTransactions(limit: 80);
     return true;
+  }
+
+  static void _prependLocalTx({
+    required int amount,
+    required String direction,
+    required String reason,
+    String? refType,
+    String? refId,
+  }) {
+    final tx = WalletTx(
+      id: 'local-${DateTime.now().microsecondsSinceEpoch}',
+      amountMinor: amount,
+      direction: direction,
+      reason: reason,
+      refType: refType,
+      refId: refId,
+      currencyCode: currencyCode.value,
+      balanceAfter: coins.value,
+      createdAt: DateTime.now(),
+    );
+    transactions.value = [tx, ...transactions.value];
   }
 }

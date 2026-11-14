@@ -126,6 +126,12 @@ class ToggleRow extends StatelessWidget {
   final bool last;
   const ToggleRow(this.icon, this.label, this.notifier,
       {super.key, this.last = false});
+
+  void _set(bool next) {
+    if (notifier.value == next) return;
+    notifier.value = next;
+  }
+
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<bool>(
       valueListenable: notifier,
@@ -139,17 +145,30 @@ class ToggleRow extends StatelessWidget {
             Icon(icon, size: 22),
             const SizedBox(width: 14),
             Expanded(
-                child: Text(label,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 15))),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _set(!notifier.value),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Text(label,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 15)),
+                ),
+              ),
+            ),
             Switch(
-                value: v,
-                onChanged: (x) => notifier.value = x,
-                thumbColor: const WidgetStatePropertyAll(Colors.white),
-                trackColor: WidgetStateProperty.resolveWith(
-                    (s) => s.contains(WidgetState.selected) ? C.teal : C.border2),
-                trackOutlineColor:
-                    const WidgetStatePropertyAll(Colors.transparent)),
+              value: v,
+              onChanged: _set,
+              thumbColor: WidgetStateProperty.resolveWith(
+                (s) => Colors.white,
+              ),
+              trackColor: WidgetStateProperty.resolveWith(
+                (s) => s.contains(WidgetState.selected) ? C.teal : C.border2,
+              ),
+              trackOutlineColor:
+                  const WidgetStatePropertyAll(Colors.transparent),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
           ])));
 }
 

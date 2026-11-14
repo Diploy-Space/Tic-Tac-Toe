@@ -57,15 +57,33 @@ class OnlineRealtimeService {
   }
 
   static void _applyIfNewer(OnlineRoomState snap) {
+    // Never apply an older board revision.
     if (snap.moveCount < _appliedMoveCount) return;
-    if (snap.moveCount == _appliedMoveCount &&
-        state.value != null &&
-        state.value!.roomId == snap.roomId &&
-        _sameCells(state.value!.cells, snap.cells)) {
+
+    final prev = state.value;
+    if (prev != null &&
+        prev.roomId == snap.roomId &&
+        snap.moveCount == _appliedMoveCount &&
+        _sameCells(prev.cells, snap.cells) &&
+        !_roomMetaChanged(prev, snap)) {
+      // Same board AND same lobby/meta — skip notifier noise.
       return;
     }
     _appliedMoveCount = snap.moveCount;
     state.value = snap;
+  }
+
+  /// Opponent join / status / turn / winner can change without a new move.
+  static bool _roomMetaChanged(OnlineRoomState a, OnlineRoomState b) {
+    return a.roomStatus != b.roomStatus ||
+        a.playerO != b.playerO ||
+        a.playerX != b.playerX ||
+        a.currentTurn != b.currentTurn ||
+        a.winner != b.winner ||
+        a.myMark != b.myMark ||
+        a.stake != b.stake ||
+        a.boardSize != b.boardSize ||
+        a.chatStopped != b.chatStopped;
   }
 
   static bool _sameCells(List<String?> a, List<String?> b) {
@@ -147,6 +165,13 @@ class OnlineRealtimeService {
     });
 
     await snapFuture;
+  }
+
+  /// Optimistic local flag so both UI paths hide chat immediately.
+  static void markChatStopped() {
+    final prev = state.value;
+    if (prev == null || prev.chatStopped) return;
+    state.value = prev.withChatStopped(true);
   }
 
   /// Resign: server awards the win to the opponent and settles matches.

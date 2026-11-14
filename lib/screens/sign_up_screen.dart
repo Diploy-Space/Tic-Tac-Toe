@@ -67,7 +67,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _toast('Check your email and open the confirmation link');
         Navigator.pushNamed(context, '/verify', arguments: email);
       } else {
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/referral-code', (r) => false);
       }
     } catch (e) {
       _toast(AuthService.messageFromError(e));

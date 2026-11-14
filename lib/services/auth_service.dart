@@ -5,6 +5,7 @@ import '../models.dart';
 import 'friend_service.dart';
 import 'match_sync_service.dart';
 import 'moderation_service.dart';
+import 'privacy_prefs_service.dart';
 import 'profile_service.dart';
 import 'progress_sync_service.dart';
 import 'wallet_service.dart';
@@ -35,6 +36,20 @@ class AuthService {
 
   static String get email => user?.email ?? '';
 
+  /// Best-effort login provider label for Edit Profile (read-only).
+  static String get loginMethodLabel {
+    final identities = user?.identities ?? const [];
+    for (final i in identities) {
+      final p = i.provider.toLowerCase();
+      if (p == 'google') return 'Google';
+      if (p == 'apple') return 'Apple';
+      if (p == 'facebook') return 'Facebook';
+      if (p == 'phone') return 'Phone';
+    }
+    if ((user?.email ?? '').isNotEmpty) return 'Email';
+    return 'Account';
+  }
+
   static Future<void> init() async {
     await Supabase.initialize(
       url: SupabaseConfig.url,
@@ -49,6 +64,7 @@ class AuthService {
       ProfileService.loadMyProfile(fallbackName: displayName);
       ModerationService.refresh();
       WalletService.refresh();
+      PrivacyPrefsService.refresh();
       MatchSyncService.refresh().then((_) async {
         await FriendService.refresh();
         await ProgressSyncService.refresh();
@@ -63,6 +79,7 @@ class AuthService {
           await ProfileService.loadMyProfile(fallbackName: displayName);
           await ModerationService.refresh();
           await WalletService.refresh();
+          await PrivacyPrefsService.refresh();
           await MatchSyncService.refresh();
           await FriendService.refresh();
           await ProgressSyncService.refresh();

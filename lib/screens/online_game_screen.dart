@@ -6,12 +6,15 @@ import '../models.dart';
 import '../models/game_chat_message.dart';
 import '../models/multiplayer_match.dart';
 import '../models/online_room_state.dart';
+import '../services/friend_repository.dart';
 import '../services/game_chat_service.dart';
 import '../services/match_sync_service.dart';
 import '../services/online_realtime_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/extras.dart';
 import '../widgets/game_chat_sheet.dart';
+import '../widgets/match_emoji_reaction.dart';
 import '../widgets/painters.dart';
 import 'dialogs.dart';
 
@@ -32,12 +35,25 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   int _reconnectLeft = 30;
   bool _showingUnstable = false;
 
+  String _myName = 'You';
+  String _oppName = 'Opponent';
+  String? _myAvatar;
+  String? _oppAvatar;
+  String? _loadedForRoom;
+
+  /// Ludo-style floating reactions (can stack briefly).
+  final List<MatchEmojiBurst> _bursts = [];
+  final Map<int, Timer> _burstTimers = {};
+  int _burstSeq = 0;
+  String? _lastHandledIncomingId;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     OnlineRealtimeService.state.addListener(_onRoomChanged);
     OnlineRealtimeService.connected.addListener(_onConnectionChanged);
+    GameChatService.lastIncoming.addListener(_onIncomingChat);
   }
 
   @override
@@ -62,12 +78,96 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   @override
   void dispose() {
     _reconnectTimer?.cancel();
+    for (final t in _burstTimers.values) {
+      t.cancel();
+    }
+    _burstTimers.clear();
     OnlineRealtimeService.connected.removeListener(_onConnectionChanged);
     OnlineRealtimeService.state.removeListener(_onRoomChanged);
+    GameChatService.lastIncoming.removeListener(_onIncomingChat);
     WidgetsBinding.instance.removeObserver(this);
     GameChatService.detach();
     OnlineRealtimeService.detach();
     super.dispose();
+  }
+
+  void _onIncomingChat() {
+    final m = GameChatService.lastIncoming.value;
+    if (m == null || !mounted || _resultShown) return;
+    if (_lastHandledIncomingId == m.id) return;
+    _lastHandledIncomingId = m.id;
+
+    final text = m.message.trim();
+    if (isMatchEmojiOnly(text)) {
+      _showBurst(text, fromMe: false);
+    } else if (!GameChatService.isSheetOpen) {
+      final preview =
+          text.length > 42 ? '${text.substring(0, 42)}…' : text;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: C.surface,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 88),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: C.teal),
+          ),
+          content: Row(
+            children: [
+              const Icon(Icons.chat_bubble, color: C.teal, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '$_oppName: $preview',
+                  style: const TextStyle(
+                    color: C.text,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          action: SnackBarAction(
+            label: 'Open',
+            textColor: C.magenta,
+            onPressed: () {
+              final room = OnlineRealtimeService.state.value;
+              if (room != null) _openChat(room);
+            },
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+    GameChatService.clearLastIncoming();
+  }
+
+  void _showBurst(String emoji, {required bool fromMe}) {
+    final burst = MatchEmojiBurst(
+      emoji: emoji,
+      fromMe: fromMe,
+      id: ++_burstSeq,
+    );
+    setState(() {
+      _bursts.add(burst);
+      if (_bursts.length > 3) {
+        final old = _bursts.removeAt(0);
+        _burstTimers.remove(old.id)?.cancel();
+      }
+    });
+    _burstTimers[burst.id]?.cancel();
+    _burstTimers[burst.id] = Timer(const Duration(milliseconds: 2300), () {
+      _burstTimers.remove(burst.id);
+      if (!mounted) return;
+      setState(() => _bursts.removeWhere((b) => b.id == burst.id));
+    });
+  }
+
+  Future<void> _sendReact(String emoji) async {
+    if (GameChatService.roomId == null) return;
+    _showBurst(emoji, fromMe: true);
+    await GameChatService.send(emoji);
   }
 
   void _onConnectionChanged() {
@@ -110,6 +210,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   }
 
   bool _chatEligible(OnlineRoomState room) {
+    if (room.chatStopped) return false;
     return InGameChatGate.isRealPlayerVsRealPlayer(
       playerO: room.playerO,
       playerX: room.playerX,
@@ -129,11 +230,40 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     }
   }
 
+  Future<void> _loadProfiles(OnlineRoomState room) async {
+    final key = '${room.roomId}:${room.playerO}:${room.playerX}';
+    if (_loadedForRoom == key) return;
+    _loadedForRoom = key;
+    try {
+      final map = await FriendRepository.profilesByIds([
+        room.playerO,
+        room.playerX,
+      ]);
+      if (!mounted) return;
+      final myId = room.myMark == 'O' ? room.playerO : room.playerX;
+      final oppId = room.opponentId;
+      final me = map[myId];
+      final opp = map[oppId];
+      setState(() {
+        _myName = me?.username ?? authDisplayName.value;
+        if (_myName.trim().isEmpty) _myName = 'You';
+        _oppName = (opp?.username ?? '').trim().isEmpty
+            ? 'Opponent'
+            : opp!.username;
+        _myAvatar = me?.avatarUrl ?? authAvatarUrl.value;
+        _oppAvatar = opp?.avatarUrl;
+      });
+    } catch (_) {
+      // Keep defaults.
+    }
+  }
+
   void _onRoomChanged() {
     final room = OnlineRealtimeService.state.value;
     if (room == null || !mounted) return;
     if (_listenedRoomId != null && room.roomId != _listenedRoomId) return;
     _ensureChatAttached(room);
+    _loadProfiles(room);
     if (room.winner == null || _resultShown) return;
     _resultShown = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -187,7 +317,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       );
       if (ok != true || !mounted) return;
       await OnlineRealtimeService.forfeit();
-      // Result dialog is shown via state listener when winner is set.
       if (OnlineRealtimeService.state.value?.winner == null) {
         await GameChatService.detach();
         await OnlineRealtimeService.detach();
@@ -202,19 +331,48 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
   }
 
-  Widget _player(String mark, String name, bool active) {
+  Future<void> _openChat(OnlineRoomState room) async {
+    if (!_chatEligible(room)) return;
+    await openGameChatSheet(
+      context,
+      roomId: room.roomId,
+      opponentName: _oppName,
+      opponentId: room.opponentId,
+      opponentAvatarUrl: _oppAvatar,
+      myAvatarUrl: _myAvatar,
+      myMark: room.myMark,
+      opponentMark: room.myMark == 'X' ? 'O' : 'X',
+    );
+  }
+
+  Widget _player({
+    required String mark,
+    required String name,
+    required String? avatarUrl,
+    required bool active,
+    required bool isYou,
+  }) {
     final color = mark == 'O' ? C.teal : C.magenta;
     return AppCard(
-        borderColor: active ? color : C.border,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          MarkIcon(isX: mark == 'X', size: 24),
-          const SizedBox(width: 10),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Tag(mark == 'O' ? 'Player O' : 'Player X', color: color),
-            Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
-          ]),
-        ]));
+      borderColor: active ? color : C.border,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        ClipOval(child: ProfileAvatar(url: avatarUrl, size: 36)),
+        const SizedBox(width: 8),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Tag(isYou ? 'You · $mark' : mark, color: color),
+          SizedBox(
+            width: 88,
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+          ),
+        ]),
+      ]),
+    );
   }
 
   Widget _cell(OnlineRoomState s, int i) {
@@ -283,7 +441,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                 }
 
                 final showChat = _chatEligible(room);
-
                 final n = room.boardSize;
                 final mover = room.winner != null
                     ? (room.winner == 'draw'
@@ -294,8 +451,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                     : (room.isMyTurn
                         ? 'Your move'
                         : "Opponent's move");
-                const youLabel = 'You';
-                const oppLabel = 'Rival';
 
                 if (_showingUnstable && !live && !room.isFinished) {
                   return Column(children: [
@@ -327,85 +482,161 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                   ]);
                 }
 
-                return Column(children: [
-                  Row(children: [
-                    Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                            color: C.surface,
-                            borderRadius: BorderRadius.circular(99),
-                            border: Border.all(color: C.border2)),
-                        child: Text(
-                            '$mover · ${live ? 'Live' : 'Reconnecting…'}',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14))),
-                    const Spacer(),
-                    Text('×${room.moveCount}',
-                        style: const TextStyle(color: C.muted)),
-                    if (showChat) ...[
-                      const SizedBox(width: 4),
-                      IconButton(
-                        tooltip: 'Chat',
-                        onPressed: () => openGameChatSheet(
-                          context,
-                          roomId: room.roomId,
-                        ),
-                        icon: const Icon(Icons.chat_bubble_outline,
-                            color: C.teal),
-                      ),
-                    ],
-                    const SizedBox(width: 4),
-                    IconButton(
-                        tooltip: 'Refresh',
-                        onPressed: () => OnlineRealtimeService.refresh(),
-                        icon: const Icon(Icons.refresh, color: C.muted)),
-                  ]),
-                  if (err != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(err,
-                          style:
-                              const TextStyle(color: C.magenta, fontSize: 12)),
-                    ),
-                  const SizedBox(height: 12),
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _player(
-                            'O',
-                            room.myMark == 'O' ? youLabel : oppLabel,
-                            room.currentTurn == 'O' && room.winner == null),
-                        const Text('VS',
-                            style: TextStyle(
-                                color: C.magenta, fontWeight: FontWeight.w800)),
-                        _player(
-                            'X',
-                            room.myMark == 'X' ? youLabel : oppLabel,
-                            room.currentTurn == 'X' && room.winner == null),
+                final oName =
+                    room.myMark == 'O' ? _myName : _oppName;
+                final xName =
+                    room.myMark == 'X' ? _myName : _oppName;
+                final oAvatar =
+                    room.myMark == 'O' ? _myAvatar : _oppAvatar;
+                final xAvatar =
+                    room.myMark == 'X' ? _myAvatar : _oppAvatar;
+
+                return Stack(
+                  children: [
+                    Column(children: [
+                      Row(children: [
+                        Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                                color: C.surface,
+                                borderRadius: BorderRadius.circular(99),
+                                border: Border.all(color: C.border2)),
+                            child: Text(
+                                '$mover · ${live ? 'Live' : 'Reconnecting…'}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14))),
+                        const Spacer(),
+                        Text('×${room.moveCount}',
+                            style: const TextStyle(color: C.muted)),
+                        if (showChat) ...[
+                          const SizedBox(width: 4),
+                          ValueListenableBuilder<int>(
+                            valueListenable: GameChatService.unreadCount,
+                            builder: (_, unread, __) => Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                IconButton(
+                                  tooltip: 'Chat',
+                                  onPressed: () => _openChat(room),
+                                  icon: const Icon(
+                                      Icons.chat_bubble_outline,
+                                      color: C.teal),
+                                ),
+                                if (unread > 0)
+                                  Positioned(
+                                    right: 6,
+                                    top: 6,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: C.magenta,
+                                        borderRadius:
+                                            BorderRadius.circular(99),
+                                      ),
+                                      child: Text(
+                                        unread > 9 ? '9+' : '$unread',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(width: 4),
+                        IconButton(
+                            tooltip: 'Refresh',
+                            onPressed: () =>
+                                OnlineRealtimeService.refresh(),
+                            icon: const Icon(Icons.refresh,
+                                color: C.muted)),
                       ]),
-                  const SizedBox(height: 8),
-                  Text(
-                      'Stake ${room.stake} · ${args?.roomId.substring(0, 8) ?? ''}…',
-                      style: const TextStyle(color: C.muted, fontSize: 12)),
-                  Expanded(
-                      child: Center(
-                          child: AspectRatio(
-                              aspectRatio: 1,
-                              child: Column(children: [
-                                for (var r = 0; r < n; r++)
-                                  Expanded(
-                                      child: Row(children: [
-                                    for (var c = 0; c < n; c++)
-                                      Expanded(child: _cell(room, r * n + c)),
-                                  ])),
-                              ])))),
-                  SizedBox(
-                      width: double.infinity,
-                      child: GhostButton(
-                          room.isFinished ? 'Back to home' : 'Leave game',
-                          onTap: _leave)),
-                ]);
+                      if (err != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(err,
+                              style: const TextStyle(
+                                  color: C.magenta, fontSize: 12)),
+                        ),
+                      const SizedBox(height: 12),
+                      Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                          children: [
+                            _player(
+                              mark: 'O',
+                              name: oName,
+                              avatarUrl: oAvatar,
+                              active: room.currentTurn == 'O' &&
+                                  room.winner == null,
+                              isYou: room.myMark == 'O',
+                            ),
+                            const Text('VS',
+                                style: TextStyle(
+                                    color: C.magenta,
+                                    fontWeight: FontWeight.w800)),
+                            _player(
+                              mark: 'X',
+                              name: xName,
+                              avatarUrl: xAvatar,
+                              active: room.currentTurn == 'X' &&
+                                  room.winner == null,
+                              isYou: room.myMark == 'X',
+                            ),
+                          ]),
+                      const SizedBox(height: 8),
+                      Text(
+                          'Stake ${room.stake} · ${args?.roomId.substring(0, 8) ?? ''}…',
+                          style: const TextStyle(
+                              color: C.muted, fontSize: 12)),
+                      Expanded(
+                          child: Center(
+                              child: AspectRatio(
+                                  aspectRatio: 1,
+                                  child: Column(children: [
+                                    for (var r = 0; r < n; r++)
+                                      Expanded(
+                                          child: Row(children: [
+                                        for (var c = 0; c < n; c++)
+                                          Expanded(
+                                              child: _cell(
+                                                  room, r * n + c)),
+                                      ])),
+                                  ])))),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                          width: double.infinity,
+                          child: GhostButton(
+                              room.isFinished
+                                  ? 'Back to home'
+                                  : 'Leave game',
+                              onTap: _leave)),
+                    ]),
+                    // Ludo-style bursts near the sender's seat.
+                    for (final b in _bursts)
+                      MatchEmojiBurstOverlay(
+                        burst: b,
+                        onLeft: b.fromMe
+                            ? room.myMark == 'O'
+                            : room.myMark != 'O',
+                      ),
+                    if (showChat && !room.isFinished)
+                      Positioned(
+                        right: 4,
+                        bottom: 70,
+                        child: MatchEmojiLauncher(
+                          onPick: _sendReact,
+                        ),
+                      ),
+                  ],
+                );
               },
             ),
           ),

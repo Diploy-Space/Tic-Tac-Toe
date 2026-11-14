@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'l10n/app_localizations.dart';
 import 'models.dart';
+import 'services/app_locale_service.dart';
 import 'services/auth_service.dart';
 import 'services/connectivity_service.dart';
 import 'services/storage.dart';
@@ -15,6 +20,7 @@ import 'screens/leaderboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/public_profile_screen.dart';
 import 'screens/history_screen.dart';
+import 'screens/match_history_screen.dart';
 import 'screens/language_screen.dart';
 import 'screens/more_games_screen.dart';
 import 'screens/contact_about_screen.dart';
@@ -61,16 +67,26 @@ import 'screens/tournament_flow_screens.dart';
 import 'screens/how_to_play_flow_screen.dart';
 import 'screens/shop_reward_flow_screens.dart';
 import 'screens/ad_placement_screen.dart';
+import 'screens/referral_code_screen.dart';
+import 'screens/referral_success_screen.dart';
+import 'services/referral_service.dart';
 import 'models/challenge_args.dart';
 import 'models/moderation_models.dart';
 import 'services/moderation_service.dart';
+import 'services/rewarded_ad_service.dart';
+import 'services/privacy_prefs_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
   await AppStorage.init();
+  PrivacyPrefsService.bind();
+  await AppLocaleService.init();
   await AuthService.init();
   await ConnectivityService.instance.init();
+  // Fire-and-forget so cold start is not blocked by AdMob.
+  unawaited(RewardedAdService.instance.init());
+  unawaited(PrivacyPrefsService.refresh());
   runApp(const TicTacApp());
 }
 
@@ -92,6 +108,7 @@ class _TicTacAppState extends State<TicTacApp> {
     '/forgot',
     '/intro',
     '/logo',
+    '/referral-code',
   };
 
   /// In-app play routes — never clear the stack on re-emitted SIGNED_IN.
@@ -111,6 +128,7 @@ class _TicTacAppState extends State<TicTacApp> {
     '/friends',
     '/ranks',
     '/history',
+    '/match-history',
     '/stats',
     '/settings',
     '/shop',
@@ -152,6 +170,8 @@ class _TicTacAppState extends State<TicTacApp> {
     '/shop-daily-limit',
     '/shop-no-video',
     '/shop-verify-fail',
+    '/referral-code',
+    '/referral-success',
   };
 
   static const _moderationRoutes = {
@@ -202,7 +222,10 @@ class _TicTacAppState extends State<TicTacApp> {
 
     final status = ModerationService.status.value ??
         await ModerationService.refresh();
-    final dest = _destinationForModeration(status);
+    var dest = _destinationForModeration(status);
+    if (dest == '/home' && await ReferralService.shouldShowPrompt()) {
+      dest = '/referral-code';
+    }
     if (route != null && _authEntryRoutes.contains(route)) {
       _nav.currentState?.pushNamedAndRemoveUntil(dest, (r) => false);
     }
@@ -248,11 +271,24 @@ class _TicTacAppState extends State<TicTacApp> {
   }
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+        valueListenable: AppLocaleService.revision,
+        builder: (_, __, ___) => MaterialApp(
         navigatorKey: _nav,
         title: 'Tic Tac Toe',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
+        locale: AppLocaleService.materialSafeLocale,
+        supportedLocales: AppLocaleService.supportedLocales,
+        localeResolutionCallback: (device, supported) {
+          return AppLocaleService.materialSafeLocale;
+        },
+        localizationsDelegates: const [
+          AppLocalizationsDelegate(),
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         initialRoute: introSeen.value ? '/' : '/intro',
         routes: {
           '/': (_) => const LandingScreen(),
@@ -279,7 +315,10 @@ class _TicTacAppState extends State<TicTacApp> {
           '/challenge-privacy': (_) => const ChallengePrivacyScreen(),
           '/chat-rules': (_) => const ChatRulesScreen(),
           '/ephemeral-chat': (_) => const EphemeralChatDemoScreen(),
-          '/how-to-play': (_) => const HowToPlayFlowScreen(),
+          '/how-to-play': (_) => const Scaffold(
+                backgroundColor: Color(0xFF0A0A0C),
+                body: Center(child: HowToPlayFlowScreen()),
+              ),
           '/tournament-join-confirm': (_) =>
               const TournamentJoinConfirmScreen(),
           '/tournament-joined': (_) => const TournamentJoinedScreen(),
@@ -300,6 +339,9 @@ class _TicTacAppState extends State<TicTacApp> {
           '/reward-flow': (_) => const RewardFlowOverviewScreen(),
           '/logo-splash': (_) => const LogoSplashScreen(),
           '/history': (_) => const HistoryScreen(),
+          '/match-history': (_) => const MatchHistoryScreen(),
+          '/referral-code': (_) => const ReferralCodeScreen(),
+          '/referral-success': (_) => const ReferralSuccessScreen(),
           '/language': (_) => const LanguageScreen(),
           '/games': (_) => const MoreGamesScreen(),
           '/contact': (_) => const ContactAboutScreen(),
@@ -334,5 +376,6 @@ class _TicTacAppState extends State<TicTacApp> {
           '/admin-moderation': (_) => const AdminModerationScreen(),
           '/admin-tournament': (_) => const AdminTournamentScreen(),
         },
+      ),
       );
 }

@@ -1,13 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../config/admob_config.dart';
+import '../l10n/app_localizations.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
+import '../services/rewarded_ad_service.dart';
 import '../services/storage.dart';
+import '../services/wallet_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
 
-/// PDF pages 36–45 rewarded video shop flow (UI; real AdMob later).
+/// PDF pages 36–45 rewarded video shop / wallet Free Coins flow (AdMob).
 
 Future<void> startShopRewardFlow(BuildContext context) async {
   final used = AppStorage.freeVideosUsedToday;
@@ -28,8 +33,8 @@ Future<void> startShopRewardFlow(BuildContext context) async {
             const SizedBox(height: 10),
             const Text('Watch a short video',
                 style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-            const Text('+10 coins',
-                style: TextStyle(
+            Text('+${AdMobConfig.freeCoinsReward} coins',
+                style: const TextStyle(
                     color: C.teal, fontWeight: FontWeight.w800, fontSize: 22)),
             const SizedBox(height: 8),
             const Text(
@@ -48,6 +53,22 @@ Future<void> startShopRewardFlow(BuildContext context) async {
   await Navigator.pushNamed(context, '/shop-ad-loading');
 }
 
+/// Credits Free Coins after a completed rewarded ad and refreshes wallet history.
+Future<bool> grantFreeCoinsReward() async {
+  final key =
+      'ad_reward_${DateTime.now().toUtc().millisecondsSinceEpoch}';
+  final ok = await WalletService.credit(
+    amount: AdMobConfig.freeCoinsReward,
+    reason: 'ad_reward',
+    idempotencyKey: key,
+    refType: 'rewarded_ad',
+    refId: AdMobConfig.rewardedUnitId,
+  );
+  if (!ok) return false;
+  await AppStorage.incrementFreeVideosUsed();
+  return true;
+}
+
 class ShopAdLoadingScreen extends StatefulWidget {
   const ShopAdLoadingScreen({super.key});
   @override
@@ -58,10 +79,21 @@ class _ShopAdLoadingScreenState extends State<ShopAdLoadingScreen> {
   @override
   void initState() {
     super.initState();
-    Future<void>.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/shop-ad-player');
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _run());
+  }
+
+  Future<void> _run() async {
+    final result = await RewardedAdService.instance.show();
+    if (!mounted) return;
+    if (result == RewardedAdResult.failed) {
+      await Navigator.pushReplacementNamed(context, '/shop-no-video');
+      return;
+    }
+    if (result == RewardedAdResult.dismissed) {
+      await Navigator.pushReplacementNamed(context, '/shop-verify-fail');
+      return;
+    }
+    await Navigator.pushReplacementNamed(context, '/shop-ad-verifying');
   }
 
   @override
@@ -274,13 +306,17 @@ class _ShopAdVerifyingScreenState extends State<ShopAdVerifyingScreen> {
   @override
   void initState() {
     super.initState();
-    Future<void>.delayed(const Duration(seconds: 2), () async {
-      if (!mounted) return;
-      await AppStorage.incrementFreeVideosUsed();
-      coins.value += 10;
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/shop-reward-earned');
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _grant());
+  }
+
+  Future<void> _grant() async {
+    final ok = await grantFreeCoinsReward();
+    if (!mounted) return;
+    if (!ok) {
+      await Navigator.pushReplacementNamed(context, '/shop-verify-fail');
+      return;
+    }
+    await Navigator.pushReplacementNamed(context, '/shop-reward-earned');
   }
 
   @override
@@ -340,8 +376,8 @@ class ShopRewardEarnedScreen extends StatelessWidget {
               fontSize: 13,
             ),
           ),
-          const Text('+10',
-              style: TextStyle(
+          Text('+${AdMobConfig.freeCoinsReward}',
+              style: const TextStyle(
                   fontSize: 44, fontWeight: FontWeight.w900, color: C.coin)),
           Text.rich(TextSpan(children: [
             TextSpan(
@@ -422,7 +458,10 @@ class ShopDailyLimitScreen extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                         color: C.teal)),
                 const SizedBox(height: 18),
-                PdfPinkButton('COIN PACKS FROM ₹29',
+                PdfPinkButton(
+                    context.tr('coin_packs_from', {
+                      'price': AppLocaleService.lowestShopPackLabel(),
+                    }),
                     onTap: () => Navigator.pushNamedAndRemoveUntil(
                         context, '/shop', (r) => false)),
                 const SizedBox(height: 10),

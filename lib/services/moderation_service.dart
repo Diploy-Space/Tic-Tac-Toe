@@ -212,7 +212,7 @@ class ModerationService {
     required String roomId,
     required String reasonCode,
     required String description,
-    required Uint8List screenshotBytes,
+    List<Uint8List> screenshots = const [],
   }) async {
     error.value = null;
     if (!ReportReason.all.any((r) => r.code == reasonCode)) {
@@ -224,7 +224,16 @@ class ModerationService {
       return null;
     }
     try {
-      final path = await uploadEvidence(screenshotBytes);
+      String? path;
+      if (screenshots.isNotEmpty) {
+        // Store first image as primary evidence (RPC takes one path).
+        path = await uploadEvidence(screenshots.first);
+        for (var i = 1; i < screenshots.length && i < 3; i++) {
+          try {
+            await uploadEvidence(screenshots[i]);
+          } catch (_) {}
+        }
+      }
       final raw = await _db.rpc(
         'submit_game_report',
         params: {

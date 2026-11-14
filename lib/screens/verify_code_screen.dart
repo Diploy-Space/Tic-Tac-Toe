@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models.dart';
 import '../services/auth_service.dart';
+import '../services/referral_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -41,11 +42,17 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
   @override
   void initState() {
     super.initState();
-    _poll = Timer.periodic(const Duration(seconds: 2), (_) {
+    _poll = Timer.periodic(const Duration(seconds: 2), (_) async {
       if (!mounted || _isRecovery) return;
-      if (AuthService.isSignedIn) {
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
-      }
+      if (!AuthService.isSignedIn) return;
+      _poll?.cancel();
+      final showReferral = await ReferralService.shouldShowPrompt();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        showReferral ? '/referral-code' : '/home',
+        (r) => false,
+      );
     });
   }
 
@@ -135,14 +142,27 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
             ValueListenableBuilder<bool>(
                 valueListenable: authSignedIn,
                 builder: (_, signedIn, __) => signedIn
-                    ? PrimaryButton('Continue',
-                        onTap: () => Navigator.pushNamedAndRemoveUntil(
-                            context, '/home', (r) => false))
+                    ? PrimaryButton('Continue', onTap: () async {
+                        final show =
+                            await ReferralService.shouldShowPrompt();
+                        if (!context.mounted) return;
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          show ? '/referral-code' : '/home',
+                          (r) => false,
+                        );
+                      })
                     : PrimaryButton('I’ve opened the link',
-                        onTap: () {
+                        onTap: () async {
                           if (AuthService.isSignedIn) {
+                            final show =
+                                await ReferralService.shouldShowPrompt();
+                            if (!context.mounted) return;
                             Navigator.pushNamedAndRemoveUntil(
-                                context, '/home', (r) => false);
+                              context,
+                              show ? '/referral-code' : '/home',
+                              (r) => false,
+                            );
                           } else {
                             _toast(
                                 'Not signed in yet — open the email link first');

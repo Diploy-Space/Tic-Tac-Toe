@@ -29,9 +29,14 @@ class FriendRepository {
     return out;
   }
 
-  static Future<Map<String, ProfileSearchHit>> _profilesByIds(
+  /// Public username + avatar for match UI / friends lists.
+  static Future<Map<String, ProfileSearchHit>> profilesByIds(
       Iterable<String> ids) async {
-    final list = ids.toSet().toList();
+    final list = ids
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty && e != 'null')
+        .toSet()
+        .toList();
     if (list.isEmpty) return {};
     final rows = await _db
         .from('public_profiles')
@@ -66,7 +71,7 @@ class FriendRepository {
           ? '${r['addressee_id']}'
           : '${r['requester_id']}');
     }
-    final profiles = await _profilesByIds(otherIds);
+    final profiles = await profilesByIds(otherIds);
 
     final out = <Friendship>[];
     for (final r in mapped) {

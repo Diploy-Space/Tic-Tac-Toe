@@ -7,6 +7,10 @@ final ValueNotifier<String> language = ValueNotifier<String>('English');
 final ValueNotifier<bool> musicOn = ValueNotifier<bool>(true);
 final ValueNotifier<bool> vibrationOn = ValueNotifier<bool>(true);
 final ValueNotifier<bool> notificationsOn = ValueNotifier<bool>(false);
+/// Challenge privacy → Notifications toggles (Settings → Challenge privacy).
+final ValueNotifier<bool> notifyChallengeRequests = ValueNotifier<bool>(true);
+final ValueNotifier<bool> notifyMatchInvites = ValueNotifier<bool>(true);
+final ValueNotifier<bool> notifyMatchResults = ValueNotifier<bool>(true);
 final ValueNotifier<bool> introSeen = ValueNotifier<bool>(false);
 final ValueNotifier<bool> authSignedIn = ValueNotifier<bool>(false);
 final ValueNotifier<String> authDisplayName = ValueNotifier<String>('Guest');

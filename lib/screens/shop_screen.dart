@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../services/storage.dart';
+import '../services/wallet_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
@@ -21,6 +24,7 @@ class _ShopScreenState extends State<ShopScreen> {
     required String coinsLabel,
     required String title,
     required String price,
+    required int coinsToAdd,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -47,10 +51,20 @@ class _ShopScreenState extends State<ShopScreen> {
             ),
           ),
           InkWell(
-            onTap: () {
-              final n = int.tryParse(coinsLabel.split(' ').first) ?? 0;
-              coins.value += n;
-              _msg('+$n coins added (demo IAP)');
+            onTap: () async {
+              final ok = await WalletService.credit(
+                amount: coinsToAdd,
+                reason: 'iap_grant',
+                idempotencyKey:
+                    'iap_${coinsToAdd}_${DateTime.now().millisecondsSinceEpoch}',
+                refType: 'shop_pack',
+                refId: title,
+              );
+              if (!mounted) return;
+              _msg(ok
+                  ? '+$coinsToAdd coins added'
+                  : (WalletService.error.value ?? 'Purchase failed'));
+              setState(() {});
             },
             borderRadius: BorderRadius.circular(99),
             child: Container(
@@ -72,117 +86,147 @@ class _ShopScreenState extends State<ShopScreen> {
   @override
   Widget build(BuildContext context) {
     final used = AppStorage.freeVideosUsedToday;
-    return AppScaffold(
-      child: SingleChildScrollView(
-        child: staggered([
-          Row(children: [
-            const Expanded(child: TopBar('Shop')),
-            ValueListenableBuilder<int>(
-              valueListenable: coins,
-              builder: (_, c, __) => Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: C.surface,
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: C.border2),
+    return ValueListenableBuilder<int>(
+      valueListenable: AppLocaleService.revision,
+      builder: (context, _, __) {
+        final packs = AppLocaleService.shopPacksInr;
+        return AppScaffold(
+          child: SingleChildScrollView(
+            child: staggered([
+              Row(children: [
+                Expanded(child: TopBar(context.tr('shop'))),
+                ValueListenableBuilder<int>(
+                  valueListenable: coins,
+                  builder: (_, c, __) => Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: C.surface,
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(color: C.border2),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.monetization_on,
+                            color: C.coin, size: 16),
+                        const SizedBox(width: 6),
+                        Text('$c',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w800)),
+                        const SizedBox(width: 8),
+                        Text(
+                          AppLocaleService.currencySymbol,
+                          style: const TextStyle(
+                            color: C.muted,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              ]),
+              PdfModalCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.monetization_on, color: C.coin, size: 16),
-                    const SizedBox(width: 6),
-                    Text('$c',
-                        style: const TextStyle(fontWeight: FontWeight.w800)),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: C.surface2,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.monetization_on,
+                              color: C.coin, size: 26),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.tr('free_coins'),
+                                style: const TextStyle(
+                                  color: C.magenta,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.5,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(context.tr('watch_video_coins'),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 16)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        for (var i = 0; i < 5; i++)
+                          Expanded(
+                            child: Container(
+                              height: 8,
+                              margin: EdgeInsets.only(right: i == 4 ? 0 : 4),
+                              decoration: BoxDecoration(
+                                color: i < used ? C.magenta : C.surface2,
+                                borderRadius: BorderRadius.circular(99),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.tr(
+                          'free_videos_used', {'used': '$used'}),
+                      style:
+                          const TextStyle(color: C.muted, fontSize: 13),
+                    ),
+                    const SizedBox(height: 14),
+                    PdfPinkButton(
+                      used >= 5
+                          ? context.tr('daily_limit')
+                          : context.tr('watch_video'),
+                      onTap: () => startShopRewardFlow(context),
+                    ),
                   ],
                 ),
               ),
-            ),
-          ]),
-          PdfModalCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: C.surface2,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.monetization_on,
-                          color: C.coin, size: 26),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'FREE COINS',
-                            style: TextStyle(
-                              color: C.magenta,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.5,
-                              fontSize: 11,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text('Watch a video, get 10 coins',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w800, fontSize: 16)),
-                        ],
-                      ),
-                    ),
-                  ],
+              PdfSectionLabel(context.tr('coin_packs')),
+              for (final p in packs)
+                _pack(
+                  coinsLabel:
+                      context.tr('coins_label', {'n': '${p.coins}'}),
+                  title: context.tr(switch (p.title) {
+                    'Starter pack' => 'starter_pack',
+                    'Popular' => 'popular',
+                    'Best value' => 'best_value',
+                    _ => 'starter_pack',
+                  }),
+                  price: AppLocaleService.formatShopPackPriceInr(p.inr),
+                  coinsToAdd: p.coins,
                 ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    for (var i = 0; i < 5; i++)
-                      Expanded(
-                        child: Container(
-                          height: 8,
-                          margin: EdgeInsets.only(right: i == 4 ? 0 : 4),
-                          decoration: BoxDecoration(
-                            color: i < used ? C.magenta : C.surface2,
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '$used of 5 free videos used today',
-                  style: const TextStyle(color: C.muted, fontSize: 13),
-                ),
-                const SizedBox(height: 14),
-                PdfPinkButton(
-                  used >= 5 ? 'DAILY LIMIT REACHED' : 'WATCH VIDEO',
-                  onTap: () => startShopRewardFlow(context),
-                ),
-              ],
-            ),
+              TextButton(
+                onPressed: () =>
+                    Navigator.pushNamed(context, '/reward-flow'),
+                child: const Text('Reward flow overview',
+                    style: TextStyle(color: C.teal)),
+              ),
+            ]),
           ),
-          const PdfSectionLabel('Coin packs'),
-          _pack(
-              coinsLabel: '100 coins', title: 'Starter pack', price: '₹29'),
-          _pack(coinsLabel: '300 coins', title: 'Popular', price: '₹79'),
-          _pack(
-              coinsLabel: '700 coins', title: 'Best value', price: '₹149'),
-          TextButton(
-            onPressed: () =>
-                Navigator.pushNamed(context, '/reward-flow'),
-            child: const Text('Reward flow overview',
-                style: TextStyle(color: C.teal)),
-          ),
-        ]),
-      ),
+        );
+      },
     );
   }
 }

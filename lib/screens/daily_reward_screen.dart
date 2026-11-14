@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/wallet_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -69,13 +70,21 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
                 ]))));
   }
 
-  void _claim() {
+  Future<void> _claim() async {
     if (claimed) return;
-    coins.value += amounts[today];
+    final amount = amounts[today];
+    final ok = await WalletService.credit(
+      amount: amount,
+      reason: 'daily_reward',
+      idempotencyKey: 'daily_${todayKey()}_$today',
+      refType: 'daily',
+      refId: 'day_$today',
+    );
+    if (!ok) return;
     playerStats.lastDailyClaimDate = todayKey();
     playerStats.dailyRewardDay = (today + 1) % 7;
     statsTick.value++;
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override

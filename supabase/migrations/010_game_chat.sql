@@ -39,7 +39,10 @@ as $$
 $$;
 
 revoke all on function public._mp_is_room_participant(uuid, uuid)
-  from public, anon, authenticated;
+  from public, anon;
+-- authenticated MUST keep EXECUTE — RLS policies call this helper.
+grant execute on function public._mp_is_room_participant(uuid, uuid)
+  to authenticated;
 
 drop policy if exists "chat_select_participants" on public.game_chat_messages;
 create policy "chat_select_participants"
@@ -97,7 +100,9 @@ as $$
 $$;
 
 revoke all on function public._mp_can_react_to_message(uuid, uuid)
-  from public, anon, authenticated;
+  from public, anon;
+grant execute on function public._mp_can_react_to_message(uuid, uuid)
+  to authenticated;
 
 drop policy if exists "chat_react_select" on public.game_chat_reactions;
 create policy "chat_react_select"

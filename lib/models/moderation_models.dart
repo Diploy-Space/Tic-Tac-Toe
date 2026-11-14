@@ -28,14 +28,20 @@ class ReportReason {
   const ReportReason(this.code, this.label);
 
   static const all = [
-    ReportReason('harassment', 'Harassment or abusive language'),
-    ReportReason('offensive', 'Offensive messages'),
-    ReportReason('threatening', 'Threatening behavior'),
-    ReportReason('spam', 'Spam'),
-    ReportReason('inappropriate', 'Inappropriate content'),
-    ReportReason('cheating', 'Cheating or suspicious behavior'),
-    ReportReason('other', 'Other'),
+    ReportReason('harassment', 'Harassment or bullying'),
+    ReportReason('offensive', 'Hate speech or abuse'),
+    ReportReason('threatening', 'Threats or violence'),
+    ReportReason('inappropriate', 'Sexual or inappropriate content'),
+    ReportReason('spam', 'Spam or scams'),
+    ReportReason('other', 'Something else'),
   ];
+
+  static ReportReason? byCode(String code) {
+    for (final r in all) {
+      if (r.code == code) return r;
+    }
+    return null;
+  }
 }
 
 class ModerationStatus {

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../services/storage.dart';
+import '../models.dart';
+import '../services/privacy_prefs_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
 import '../widgets/pdf_ui.dart';
 
-/// PDF page 12 — Challenge privacy.
+/// PDF page 12 — Challenge privacy (synced to Supabase when signed in).
 class ChallengePrivacyScreen extends StatefulWidget {
   const ChallengePrivacyScreen({super.key});
 
@@ -14,34 +15,18 @@ class ChallengePrivacyScreen extends StatefulWidget {
 }
 
 class _ChallengePrivacyScreenState extends State<ChallengePrivacyScreen> {
-  int who = 0;
-  final challengeReq = ValueNotifier(true);
-  final matchInvites = ValueNotifier(true);
-  final matchResults = ValueNotifier(false);
-
   @override
   void initState() {
     super.initState();
-    who = AppStorage.challengePrivacyWho;
+    PrivacyPrefsService.refresh();
   }
 
-  @override
-  void dispose() {
-    challengeReq.dispose();
-    matchInvites.dispose();
-    matchResults.dispose();
-    super.dispose();
-  }
-
-  Widget _whoTile(String label, int i) {
+  Widget _whoTile(String label, int i, int who) {
     final sel = who == i;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
-        onTap: () async {
-          setState(() => who = i);
-          await AppStorage.setChallengePrivacyWho(i);
-        },
+        onTap: () => PrivacyPrefsService.setChallengeWho(i),
         borderRadius: BorderRadius.circular(14),
         child: Container(
           height: 56,
@@ -49,7 +34,10 @@ class _ChallengePrivacyScreenState extends State<ChallengePrivacyScreen> {
           decoration: BoxDecoration(
             color: C.surface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: sel ? C.magenta : C.border, width: sel ? 1.6 : 1),
+            border: Border.all(
+              color: sel ? C.magenta : C.border,
+              width: sel ? 1.6 : 1,
+            ),
           ),
           child: Row(
             children: [
@@ -98,26 +86,66 @@ class _ChallengePrivacyScreenState extends State<ChallengePrivacyScreen> {
       child: SingleChildScrollView(
         child: staggered([
           const TopBar('Privacy'),
+          ValueListenableBuilder<String?>(
+            valueListenable: PrivacyPrefsService.error,
+            builder: (_, err, __) => err == null
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Text(
+                      err,
+                      style: const TextStyle(color: C.danger, fontSize: 12),
+                    ),
+                  ),
+          ),
           const PdfSectionLabel('Who can challenge you'),
-          _whoTile('Everyone', 0),
-          _whoTile('Friends only', 1),
-          _whoTile('Nobody', 2),
+          ValueListenableBuilder<int>(
+            valueListenable: PrivacyPrefsService.challengeWho,
+            builder: (_, who, __) => Column(
+              children: [
+                _whoTile('Everyone', 0, who),
+                _whoTile('Friends only', 1, who),
+                _whoTile('Nobody', 2, who),
+              ],
+            ),
+          ),
           const PdfSectionLabel('Notifications'),
           AppCard(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Column(children: [
-              ToggleRow(Icons.sports_esports, 'Challenge requests', challengeReq),
-              ToggleRow(Icons.mail_outline, 'Match invitations', matchInvites),
-              ToggleRow(Icons.emoji_events_outlined, 'Match results', matchResults,
-                  last: true),
+              ToggleRow(
+                Icons.sports_esports,
+                'Challenge requests',
+                notifyChallengeRequests,
+              ),
+              ToggleRow(
+                Icons.mail_outline,
+                'Match invitations',
+                notifyMatchInvites,
+              ),
+              ToggleRow(
+                Icons.emoji_events_outlined,
+                'Match results',
+                notifyMatchResults,
+                last: true,
+              ),
             ]),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-            child: Text(
-              'Your match history and activity are never shown on your public profile.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: C.muted, height: 1.4, fontSize: 13),
+          ValueListenableBuilder<bool>(
+            valueListenable: PrivacyPrefsService.saving,
+            builder: (_, saving, __) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: Text(
+                saving
+                    ? 'Saving to cloud…'
+                    : 'Your match history and activity are never shown on your public profile.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: C.muted,
+                  height: 1.4,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ),
         ]),

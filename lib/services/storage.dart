@@ -17,6 +17,9 @@ class AppStorage {
   static const _kStats = 'playerStats';
   static const _kBlocked = 'blockedPlayers';
   static const _kChallengeWho = 'challengePrivacyWho';
+  static const _kNotifyChallengeReq = 'notifyChallengeRequests';
+  static const _kNotifyMatchInvites = 'notifyMatchInvites';
+  static const _kNotifyMatchResults = 'notifyMatchResults';
   static const _kFreeVideosDay = 'freeVideosDay';
   static const _kFreeVideosUsed = 'freeVideosUsed';
 
@@ -77,6 +80,12 @@ class AppStorage {
     await _prefs!.setStringList(_kBlocked, list);
   }
 
+  static String? getString(String key) => _prefs?.getString(key);
+
+  static Future<void> setString(String key, String value) async {
+    await _prefs?.setString(key, value);
+  }
+
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     await load();
@@ -92,6 +101,10 @@ class AppStorage {
     musicOn.value = p.getBool(_kMusic) ?? true;
     vibrationOn.value = p.getBool(_kVibration) ?? true;
     notificationsOn.value = p.getBool(_kNotifications) ?? false;
+    notifyChallengeRequests.value =
+        p.getBool(_kNotifyChallengeReq) ?? true;
+    notifyMatchInvites.value = p.getBool(_kNotifyMatchInvites) ?? true;
+    notifyMatchResults.value = p.getBool(_kNotifyMatchResults) ?? true;
     language.value = p.getString(_kLanguage) ?? 'English';
     introSeen.value = p.getBool(_kIntro) ?? false;
     final ownedList = p.getStringList(_kOwned);
@@ -125,6 +138,9 @@ class AppStorage {
     await p.setBool(_kMusic, musicOn.value);
     await p.setBool(_kVibration, vibrationOn.value);
     await p.setBool(_kNotifications, notificationsOn.value);
+    await p.setBool(_kNotifyChallengeReq, notifyChallengeRequests.value);
+    await p.setBool(_kNotifyMatchInvites, notifyMatchInvites.value);
+    await p.setBool(_kNotifyMatchResults, notifyMatchResults.value);
     await p.setString(_kLanguage, language.value);
     await p.setBool(_kIntro, introSeen.value);
     await p.setStringList(_kOwned, owned.value.toList());
@@ -143,6 +159,9 @@ class AppStorage {
     musicOn.addListener(bump);
     vibrationOn.addListener(bump);
     notificationsOn.addListener(bump);
+    notifyChallengeRequests.addListener(bump);
+    notifyMatchInvites.addListener(bump);
+    notifyMatchResults.addListener(bump);
     language.addListener(bump);
     introSeen.addListener(bump);
     owned.addListener(bump);

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../theme.dart';
 import 'painters.dart';
 import 'extras.dart';
@@ -277,21 +278,45 @@ class GhostButton extends StatelessWidget {
 }
 
 class CoinChip extends StatelessWidget {
-  const CoinChip({super.key});
+  final VoidCallback? onTap;
+  const CoinChip({super.key, this.onTap});
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<int>(
-      valueListenable: coins,
-      builder: (_, v, __) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-              color: C.surface,
-              borderRadius: BorderRadius.circular(99),
-              border: Border.all(color: C.border2)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.monetization_on_outlined, size: 18, color: C.coin),
-            const SizedBox(width: 6),
-            Text('$v', style: const TextStyle(fontWeight: FontWeight.w600)),
-          ])));
+      valueListenable: AppLocaleService.revision,
+      builder: (context, _, __) => ValueListenableBuilder<int>(
+          valueListenable: coins,
+          builder: (_, v, __) => Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(99),
+                  onTap: onTap ??
+                      () => Navigator.pushNamed(context, '/wallet'),
+                  child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                          color: C.surface,
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(color: C.border2)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.monetization_on_outlined,
+                            size: 18, color: C.coin),
+                        const SizedBox(width: 6),
+                        Text('$v',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(width: 6),
+                        Text(
+                          AppLocaleService.currencyCode,
+                          style: const TextStyle(
+                            color: C.muted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ])),
+                ),
+              )));
 }
 
 class RoundIconBox extends StatelessWidget {
@@ -485,14 +510,9 @@ class UserCard extends StatelessWidget {
           Expanded(
               child: ValueListenableBuilder<String>(
                   valueListenable: authDisplayName,
-                  builder: (_, name, __) => Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                        const Tag('Player 042'),
-                        Text(name,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w700)),
-                      ]))),
+                  builder: (_, name, __) => Text(name,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 16)))),
           if (showCoins) const CoinChip(),
         ]),
         const SizedBox(height: 12),

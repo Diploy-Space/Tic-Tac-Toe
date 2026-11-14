@@ -11,6 +11,7 @@ class OnlineRoomState {
   final int moveCount;
   final String? winner;
   final String roomStatus;
+  final bool chatStopped;
   final DateTime? updatedAt;
 
   const OnlineRoomState({
@@ -25,6 +26,7 @@ class OnlineRoomState {
     required this.moveCount,
     this.winner,
     required this.roomStatus,
+    this.chatStopped = false,
     this.updatedAt,
   });
 
@@ -47,6 +49,25 @@ class OnlineRoomState {
 
   bool get hasOpponent => opponentId.isNotEmpty;
 
+  OnlineRoomState withChatStopped([bool stopped = true]) {
+    if (chatStopped == stopped) return this;
+    return OnlineRoomState(
+      roomId: roomId,
+      boardSize: boardSize,
+      stake: stake,
+      playerO: playerO,
+      playerX: playerX,
+      myMark: myMark,
+      cells: cells,
+      currentTurn: currentTurn,
+      moveCount: moveCount,
+      winner: winner,
+      roomStatus: roomStatus,
+      chatStopped: stopped,
+      updatedAt: DateTime.now().toUtc(),
+    );
+  }
+
   /// Instant local preview before server ACK (reconciled by snapshot).
   OnlineRoomState withOptimisticMove(int cellIndex) {
     final next = List<String?>.from(cells);
@@ -66,6 +87,7 @@ class OnlineRoomState {
       moveCount: moveCount + 1,
       winner: winner,
       roomStatus: roomStatus == 'matched' ? 'active' : roomStatus,
+      chatStopped: chatStopped,
       updatedAt: DateTime.now().toUtc(),
     );
   }
@@ -106,6 +128,11 @@ class OnlineRoomState {
       return s == 'null' ? '' : s;
     }
 
+    final rawStopped = json['chat_stopped'];
+    final chatStopped = rawStopped == true ||
+        rawStopped == 1 ||
+        '$rawStopped'.toLowerCase() == 'true';
+
     return OnlineRoomState(
       roomId: '${json['room_id']}',
       boardSize: size,
@@ -118,6 +145,7 @@ class OnlineRoomState {
       moveCount: (json['move_count'] as num?)?.toInt() ?? 0,
       winner: json['winner'] as String?,
       roomStatus: '${json['room_status'] ?? json['status'] ?? 'active'}',
+      chatStopped: chatStopped,
       updatedAt: DateTime.tryParse('${json['updated_at'] ?? ''}'),
     );
   }

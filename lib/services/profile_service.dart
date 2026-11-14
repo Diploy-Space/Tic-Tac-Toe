@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models.dart';
 import '../models/user_profile.dart';
+import 'app_locale_service.dart';
 import 'avatar_service.dart';
 import 'profile_repository.dart';
 
@@ -43,6 +44,10 @@ class ProfileService {
     if (p != null) {
       authDisplayName.value = p.username;
       authAvatarUrl.value = p.avatarUrl;
+      // Prefer profile country for currency + language catalog.
+      if (p.countryIso2 != null && p.countryIso2!.isNotEmpty) {
+        AppLocaleService.applyCountryIso2(p.countryIso2);
+      }
     } else if (!_signedIn) {
       authDisplayName.value = 'Guest';
       authAvatarUrl.value = null;
@@ -110,6 +115,24 @@ class ProfileService {
     required String countryIso2,
   }) async {
     final p = await ProfileRepository.updateContact(
+      callingCode: callingCode,
+      nationalNumber: nationalNumber,
+      countryIso2: countryIso2,
+    );
+    _apply(p);
+    return p;
+  }
+
+  static Future<UserProfile> updateProfile({
+    required String username,
+    String? callingCode,
+    String? nationalNumber,
+    String? countryIso2,
+  }) async {
+    final err = validateUsername(username);
+    if (err != null) throw Exception(err);
+    final p = await ProfileRepository.updateProfile(
+      username: normalizeUsername(username),
       callingCode: callingCode,
       nationalNumber: nationalNumber,
       countryIso2: countryIso2,

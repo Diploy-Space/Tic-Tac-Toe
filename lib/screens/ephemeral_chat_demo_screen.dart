@@ -272,140 +272,213 @@ class _EphemeralChatDemoScreenState extends State<EphemeralChatDemoScreen> {
           ),
         );
       case _ChatPhase.on:
-        return PdfModalCard(
-          borderColor: C.teal,
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                      color: C.teal, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 8),
-                const Text('Chat on',
-                    style: TextStyle(
-                        color: C.teal, fontWeight: FontWeight.w800)),
-                const Spacer(),
-                PdfOutlineButton(
-                  'Stop chat',
-                  borderColor: C.danger,
-                  textColor: C.danger,
-                  onTap: () => setState(() => phase = _ChatPhase.stopped),
-                ),
-              ]),
-              const SizedBox(height: 12),
-              for (final b in bubbles)
-                Align(
-                  alignment:
-                      b.mine ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: b.mine
-                          ? C.magenta.withValues(alpha: 0.25)
-                          : C.surface2,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text(
-                      b.text,
-                      style: TextStyle(
-                        color: b.faded ? C.muted : C.text,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [
               Container(
-                height: 4,
-                margin: const EdgeInsets.only(top: 4, bottom: 6),
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                    color: C.teal, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              const Text('Chat on',
+                  style: TextStyle(
+                      color: C.teal, fontWeight: FontWeight.w800)),
+              const Spacer(),
+              Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(99),
-                  color: C.surface2,
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: 0.55,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: C.teal,
-                      borderRadius: BorderRadius.circular(99),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: C.magenta.withValues(alpha: 0.55),
+                      blurRadius: 10,
                     ),
-                  ),
-                ),
-              ),
-              const Text(
-                'Messages disappear after 8s · never saved',
-                style: TextStyle(color: C.muted, fontSize: 12),
-              ),
-              const SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final q in [
-                      'Good move!',
-                      'Close one!',
-                      'GG',
-                      'Rematch?'
-                    ]) ...[
-                      PdfQuickChip(q, onTap: () {
-                        setState(() =>
-                            bubbles.add(_Bubble(q, mine: true)));
-                      }),
-                      const SizedBox(width: 8),
-                    ],
                   ],
                 ),
-              ),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(
-                  child: TextField(
-                    controller: _input,
-                    style: const TextStyle(color: C.text),
-                    decoration: InputDecoration(
-                      hintText: 'Type a message',
-                      hintStyle: const TextStyle(color: C.muted),
-                      isDense: true,
-                      filled: true,
-                      fillColor: C.surface2,
-                      border: OutlineInputBorder(
+                child: Material(
+                  color: C.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Use Report in live matches (Chat → flag)')),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                        border: Border.all(color: C.magenta, width: 1.4),
+                      ),
+                      child: const Icon(Icons.flag_outlined,
+                          color: C.text, size: 20),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 42,
+                child: OutlinedButton(
+                  onPressed: () => setState(() => phase = _ChatPhase.stopped),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: C.danger,
+                    side: const BorderSide(color: C.magenta),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                  ),
+                  child: const Text('Stop chat',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            PdfModalCard(
+              borderColor: C.teal,
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final b in bubbles)
+                    Align(
+                      alignment: b.mine
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: b.mine
+                              ? C.magenta.withValues(alpha: 0.28)
+                              : C.surface2,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          b.text,
+                          style: TextStyle(
+                            color: b.faded ? C.muted : C.text,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: C.surface2,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var i = 0; i < 3; i++)
+                            Container(
+                              width: 6,
+                              height: 6,
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 2.5),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: C.teal.withValues(
+                                    alpha: i == 1 ? 1 : 0.35),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () {
-                      final t = _input.text.trim();
-                      if (t.isEmpty) return;
-                      setState(() {
-                        bubbles.add(_Bubble(t, mine: true));
-                        _input.clear();
-                      });
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: C.magenta,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: const LinearProgressIndicator(
+                      value: 0.55,
+                      minHeight: 4,
+                      backgroundColor: C.surface2,
+                      color: C.teal,
                     ),
-                    child: const Text('Send',
-                        style: TextStyle(fontWeight: FontWeight.w800)),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Messages disappear after 8s • never saved',
+                    style: TextStyle(color: C.muted, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final q in [
+                    'Good move!',
+                    'Close one!',
+                    'GG',
+                    'Rematch?'
+                  ]) ...[
+                    PdfQuickChip(q, onTap: () {
+                      setState(() => bubbles.add(_Bubble(q, mine: true)));
+                    }),
+                    const SizedBox(width: 8),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _input,
+                  style: const TextStyle(color: C.text),
+                  decoration: InputDecoration(
+                    hintText: 'Type a message',
+                    hintStyle: const TextStyle(color: C.muted),
+                    isDense: true,
+                    filled: true,
+                    fillColor: C.surface2,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
-              ]),
-            ],
-          ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 48,
+                child: FilledButton(
+                  onPressed: () {
+                    final t = _input.text.trim();
+                    if (t.isEmpty) return;
+                    setState(() {
+                      bubbles.add(_Bubble(t, mine: true));
+                      _input.clear();
+                    });
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: C.magenta,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Send',
+                      style: TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ]),
+          ],
         );
       case _ChatPhase.stopped:
         return PdfModalCard(

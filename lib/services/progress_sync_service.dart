@@ -90,13 +90,23 @@ class ProgressSyncService {
     final bestStreak = MatchSyncService.derivedBestStreak ?? s.bestStreak;
     final friends = FriendService.friends.value.length;
 
+    final played = cloud?.played ?? s.played;
+    final rank = MatchSyncService.myRank.value;
     final candidates = <String, bool>{
       'first_win': wins >= 1,
+      'streak_3': bestStreak >= 3,
+      'matches_10': played >= 10,
+      'challenger': friends >= 1,
+      'survivor_10': wins >= 10,
+      'champion': s.tournamentsJoined >= 1,
       'streak_5': bestStreak >= 5,
-      'pass_play_10': s.passPlayGames >= 10,
+      'matches_50': played >= 50,
+      'top_3': rank != null && rank <= 3,
       'score_100': score >= 100,
-      'make_friend': friends >= 1,
+      'pass_play_10': s.passPlayGames >= 10,
       'wins_100': wins >= 100,
+      // legacy ids (keep unlocking if still present in cloud)
+      'make_friend': friends >= 1,
     };
 
     final have = {...unlockedAchievements.value};

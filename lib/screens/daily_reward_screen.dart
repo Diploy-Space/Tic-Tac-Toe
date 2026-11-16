@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
 import '../services/wallet_service.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -80,7 +81,11 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
       refType: 'daily',
       refId: 'day_$today',
     );
-    if (!ok) return;
+    if (!ok) {
+      SfxService.play(Sfx.error);
+      return;
+    }
+    SfxService.play(Sfx.rewardClaim);
     playerStats.lastDailyClaimDate = todayKey();
     playerStats.dailyRewardDay = (today + 1) % 7;
     statsTick.value++;

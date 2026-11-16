@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 
 /// Shared PDF-matching UI primitives (Public Profile / Friends / Challenge).
@@ -64,7 +65,10 @@ class PdfSegRow extends StatelessWidget {
             Expanded(
               child: InkWell(
                 borderRadius: BorderRadius.circular(10),
-                onTap: () => onChanged(i),
+                onTap: () {
+                  SfxService.play(Sfx.tap);
+                  onChanged(i);
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
                   alignment: Alignment.center,
@@ -139,7 +143,7 @@ class PdfTealButton extends StatelessWidget {
     return SizedBox(
       height: compact ? 40 : 54,
       child: FilledButton(
-        onPressed: onTap,
+        onPressed: sfxTap(onTap),
         style: FilledButton.styleFrom(
           backgroundColor: C.teal,
           foregroundColor: const Color(0xFF04201F),
@@ -170,7 +174,7 @@ class PdfPinkButton extends StatelessWidget {
       height: 54,
       width: double.infinity,
       child: FilledButton(
-        onPressed: onTap,
+        onPressed: sfxTap(onTap),
         style: FilledButton.styleFrom(
           backgroundColor: C.magenta,
           foregroundColor: Colors.white,
@@ -204,7 +208,7 @@ class PdfOutlineButton extends StatelessWidget {
     return SizedBox(
       height: 40,
       child: OutlinedButton(
-        onPressed: onTap,
+        onPressed: sfxTap(onTap),
         style: OutlinedButton.styleFrom(
           foregroundColor: textColor,
           side: BorderSide(color: borderColor),
@@ -370,7 +374,7 @@ class PdfGhostButton extends StatelessWidget {
       height: 54,
       width: double.infinity,
       child: OutlinedButton(
-        onPressed: onTap,
+        onPressed: sfxTap(onTap),
         style: OutlinedButton.styleFrom(
           foregroundColor: C.text,
           side: const BorderSide(color: C.border2),

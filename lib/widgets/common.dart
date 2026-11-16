@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models.dart';
 import '../services/app_locale_service.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 import 'painters.dart';
 import 'extras.dart';
@@ -233,7 +234,7 @@ class PrimaryButton extends StatelessWidget {
       color: color,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        onTap: onTap,
+        onTap: sfxTap(onTap),
         borderRadius: BorderRadius.circular(14),
         child: SizedBox(
           height: 54,
@@ -265,7 +266,7 @@ class GhostButton extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
       height: 54,
       child: OutlinedButton(
-          onPressed: onTap,
+          onPressed: sfxTap(onTap),
           style: OutlinedButton.styleFrom(
               backgroundColor: filledMagenta ? C.btn : C.surface,
               foregroundColor: C.text,
@@ -330,7 +331,7 @@ class RoundIconBox extends StatelessWidget {
       label: label,
       child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
+          onTap: sfxTap(onTap, Sfx.tap),
           child: Container(
               width: 44,
               height: 44,
@@ -435,7 +436,10 @@ class SegRow extends StatelessWidget {
                   selected: i == selected,
                   child: InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      onTap: () => onChanged(i),
+                      onTap: () {
+                        SfxService.play(Sfx.tap);
+                        onChanged(i);
+                      },
                       child: Container(
                           height: 46,
                           alignment: Alignment.center,
@@ -467,7 +471,7 @@ class MenuTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = danger ? C.danger : C.text;
     return InkWell(
-        onTap: onTap,
+        onTap: sfxTap(onTap, Sfx.tap),
         child: Container(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
             decoration: BoxDecoration(

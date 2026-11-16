@@ -60,12 +60,24 @@ class _ChallengesListScreenState extends State<ChallengesListScreen> {
             ),
           ),
           if (canAccept && c.status == ChallengeItemStatus.pending) ...[
-            PdfTealButton('Accept', compact: true, onTap: () {
-              ChallengeFlowService.accept(c.id);
-              _goLobby(c);
+            PdfTealButton('Accept', compact: true, onTap: () async {
+              try {
+                await ChallengeFlowService.accept(c.id);
+                if (!mounted) return;
+                _goLobby(c);
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$e'.replaceFirst('Exception: ', '')),
+                  ),
+                );
+              }
             }),
             const SizedBox(width: 8),
-            PdfDeclineBox(onTap: () => ChallengeFlowService.decline(c.id)),
+            PdfDeclineBox(
+              onTap: () => ChallengeFlowService.decline(c.id),
+            ),
           ],
         ],
       ),

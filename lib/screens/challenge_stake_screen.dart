@@ -22,14 +22,17 @@ class _ChallengeStakeScreenState extends State<ChallengeStakeScreen> {
     return a is ChallengeStakeArgs ? a : null;
   }
 
-  void _send() {
+  bool _sending = false;
+
+  Future<void> _send() async {
     final args = _args;
-    if (args == null) return;
+    if (args == null || _sending) return;
     final kind = _stakeIndex == 0
         ? ChallengeStakeKind.free
         : ChallengeStakeKind.coins5;
+    setState(() => _sending = true);
     try {
-      final c = ChallengeFlowService.send(
+      final c = await ChallengeFlowService.send(
         opponentId: args.opponentId,
         opponentName: args.opponentName,
         avatarUrl: args.avatarUrl,
@@ -37,9 +40,12 @@ class _ChallengeStakeScreenState extends State<ChallengeStakeScreen> {
         score: args.score,
         stake: kind,
       );
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/challenge-waiting',
           arguments: c);
     } catch (e) {
+      if (!mounted) return;
+      setState(() => _sending = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$e'.replaceFirst('Exception: ', ''))),
       );
@@ -180,7 +186,10 @@ class _ChallengeStakeScreenState extends State<ChallengeStakeScreen> {
             ),
           ),
           const Spacer(),
-          PdfPinkButton('Send challenge', onTap: _send),
+          PdfPinkButton(
+            _sending ? 'Sending…' : 'Send challenge',
+            onTap: _sending ? null : _send,
+          ),
           const SizedBox(height: 10),
           SizedBox(
             height: 54,

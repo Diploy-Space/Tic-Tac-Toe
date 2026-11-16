@@ -8,6 +8,7 @@ import '../services/app_locale_service.dart';
 import '../services/rewarded_ad_service.dart';
 import '../services/storage.dart';
 import '../services/wallet_service.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
@@ -65,6 +66,7 @@ Future<bool> grantFreeCoinsReward() async {
     refId: AdMobConfig.rewardedUnitId,
   );
   if (!ok) return false;
+  SfxService.play(Sfx.rewardClaim);
   await AppStorage.incrementFreeVideosUsed();
   return true;
 }

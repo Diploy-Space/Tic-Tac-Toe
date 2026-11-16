@@ -2,15 +2,19 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../config/admob_config.dart';
 import '../game/ai.dart';
 import '../game/ai_callback_gate.dart';
 import '../game/board.dart';
 import '../models.dart';
+import '../services/match_music_service.dart';
 import '../services/match_sync_service.dart';
 import '../services/progress_sync_service.dart';
+import '../services/sfx_service.dart';
 import '../services/wallet_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/match_turn.dart';
 import '../widgets/painters.dart';
 import 'dialogs.dart';
 
@@ -24,7 +28,9 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateMixin {
   static const turnSeconds = 20;
-  static const _aiDelay = Duration(milliseconds: 520);
+  // Long enough for the "thinking" state to read on screen.
+  static const _aiDelay = Duration(milliseconds: 1100);
+  static const _urgentSeconds = 5;
 
   late GameArgs args;
   late Board board;
@@ -32,6 +38,12 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   final _rnd = Random();
   final _aiGate = AiCallbackGate();
   Timer? _aiTimer;
+  Timer? _ghostTimer;
+  Timer? _flashTimer;
+  int? _ghostCell;
+  String? _timeoutText;
+  int _lastTickSecond = -1;
+  Color _timeoutColor = C.teal;
   String turn = 'O';
   bool over = false;
   bool _init = false;
@@ -44,6 +56,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     super.didChangeDependencies();
     if (_init) return;
     _init = true;
+    MatchMusicService.instance.start();
     args = (ModalRoute.of(context)?.settings.arguments as GameArgs?) ??
         const GameArgs(size: 3);
     board = Board(args.size);
@@ -64,13 +77,21 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       ..addStatusListener((s) {
         if (s == AnimationStatus.completed) _timeout();
       })
+      ..addListener(_countdownTick)
       ..forward();
+    SfxService.play(Sfx.countdownGo);
   }
 
   @override
   void dispose() {
-    _cancelPendingAi();
-    if (_init) timer.dispose();
+    _aiTimer?.cancel();
+    _ghostTimer?.cancel();
+    _aiGate.invalidate();
+    _flashTimer?.cancel();
+    if (_init) {
+      timer.dispose();
+      MatchMusicService.instance.stop();
+    }
     super.dispose();
   }
 
@@ -78,12 +99,58 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     _aiTimer?.cancel();
     _aiTimer = null;
     _aiGate.invalidate();
+    _stopGhost();
   }
 
   void _scheduleAi() {
     _cancelPendingAi();
     final token = _aiGate.token;
     _aiTimer = Timer(_aiDelay, () => _ai(token));
+    _startGhost();
+  }
+
+  /// While the AI "thinks", a faint mark hops between empty squares.
+  void _startGhost() {
+    _stopGhost();
+    void hop() {
+      final empty = board.emptyCells;
+      if (!mounted || empty.isEmpty) return;
+      setState(() => _ghostCell = empty[_rnd.nextInt(empty.length)]);
+    }
+
+    hop();
+    _ghostTimer =
+        Timer.periodic(const Duration(milliseconds: 1600), (_) => hop());
+  }
+
+  void _stopGhost() {
+    _ghostTimer?.cancel();
+    _ghostTimer = null;
+    if (_ghostCell != null && mounted) setState(() => _ghostCell = null);
+  }
+
+  /// One tick per second during the last [_urgentSeconds] of a turn.
+  void _countdownTick() {
+    if (over || !timer.isAnimating) return;
+    final left = (turnSeconds * (1 - timer.value)).ceil();
+    if (left > _urgentSeconds || left <= 0) {
+      _lastTickSecond = -1;
+      return;
+    }
+    if (left == _lastTickSecond) return;
+    _lastTickSecond = left;
+    SfxService.play(Sfx.countdownTick);
+  }
+
+  void _flashTimeout(String who) {
+    _flashTimer?.cancel();
+    setState(() {
+      _timeoutText = "Time's up · $who";
+      _timeoutColor = markColor(turn);
+    });
+    _flashTimer = Timer(const Duration(milliseconds: 1400), () {
+      if (mounted) setState(() => _timeoutText = null);
+    });
   }
 
   void _stopTurnTimer() {
@@ -111,6 +178,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   void _place(int i) {
     if (over || board.cells[i] != null) return;
     _haptic();
+    SfxService.place(turn);
     setState(() => board.cells[i] = turn);
 
     if (board.winsAt(i, turn)) {
@@ -137,6 +205,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     if (over || !mounted) return;
     // Timeout owns the move; invalidate any delayed AI for this turn.
     _cancelPendingAi();
+    _flashTimeout(turn == 'O' ? _leftName : _rightName);
     final empty = board.emptyCells;
     if (empty.isNotEmpty) _place(empty[_rnd.nextInt(empty.length)]);
   }
@@ -175,6 +244,11 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     _stopTurnTimer();
     if (!mounted) return;
     setState(() => over = true);
+    SfxService.play(winner == null
+        ? Sfx.draw
+        : (winner == 'O' || !args.vsAi)
+            ? Sfx.win
+            : Sfx.lose);
 
     final vsAi = args.vsAi;
     String title, subtitle;
@@ -271,11 +345,25 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     await Future<void>.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
     final again = await showResultDialog(context,
-        art: art, title: title, subtitle: subtitle, coinText: coinText);
+        art: art,
+        title: title,
+        subtitle: subtitle,
+        coinText: coinText,
+        baseCoins: coinDelta,
+        // Won AI match: rewarded video credits a fixed bonus.
+        bonusReward:
+            vsAi && winner == 'O' ? AdMobConfig.matchBonusReward : 0,
+        shareText: winner != null && (winner == 'O' || !vsAi)
+            ? 'I just won a match of DROTIX'
+                '${vsAi ? ' against ${args.opponentName}' : ''}! '
+                'Think you can beat me? Play now: https://playdrotix.com'
+            : null,
+        refId: args.opponentName);
     if (!mounted) return;
     if (again == true) {
       if (args.stake > 0) {
         if (coins.value < args.stake) {
+          SfxService.play(Sfx.error);
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Not enough coins for another stake.')));
           _leaveToHome();
@@ -305,6 +393,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
         over = false;
       });
       timer.forward(from: 0);
+      SfxService.play(Sfx.countdownGo);
     } else {
       _leaveToHome();
     }
@@ -325,6 +414,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
           over = false;
         });
         timer.forward(from: 0);
+        SfxService.play(Sfx.countdownGo);
         break;
       case 'settings':
         await Navigator.pushNamed(context, '/settings');
@@ -345,53 +435,30 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   String get _leftName => args.vsAi ? 'You' : 'Player 1';
   String get _rightName => args.opponentName;
 
-  Widget _player(String mark, String name, String no) {
-    final active = turn == mark && !over;
-    final color = mark == 'O' ? C.teal : C.magenta;
-    return AppCard(
-        borderColor: active ? color : C.border,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          MarkIcon(isX: mark == 'X', size: 24),
-          const SizedBox(width: 10),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Tag(no, color: color),
-            Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
-          ]),
-        ]));
-  }
+  Widget _player(String mark, String name, String no) => TurnPlayerCard(
+        mark: mark,
+        tag: no,
+        name: name,
+        active: turn == mark && !over,
+        // Pass & play: both seats are local humans.
+        isYou: !args.vsAi || mark == 'O',
+      );
+
+  bool get _humanTurn => !over && !(args.vsAi && turn != 'O');
 
   Widget _cell(int i) {
-    final v = board.cells[i];
-    final canTap = !over && !(args.vsAi && turn != 'O');
-    return Padding(
-        padding: const EdgeInsets.all(5),
-        child: PopIn(
-            delayMs: i * 40,
-            child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: canTap ? () => _place(i) : null,
-                child: Container(
-                    decoration: BoxDecoration(
-                        color: boardColor(equippedBoard.value),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: C.border)),
-                    child: v == null
-                        ? null
-                        : TweenAnimationBuilder<double>(
-                            key: ValueKey('$i$v'),
-                            tween: Tween(begin: 0, end: 1),
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeOutBack,
-                            builder: (_, s, child) =>
-                                Transform.scale(scale: s, child: child),
-                            child: Center(
-                                child: FractionallySizedBox(
-                                    widthFactor: .55,
-                                    heightFactor: .55,
-                                    child: FittedBox(
-                                        child: MarkIcon(
-                                            isX: v == 'X', size: 44)))))))));
+    final human = _humanTurn;
+    return PopIn(
+        delayMs: i * 40,
+        child: TurnBoardCell(
+          index: i,
+          value: board.cells[i],
+          base: boardColor(equippedBoard.value),
+          hintColor: human && !over ? markColor(turn) : null,
+          dim: !human && !over,
+          ghostMark: _ghostCell == i ? turn : null,
+          onTap: human && board.cells[i] == null ? () => _place(i) : null,
+        ));
   }
 
   @override
@@ -399,63 +466,97 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     final mover = over
         ? 'Game over'
         : args.vsAi
-            ? (turn == 'O' ? 'Your move' : '${args.opponentName} is thinking')
+            ? (turn == 'O' ? 'Your move' : '${args.opponentName}\u2019s move')
             : (turn == 'O' ? "Player 1's move" : "Player 2's move");
+    final color = markColor(turn);
     return AppScaffold(
-      child: Column(children: [
-        Row(children: [
+      child: Stack(children: [
+        Column(children: [
           AnimatedBuilder(
               animation: timer,
               builder: (_, __) {
                 final left = (turnSeconds * (1 - timer.value)).ceil();
-                return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                        color: C.surface,
-                        borderRadius: BorderRadius.circular(99),
-                        border: Border.all(color: C.border2)),
-                    child: Text('$mover · 0:${left.toString().padLeft(2, '0')}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 14)));
+                final urgent = !over && timer.isAnimating && left <= _urgentSeconds;
+                return Column(children: [
+                  Row(children: [
+                    Expanded(
+                      child: TurnStatusPill(
+                        text: over
+                            ? mover
+                            : '$mover · 0:${left.toString().padLeft(2, '0')}',
+                        color: over ? C.border2 : color,
+                        urgent: urgent,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const CoinChip(),
+                    const SizedBox(width: 8),
+                    RoundIconBox(Icons.pause, label: 'Pause', onTap: _pause),
+                  ]),
+                  const SizedBox(height: 12),
+                  TurnTimerBar(
+                    value: over ? 0 : 1 - timer.value,
+                    color: color,
+                    urgent: urgent,
+                  ),
+                ]);
               }),
-          const Spacer(),
-          const CoinChip(),
-          const SizedBox(width: 8),
-          RoundIconBox(Icons.pause, label: 'Pause', onTap: _pause),
-        ]),
-        const SizedBox(height: 12),
-        AnimatedBuilder(
-            animation: timer,
-            builder: (_, __) => ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: LinearProgressIndicator(
-                    value: 1 - timer.value,
-                    minHeight: 6,
-                    backgroundColor: C.border,
-                    color: C.magenta))),
-        const SizedBox(height: 18),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          _player('O', _leftName, 'No. 042'),
-          const Text('VS',
-              style: TextStyle(color: C.magenta, fontWeight: FontWeight.w800)),
-          _player('X', _rightName, 'No. 001'),
-        ]),
-        Expanded(
+          const SizedBox(height: 18),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: _player('O', _leftName, 'No. 042')),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 22, 8, 0),
+              child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 250),
+                  style: TextStyle(
+                      color: markColor(turn == 'O' ? 'X' : 'O'),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800),
+                  child: const Text('VS')),
+            ),
+            Expanded(child: _player('X', _rightName, 'No. 001')),
+          ]),
+          Expanded(
+              child: Center(
+                  child: AspectRatio(
+                      aspectRatio: 1,
+                      child: Column(children: [
+                        for (var r = 0; r < n; r++)
+                          Expanded(
+                              child: Row(children: [
+                            for (var c = 0; c < n; c++)
+                              Expanded(child: _cell(r * n + c)),
+                          ])),
+                      ])))),
+          SizedBox(
+            height: 24,
             child: Center(
-                child: AspectRatio(
-                    aspectRatio: 1,
-                    child: Column(children: [
-                      for (var r = 0; r < n; r++)
-                        Expanded(
-                            child: Row(children: [
-                          for (var c = 0; c < n; c++)
-                            Expanded(child: _cell(r * n + c)),
-                        ])),
-                    ])))),
-        SizedBox(
-            width: double.infinity,
-            child: GhostButton('Leave game', onTap: _leaveGame)),
+              child: over
+                  ? null
+                  : TurnCaption(
+                      myTurn: _humanTurn,
+                      opponentName: args.opponentName,
+                      color: color,
+                    ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+              width: double.infinity,
+              child: GhostButton('Leave game', onTap: _leaveGame)),
+        ]),
+        if (_timeoutText != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Center(
+                child: TimeoutFlash(
+                  key: ValueKey(_timeoutText),
+                  color: _timeoutColor,
+                  text: _timeoutText!,
+                ),
+              ),
+            ),
+          ),
       ]),
     );
   }

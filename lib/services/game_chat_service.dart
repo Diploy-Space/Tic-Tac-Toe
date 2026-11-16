@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/game_chat_message.dart';
 import 'auth_service.dart';
+import 'sfx_service.dart';
 
 /// Realtime in-game chat for a single multiplayer room (ValueNotifier pattern).
 class GameChatService {
@@ -169,6 +170,7 @@ class GameChatService {
 
   static void _onIncoming(GameChatMessage m) {
     lastIncoming.value = m;
+    SfxService.play(Sfx.messagePop);
     // Emoji reactions float on the board — don't badge the chat icon.
     if (!_sheetOpen && !_isEmojiOnly(m.message)) {
       unreadCount.value = unreadCount.value + 1;

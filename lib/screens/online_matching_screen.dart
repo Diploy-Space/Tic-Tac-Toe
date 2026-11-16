@@ -4,6 +4,7 @@ import '../models/multiplayer_match.dart';
 import '../services/auth_service.dart';
 import '../services/multiplayer_matchmaking_service.dart';
 import '../services/online_realtime_service.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
@@ -176,6 +177,7 @@ class _OnlineMatchingScreenState extends State<OnlineMatchingScreen>
     if (_navigated || !mounted || _leaving) return;
     _navigated = true;
     _poll?.cancel();
+    SfxService.play(Sfx.matchFound);
     Navigator.pushReplacementNamed(
       context,
       '/online-room',

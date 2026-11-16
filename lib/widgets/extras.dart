@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 import 'painters.dart';
 
@@ -42,7 +43,7 @@ class SmallButton extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
       height: 40,
       child: FilledButton(
-          onPressed: onTap,
+          onPressed: sfxTap(onTap),
           style: FilledButton.styleFrom(
               backgroundColor: color,
               foregroundColor: Colors.white,
@@ -130,6 +131,7 @@ class ToggleRow extends StatelessWidget {
   void _set(bool next) {
     if (notifier.value == next) return;
     notifier.value = next;
+    SfxService.play(Sfx.tap);
   }
 
   @override
@@ -216,7 +218,7 @@ class CosmeticTile extends StatelessWidget {
                 : '${item.price} coins';
         return InkWell(
             borderRadius: BorderRadius.circular(18),
-            onTap: onTap,
+            onTap: sfxTap(onTap, Sfx.tap),
             child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
                 decoration: BoxDecoration(

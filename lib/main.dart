@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'l10n/app_localizations.dart';
 import 'models.dart';
+import 'services/sfx_service.dart';
 import 'services/app_locale_service.dart';
 import 'services/auth_service.dart';
 import 'services/connectivity_service.dart';
@@ -25,6 +26,7 @@ import 'screens/language_screen.dart';
 import 'screens/more_games_screen.dart';
 import 'screens/contact_about_screen.dart';
 import 'screens/privacy_screen.dart';
+import 'screens/terms_screen.dart';
 import 'screens/logo_screen.dart' show LogoScreen, LogoSplashScreen;
 import 'screens/intro_screen.dart';
 import 'screens/forgot_password_screen.dart';
@@ -44,7 +46,6 @@ import 'screens/online_matching_screen.dart';
 import 'screens/online_game_screen.dart';
 import 'screens/private_room_lobby_screen.dart';
 import 'screens/join_private_room_screen.dart';
-import 'screens/private_room_qr_scanner_screen.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/wallet_screen.dart';
 import 'screens/settings_screen.dart';
@@ -75,6 +76,7 @@ import 'models/moderation_models.dart';
 import 'services/moderation_service.dart';
 import 'services/rewarded_ad_service.dart';
 import 'services/privacy_prefs_service.dart';
+import 'services/challenge_flow_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -87,6 +89,7 @@ Future<void> main() async {
   // Fire-and-forget so cold start is not blocked by AdMob.
   unawaited(RewardedAdService.instance.init());
   unawaited(PrivacyPrefsService.refresh());
+  unawaited(SfxService.init());
   runApp(const TicTacApp());
 }
 
@@ -98,6 +101,8 @@ class TicTacApp extends StatefulWidget {
 
 class _TicTacAppState extends State<TicTacApp> {
   final _nav = GlobalKey<NavigatorState>();
+  bool _incomingOpen = false;
+  late final NavigatorObserver _challengeNavObserver;
 
   /// Only these screens may be replaced by post-login `/home` redirect.
   static const _authEntryRoutes = {
@@ -199,6 +204,8 @@ class _TicTacAppState extends State<TicTacApp> {
 
   @override
   void dispose() {
+    ChallengeFlowService.setIncomingHandler(null);
+    ChallengeFlowService.setOutgoingResolvedHandler(null);
     ConnectivityService.instance.dispose();
     super.dispose();
   }
@@ -212,6 +219,28 @@ class _TicTacAppState extends State<TicTacApp> {
       return '/appeal-under-review';
     }
     return '/home';
+  }
+
+  /// First run → intro. Signed in → Home. Otherwise → Landing.
+  static String get _startRoute {
+    if (!introSeen.value) return '/intro';
+    return AuthService.isSignedIn ? '/home' : '/';
+  }
+
+  /// Opened straight into Home: still send suspended / under-review
+  /// accounts to their moderation screen.
+  Future<void> _checkModerationOnStart() async {
+    if (_startRoute != '/home') return;
+    try {
+      final status = ModerationService.status.value ??
+          await ModerationService.refresh();
+      final dest = _destinationForModeration(status);
+      if (dest != '/home') {
+        _nav.currentState?.pushNamedAndRemoveUntil(dest, (r) => false);
+      }
+    } catch (e) {
+      debugPrint('Start moderation check: $e');
+    }
   }
 
   Future<void> _routeSignedIn() async {
@@ -231,9 +260,55 @@ class _TicTacAppState extends State<TicTacApp> {
     }
   }
 
+  void _syncChallengeBusy() {
+    final route = _currentRouteName();
+    final busy =
+        route != null && ChallengeFlowService.busyRoutes.contains(route);
+    ChallengeFlowService.setBusyClient(busy);
+  }
+
+  void _presentIncomingChallenge(ChallengeItem c) {
+    final route = _currentRouteName();
+    final busy =
+        route != null && ChallengeFlowService.busyRoutes.contains(route);
+    ChallengeFlowService.setBusyClient(busy);
+    if (busy) {
+      unawaited(ChallengeFlowService.decline(c.id, silent: true));
+      return;
+    }
+    if (route == '/challenge-incoming' || _incomingOpen) return;
+    final nav = _nav.currentState;
+    if (nav == null) return;
+    _incomingOpen = true;
+    SfxService.play(Sfx.challengeIncoming);
+    nav
+        .pushNamed('/challenge-incoming', arguments: c)
+        .whenComplete(() => _incomingOpen = false);
+  }
+
   @override
   void initState() {
     super.initState();
+    _challengeNavObserver = _ChallengeNavObserver(onChange: _syncChallengeBusy);
+    ChallengeFlowService.setIncomingHandler(_presentIncomingChallenge);
+    ChallengeFlowService.setOutgoingResolvedHandler((c) {
+      if (_currentRouteName() == '/challenge-waiting') return;
+      final ctx = _nav.currentContext;
+      if (ctx == null) return;
+      final msg = switch (c.status) {
+        ChallengeItemStatus.declined => 'Challenge declined',
+        ChallengeItemStatus.accepted => 'Challenge accepted',
+        ChallengeItemStatus.expired => 'Challenge expired',
+        ChallengeItemStatus.cancelled => 'Challenge cancelled',
+        _ => null,
+      };
+      if (msg == null) return;
+      SfxService.play(Sfx.notification);
+      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(msg)));
+    });
+    if (AuthService.isSignedIn) {
+      unawaited(ChallengeFlowService.start());
+    }
     ModerationService.onForceSuspended = () {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _nav.currentState?.pushNamedAndRemoveUntil('/', (r) => false);
@@ -249,6 +324,9 @@ class _TicTacAppState extends State<TicTacApp> {
         }
       });
     };
+
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _checkModerationOnStart());
 
     // After Google / email deep-link, jump into the game once session exists.
     // Recovery OTP / magic-link goes to set-new-password instead of home.
@@ -273,9 +351,10 @@ class _TicTacAppState extends State<TicTacApp> {
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<int>(
         valueListenable: AppLocaleService.revision,
-        builder: (_, __, ___) => MaterialApp(
+        builder: (_, __, ___) =>         MaterialApp(
         navigatorKey: _nav,
-        title: 'Tic Tac Toe',
+        navigatorObservers: [_challengeNavObserver],
+        title: 'DROTIX',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
         locale: AppLocaleService.materialSafeLocale,
@@ -289,7 +368,18 @@ class _TicTacAppState extends State<TicTacApp> {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        initialRoute: introSeen.value ? '/' : '/intro',
+        initialRoute: _startRoute,
+        // Only the start screen — no Landing underneath Home.
+        onGenerateInitialRoutes: (name) => [
+          MaterialPageRoute(
+            settings: RouteSettings(name: name),
+            builder: (_) => switch (name) {
+              '/intro' => const IntroScreen(),
+              '/home' => const HomeScreen(),
+              _ => const LandingScreen(),
+            },
+          ),
+        ],
         routes: {
           '/': (_) => const LandingScreen(),
           '/signin': (_) => const SignInScreen(),
@@ -346,6 +436,7 @@ class _TicTacAppState extends State<TicTacApp> {
           '/games': (_) => const MoreGamesScreen(),
           '/contact': (_) => const ContactAboutScreen(),
           '/privacy': (_) => const PrivacyScreen(),
+          '/terms': (_) => const TermsScreen(),
           '/logo': (_) => const LogoScreen(),
           '/intro': (_) => const IntroScreen(),
           '/forgot': (_) => const ForgotPasswordScreen(),
@@ -365,7 +456,8 @@ class _TicTacAppState extends State<TicTacApp> {
           '/online-room': (_) => const OnlineGameScreen(),
           '/private-room-lobby': (_) => const PrivateRoomLobbyScreen(),
           '/join-private-room': (_) => const JoinPrivateRoomScreen(),
-          '/scan-private-room': (_) => const PrivateRoomQrScannerScreen(),
+          // Same JOIN ROOM UI (camera + code) as design.
+          '/scan-private-room': (_) => const JoinPrivateRoomScreen(),
           '/edit-profile': (_) => const EditProfileScreen(),
           '/wallet': (_) => const WalletScreen(),
           '/settings': (_) => const SettingsScreen(),
@@ -378,4 +470,29 @@ class _TicTacAppState extends State<TicTacApp> {
         },
       ),
       );
+}
+
+class _ChallengeNavObserver extends NavigatorObserver {
+  final VoidCallback onChange;
+  _ChallengeNavObserver({required this.onChange});
+
+  void _notify() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => onChange());
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _notify();
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _notify();
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      _notify();
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _notify();
 }

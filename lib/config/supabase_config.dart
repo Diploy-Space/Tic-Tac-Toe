@@ -5,6 +5,6 @@ class SupabaseConfig {
       'sb_publishable_0Z0imimvSzyS82y_7EXp3Q_So1ClCJc';
 
   /// Deep-link used for OAuth / email redirects on mobile.
-  static const redirectScheme = 'tic_tac_game';
+  static const redirectScheme = 'com.drodify.drotix';
   static const redirectUrl = '$redirectScheme://login-callback/';
 }

@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
-        android:label="tic_tac_game"
+        android:label="DROTIX"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -33,7 +33,7 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data
-                    android:scheme="tic_tac_game"
+                    android:scheme="com.drodify.drotix"
                     android:host="login-callback"/>
             </intent-filter>
         </activity>

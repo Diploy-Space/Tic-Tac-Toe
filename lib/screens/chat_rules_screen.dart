@@ -28,7 +28,8 @@ class ChatRulesScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('• Emoji reactions work without a request, and can be muted.'),
+                Text(
+                    '• Emoji reactions work without a request, and can be muted.'),
                 SizedBox(height: 10),
                 Text('• Either player can stop the chat at any time.'),
                 SizedBox(height: 10),
@@ -48,7 +49,8 @@ class ChatRulesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
             const SizedBox(height: 6),
             Text(body, style: const TextStyle(color: C.muted, height: 1.35)),
           ],

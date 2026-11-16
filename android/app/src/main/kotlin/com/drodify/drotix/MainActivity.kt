@@ -1,4 +1,4 @@
-package com.example.tic_tac_game
+package com.drodify.drotix
 
 import io.flutter.embedding.android.FlutterActivity
 

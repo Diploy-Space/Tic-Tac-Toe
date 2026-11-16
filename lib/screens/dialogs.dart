@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../config/admob_config.dart';
 import '../models.dart';
 import '../models/moderation_models.dart';
 import '../services/auth_service.dart';
 import '../services/connectivity_service.dart';
 import '../services/moderation_service.dart';
 import '../services/private_room_service.dart';
+import '../services/rewarded_ad_service.dart';
+import '../services/sfx_service.dart';
+import '../services/wallet_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
@@ -260,42 +266,295 @@ Future<bool?> showDeleteDialog(BuildContext c) => showAppDialog<bool>(
         ]));
 
 /// Returns true for "Play again", false for "Back to home".
+/// Game-over dialog. When [bonusReward] > 0 a "Claim N Bonus Coins" card
+/// offers a rewarded video that credits that many coins. When [shareText]
+/// is set, a "Share on WhatsApp" button is shown.
 Future<bool?> showResultDialog(BuildContext c,
         {required Widget art,
         required String title,
         required String subtitle,
-        String? coinText}) =>
+        String? coinText,
+        int baseCoins = 0,
+        int bonusReward = 0,
+        String? shareText,
+        String? refId}) =>
     showAppDialog<bool>(
         c,
-        (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [
-              const Tag('Game over'),
-              const SizedBox(height: 10),
-              art,
-              const SizedBox(height: 8),
-              Heading(title, size: 30),
-              if (coinText != null) ...[
-                const SizedBox(height: 10),
-                Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                        color: C.surface,
-                        borderRadius: BorderRadius.circular(99),
-                        border: Border.all(color: C.border2)),
-                    child: Text(coinText,
-                        style: const TextStyle(fontWeight: FontWeight.w600))),
-              ],
-              const SizedBox(height: 8),
-              Text(subtitle, style: const TextStyle(color: C.muted)),
-              const SizedBox(height: 18),
-              SizedBox(
-                  width: double.infinity,
-                  child: PrimaryButton('Play again', onTap: () => Navigator.pop(ctx, true))),
-              const SizedBox(height: 10),
-              SizedBox(
-                  width: double.infinity,
-                  child: GhostButton('Back to home', onTap: () => Navigator.pop(ctx, false))),
-            ]),
+        (ctx) => _ResultDialog(
+              art: art,
+              title: title,
+              subtitle: subtitle,
+              coinText: coinText,
+              baseCoins: baseCoins,
+              bonusReward: bonusReward,
+              shareText: shareText,
+              refId: refId,
+            ),
         dismissible: false);
+
+class _ResultDialog extends StatefulWidget {
+  final Widget art;
+  final String title;
+  final String subtitle;
+  final String? coinText;
+  final int baseCoins;
+  final int bonusReward;
+  final String? shareText;
+  final String? refId;
+  const _ResultDialog({
+    required this.art,
+    required this.title,
+    required this.subtitle,
+    required this.coinText,
+    required this.baseCoins,
+    required this.bonusReward,
+    required this.shareText,
+    required this.refId,
+  });
+  @override
+  State<_ResultDialog> createState() => _ResultDialogState();
+}
+
+class _ResultDialogState extends State<_ResultDialog> {
+  /// idle | loading | done | failed
+  String _ad = 'idle';
+
+  @override
+  void initState() {
+    super.initState();
+    // Coins jingle lands after the win/lose sting.
+    if (widget.coinText?.startsWith('+') ?? false) {
+      SfxService.playLater(Sfx.coinCollect, const Duration(milliseconds: 650));
+    }
+  }
+
+  Future<void> _watch() async {
+    if (_ad == 'loading' || _ad == 'done') return;
+    setState(() => _ad = 'loading');
+    final r = await RewardedAdService.instance.show();
+    if (!mounted) return;
+    if (r != RewardedAdResult.earned) {
+      SfxService.play(Sfx.error);
+      setState(() => _ad = 'failed');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(r == RewardedAdResult.failed
+              ? 'No video available right now. Try again later.'
+              : 'Watch the full video to claim your bonus coins.')));
+      return;
+    }
+    final ok = await WalletService.credit(
+      amount: widget.bonusReward,
+      reason: 'ad_reward',
+      idempotencyKey:
+          'match_bonus_${DateTime.now().toUtc().millisecondsSinceEpoch}',
+      refType: 'rewarded_ad',
+      refId: widget.refId ?? AdMobConfig.rewardedUnitId,
+    );
+    if (!mounted) return;
+    setState(() => _ad = ok ? 'done' : 'failed');
+    SfxService.play(ok ? Sfx.rewardClaim : Sfx.error);
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('+${widget.bonusReward} bonus coins added')));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text(WalletService.error.value ?? 'Could not add coins')));
+    }
+  }
+
+  Widget _coinPill(String text) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+      decoration: BoxDecoration(
+          color: C.surface,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: C.border2)),
+      child: Text(text,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)));
+
+  Future<void> _shareWhatsApp() async {
+    final text = widget.shareText!;
+    final wa = Uri.parse(
+        'https://wa.me/?text=${Uri.encodeComponent(text)}');
+    var opened = false;
+    try {
+      opened = await launchUrl(wa, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+    if (!opened) {
+      // WhatsApp unavailable: fall back to the system share sheet.
+      await SharePlus.instance.share(ShareParams(text: text));
+    }
+  }
+
+  Widget _whatsAppButton() => SizedBox(
+        height: 50,
+        width: double.infinity,
+        child: OutlinedButton(
+          onPressed: _ad == 'loading' ? null : _shareWhatsApp,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _waGreen,
+            backgroundColor: _waGreen.withValues(alpha: .08),
+            side: BorderSide(color: _waGreen.withValues(alpha: .8)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
+          ),
+          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.chat_rounded, size: 20, color: _waGreen),
+            SizedBox(width: 10),
+            Text('Share on WhatsApp',
+                style: TextStyle(
+                    color: _waGreen,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15)),
+          ]),
+        ),
+      );
+
+  static const _waGreen = Color(0xFF25D366);
+
+  Widget _bonusCard() {
+    final done = _ad == 'done';
+    final loading = _ad == 'loading';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+      decoration: BoxDecoration(
+        color: C.teal.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: C.teal.withValues(alpha: .7)),
+      ),
+      child: Row(children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: C.teal.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          alignment: Alignment.center,
+          child: Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: C.coin, width: 2),
+            ),
+            child: const Text('₹',
+                style: TextStyle(
+                    color: C.coin, fontSize: 12, fontWeight: FontWeight.w700)),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    done
+                        ? 'Bonus claimed!'
+                        : 'Claim ${widget.bonusReward} Bonus Coins',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 15)),
+                const SizedBox(height: 2),
+                Text.rich(
+                  TextSpan(
+                    style: const TextStyle(color: C.muted, fontSize: 12.5),
+                    children: done
+                        ? [
+                            TextSpan(
+                                text: '+${widget.bonusReward} coins',
+                                style: const TextStyle(color: C.teal)),
+                            const TextSpan(text: ' added to your wallet'),
+                          ]
+                        : [
+                            const TextSpan(text: 'Watch a short video to get '),
+                            TextSpan(
+                                text: '+${widget.bonusReward}',
+                                style: const TextStyle(color: C.teal)),
+                          ],
+                  ),
+                ),
+              ]),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          height: 36,
+          child: FilledButton(
+            onPressed: done || loading ? null : _watch,
+            style: FilledButton.styleFrom(
+              backgroundColor: C.teal,
+              disabledBackgroundColor: C.teal.withValues(alpha: .35),
+              foregroundColor: const Color(0xFF04201F),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: loading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Color(0xFF04201F)))
+                : done
+                    ? const Icon(Icons.check_rounded, size: 20)
+                    : const Text('CLAIM',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            letterSpacing: .5)),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final showBonus = widget.bonusReward > 0;
+    final coinText = _ad == 'done'
+        ? '+${widget.baseCoins + widget.bonusReward} coins'
+        : widget.coinText;
+    return SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+      const Tag('Game over'),
+      const SizedBox(height: 12),
+      widget.art,
+      const SizedBox(height: 10),
+      Heading(widget.title, size: 30, align: TextAlign.center),
+      if (coinText != null) ...[
+        const SizedBox(height: 12),
+        _coinPill(coinText),
+      ] else ...[
+        const SizedBox(height: 8),
+        Text(widget.subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: C.muted)),
+      ],
+      const SizedBox(height: 18),
+      if (showBonus) ...[
+        _bonusCard(),
+        const SizedBox(height: 12),
+      ],
+      if (widget.shareText != null) ...[
+        _whatsAppButton(),
+        const SizedBox(height: 12),
+      ],
+      SizedBox(
+          width: double.infinity,
+          child: PrimaryButton('Play again',
+              onTap: _ad == 'loading'
+                  ? null
+                  : () => Navigator.pop(context, true))),
+      const SizedBox(height: 12),
+      SizedBox(
+          width: double.infinity,
+          child: GhostButton('Back to home',
+              onTap: _ad == 'loading'
+                  ? null
+                  : () => Navigator.pop(context, false))),
+    ]));
+  }
+}
 
 // ---- flows -----------------------------------------------------------
 
@@ -313,6 +572,7 @@ Future<void> startRandom(BuildContext c) async {
   final stake = await showRandomDialog(c);
   if (stake == null || !c.mounted) return;
   if (coins.value < stake) {
+    SfxService.play(Sfx.error);
     ScaffoldMessenger.of(c).showSnackBar(
         const SnackBar(content: Text('Not enough coins for this stake.')));
     return;
@@ -423,6 +683,7 @@ Future<void> startOnlineMatch(BuildContext c) async {
       'code': room.code,
       'boardSize': room.boardSize,
       'stake': room.stake,
+      'expiresAt': room.expiresAt?.toIso8601String(),
     });
   } catch (e) {
     if (!c.mounted) return;

@@ -3,6 +3,7 @@ import '../models.dart';
 import '../services/auth_service.dart';
 import '../services/connectivity_service.dart';
 import '../services/progress_sync_service.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
@@ -55,6 +56,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
       await ProgressSyncService.claimMission(
           missionId: m.id, reward: m.reward);
       if (!mounted) return;
+      SfxService.play(Sfx.rewardClaim);
       final cloudSaved = AuthService.isSignedIn &&
           ConnectivityService.instance.isOnline;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -64,6 +66,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
       setState(() {});
     } catch (e) {
       if (!mounted) return;
+      SfxService.play(Sfx.error);
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AuthService.messageFromError(e))));
     } finally {

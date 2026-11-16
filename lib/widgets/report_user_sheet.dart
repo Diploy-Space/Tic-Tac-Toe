@@ -7,6 +7,7 @@ import '../services/game_chat_service.dart';
 import '../services/moderation_service.dart';
 import '../services/online_realtime_service.dart';
 import '../services/storage.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 
 /// Opens PDF-matching report flow: reason sheet → details → sent modal.
@@ -333,10 +334,12 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (id == null) {
+      SfxService.play(Sfx.error);
       setState(() =>
           _error = ModerationService.error.value ?? 'Report failed');
       return;
     }
+    SfxService.play(Sfx.chatReportSent);
     final oid = widget.opponentId?.trim();
     if (_blockPlayer && oid != null && oid.isNotEmpty) {
       await AppStorage.blockPlayer(oid);

@@ -3,8 +3,11 @@ import '../models/challenge_args.dart';
 import '../models/cloud_match.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
+import '../services/challenge_flow_service.dart';
+import '../services/friend_repository.dart';
 import '../services/match_repository.dart';
 import '../services/profile_service.dart';
+import '../services/sfx_service.dart';
 import '../services/storage.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -26,6 +29,12 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   bool _loading = true;
   String? _error;
   bool _blocked = false;
+  bool _canChallenge = true;
+
+  /// none | pending (I sent) | incoming (they sent) | declined | friends | self
+  String _friendState = 'none';
+  String? _friendshipId;
+  bool _friendBusy = false;
 
   PublicProfileArgs get _seed {
     final arg = ModalRoute.of(context)?.settings.arguments;
@@ -72,13 +81,19 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       final results = await Future.wait([
         ProfileService.loadPublic(uid),
         MatchRepository.fetchLeaderboardEntry(uid),
+        ChallengeFlowService.canChallenge(uid),
+        _loadFriendState(uid),
       ]);
       if (!mounted) return;
       final p = results[0] as UserProfile?;
       final s = results[1] as LeaderboardEntry?;
+      final allow = results[2] as bool;
+      final friend = results[3] as String;
       setState(() {
+        _friendState = friend;
         _profile = p ?? _profile;
         _stats = s ?? _stats;
+        _canChallenge = allow;
         _loading = false;
         if (_profile == null) _error = 'Profile not found';
       });
@@ -90,6 +105,129 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       });
     }
   }
+
+  Future<String> _loadFriendState(String uid) async {
+    final me = AuthService.user?.id;
+    if (me == null) return 'none';
+    if (me == uid) return 'self';
+    try {
+      final all = await FriendRepository.fetchMine();
+      for (final f in all) {
+        if (f.otherUserId != uid) continue;
+        _friendshipId = f.id;
+        if (f.status == 'accepted') return 'friends';
+        if (f.status == 'pending') {
+          return f.requesterId == me ? 'pending' : 'incoming';
+        }
+        return 'declined';
+      }
+    } catch (_) {}
+    return 'none';
+  }
+
+  Future<void> _addFriend() async {
+    if (!AuthService.isSignedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to add friends')),
+      );
+      return;
+    }
+    final p = _profile;
+    if (p == null || _friendBusy) return;
+    if (_friendState == 'friends' || _friendState == 'pending') return;
+    if (_blocked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unblock this player to add them')),
+      );
+      return;
+    }
+    setState(() => _friendBusy = true);
+    String msg = 'Friend request sent';
+    try {
+      if (_friendState == 'incoming' && _friendshipId != null) {
+        await FriendRepository.accept(_friendshipId!);
+        msg = 'You are now friends';
+        if (mounted) setState(() => _friendState = 'friends');
+        // Friends-only challenge privacy may now allow a challenge.
+        final allow = await ChallengeFlowService.canChallenge(p.id);
+        if (mounted) setState(() => _canChallenge = allow);
+      } else {
+        // A previously declined request still occupies the unique pair;
+        // clear it so a fresh request can be sent.
+        if (_friendState == 'declined' && _friendshipId != null) {
+          await FriendRepository.remove(_friendshipId!);
+        }
+        await FriendRepository.sendRequest(p.id);
+        if (mounted) setState(() => _friendState = 'pending');
+      }
+    } catch (e) {
+      SfxService.play(Sfx.error);
+      msg = e.toString().replaceFirst('Exception: ', '');
+      if (msg.contains('already exists') && mounted) {
+        setState(() => _friendState = 'pending');
+      }
+    }
+    if (!mounted) return;
+    setState(() => _friendBusy = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Widget _friendButton() {
+    final (label, icon, enabled) = switch (_friendState) {
+      'friends' => ('FRIENDS', Icons.how_to_reg_outlined, false),
+      'pending' => ('REQUEST SENT', Icons.schedule, false),
+      'incoming' => ('ACCEPT REQUEST', Icons.person_add_alt_1_outlined, true),
+      _ => ('ADD FRIEND', Icons.person_add_alt_1_outlined, true),
+    };
+    final color = enabled ? C.teal : C.muted;
+    return SizedBox(
+      height: 56,
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: enabled && !_friendBusy ? _addFriend : null,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: color,
+          side: BorderSide(color: enabled ? C.teal : C.border2, width: 1.5),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: _friendBusy
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(icon, size: 22, color: color),
+                const SizedBox(width: 10),
+                Text(label,
+                    style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        letterSpacing: .5)),
+              ]),
+      ),
+    );
+  }
+
+  Widget _challengeButton() => SizedBox(
+        height: 56,
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: _challenge,
+          style: FilledButton.styleFrom(
+            backgroundColor: C.magenta,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+          child: const Text('CHALLENGE',
+              style: TextStyle(
+                  fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 1)),
+        ),
+      );
 
   String _memberSince(DateTime d) {
     const months = [
@@ -152,7 +290,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     );
   }
 
-  void _challenge() {
+  Future<void> _challenge() async {
     if (!AuthService.isSignedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sign in to challenge this player')),
@@ -173,7 +311,26 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       );
       return;
     }
-    Navigator.pushNamed(
+    if (!_canChallenge) {
+      // Re-check: privacy or friendship may have changed since load.
+      final allow = await ChallengeFlowService.canChallenge(p.id);
+      if (!mounted) return;
+      setState(() => _canChallenge = allow);
+      if (!allow) {
+        SfxService.play(Sfx.error);
+        final reason = ChallengeFlowService.challengeBlockReason[p.id];
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(switch (reason) {
+            'friends_only' =>
+              '${p.username} only accepts challenges from friends. Add them first.',
+            'nobody' => '${p.username} is not accepting challenges right now.',
+            _ => 'You can\'t challenge this player right now.',
+          }),
+        ));
+        return;
+      }
+    }
+    await Navigator.pushNamed(
       context,
       '/challenge-stake',
       arguments: ChallengeStakeArgs(
@@ -245,46 +402,50 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   }
 
   Widget _avatarWithRank(String name, String? url, int rank) {
+    const size = 84.0;
     return SizedBox(
-      width: 72,
-      height: 72,
+      width: size,
+      height: size,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Container(
-            width: 64,
-            height: 64,
-            clipBehavior: Clip.antiAlias,
+            width: size,
+            height: size,
+            padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: C.border2),
+              border: Border.all(color: C.magenta, width: 2),
             ),
-            child: url != null && url.trim().isNotEmpty
-                ? ProfileAvatar(url: url, size: 64)
-                : PdfGradientAvatar(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
-                    size: 64,
-                  ),
+            child: ClipOval(
+              child: url != null && url.trim().isNotEmpty
+                  ? ProfileAvatar(url: url, size: size - 10)
+                  : PdfGradientAvatar(
+                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                      size: size - 10,
+                    ),
+            ),
           ),
           if (rank > 0)
             Positioned(
-              right: 0,
+              right: -2,
               bottom: 2,
               child: Container(
-                width: 28,
-                height: 28,
+                constraints: const BoxConstraints(minWidth: 26),
+                height: 26,
+                padding: const EdgeInsets.symmetric(horizontal: 5),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: C.coin,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: C.bg, width: 2),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(color: C.surface, width: 2),
                 ),
                 child: Text(
                   '#$rank',
                   style: const TextStyle(
                     color: C.bg,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11,
                   ),
                 ),
               ),
@@ -298,14 +459,15 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     return Expanded(
       child: Column(
         children: [
-          Text(label, style: const TextStyle(color: C.muted, fontSize: 12)),
-          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: C.muted, fontSize: 13)),
+          const SizedBox(height: 6),
           Text(
             value,
             style: TextStyle(
               color: valueColor ?? C.text,
-              fontWeight: FontWeight.w800,
-              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              fontSize: 28,
+              height: 1.1,
             ),
           ),
         ],
@@ -320,6 +482,8 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final rank = s?.rank ?? 0;
     final score = s?.score ?? 0;
     final wins = s?.wins ?? 0;
+    final isSelf = _friendState == 'self' ||
+        (p != null && p.id == AuthService.user?.id);
 
     return AppScaffold(
       child: ScrollFill(
@@ -340,28 +504,35 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           else if (_error != null && p == null)
             AppCard(child: Text(_error!, style: const TextStyle(color: C.muted)))
           else if (p != null) ...[
-            AppCard(
-              borderColor: C.magenta,
+            Container(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+              decoration: BoxDecoration(
+                color: C.surface,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: C.magenta, width: 1.5),
+              ),
               child: Column(
                 children: [
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _avatarWithRank(
                         p.username,
                         p.avatarUrl ?? s?.avatarUrl,
                         rank,
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               p.username,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 26,
+                                height: 1.15,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -369,7 +540,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                               _memberSince(p.createdAt),
                               style: const TextStyle(
                                 color: C.muted,
-                                fontSize: 13,
+                                fontSize: 14,
                               ),
                             ),
                           ],
@@ -378,13 +549,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        top: BorderSide(color: C.border),
-                      ),
-                    ),
+                  const Divider(height: 1, thickness: 1, color: C.border),
+                  const SizedBox(height: 14),
+                  IntrinsicHeight(
                     child: Row(
                       children: [
                         _stat(
@@ -392,9 +559,11 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                           rank > 0 ? '#$rank' : '–',
                           valueColor: C.coin,
                         ),
-                        Container(width: 1, height: 36, color: C.border),
+                        const VerticalDivider(
+                            width: 1, thickness: 1, color: C.border),
                         _stat('Score', '$score'),
-                        Container(width: 1, height: 36, color: C.border),
+                        const VerticalDivider(
+                            width: 1, thickness: 1, color: C.border),
                         _stat('Wins', '$wins', valueColor: C.teal),
                       ],
                     ),
@@ -402,23 +571,31 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 ],
               ),
             ),
-            const AppCard(
-              child: Row(
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: C.surface.withValues(alpha: .6),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: C.border),
+              ),
+              child: const Row(
                 children: [
                   Icon(Icons.lock_outline, color: C.teal, size: 22),
-                  SizedBox(width: 12),
+                  SizedBox(width: 14),
                   Expanded(
                     child: Text(
                       'Only rank, score and wins are public. Match history and activity stay private.',
-                      style: TextStyle(color: C.muted, height: 1.35, fontSize: 13),
+                      style: TextStyle(color: C.muted, height: 1.4, fontSize: 14),
                     ),
                   ),
                 ],
               ),
             ),
             const Spacer(),
-            PdfPinkButton('Challenge', onTap: _challenge),
-            const SizedBox(height: 14),
+            if (!isSelf) ...[
+              _friendButton(),
+              _challengeButton(),
+            ],
             Center(
               child: InkWell(
                 onTap: _reportOrBlock,
@@ -428,11 +605,11 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.flag_outlined, size: 16, color: C.muted),
-                      SizedBox(width: 8),
+                      Icon(Icons.outlined_flag, size: 18, color: C.muted),
+                      SizedBox(width: 10),
                       Text(
                         'Report or block this player',
-                        style: TextStyle(color: C.muted, fontSize: 13),
+                        style: TextStyle(color: C.muted, fontSize: 14),
                       ),
                     ],
                   ),

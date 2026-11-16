@@ -6,16 +6,20 @@ import '../models.dart';
 import '../models/game_chat_message.dart';
 import '../models/multiplayer_match.dart';
 import '../models/online_room_state.dart';
+import '../services/auth_service.dart';
 import '../services/friend_repository.dart';
 import '../services/game_chat_service.dart';
+import '../services/match_music_service.dart';
 import '../services/match_sync_service.dart';
 import '../services/online_realtime_service.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
 import '../widgets/game_chat_sheet.dart';
 import '../widgets/match_emoji_reaction.dart';
-import '../widgets/painters.dart';
+import '../widgets/match_turn.dart';
+import '../widgets/opponent_peek_card.dart';
 import 'dialogs.dart';
 
 /// C2/C4 online board: PostgreSQL is truth for moves, turns, and results.
@@ -47,10 +51,36 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   int _burstSeq = 0;
   String? _lastHandledIncomingId;
 
+  /// Previous board, to sound each new mark (mine or the opponent's).
+  List<String?>? _prevCells;
+  bool _goPlayed = false;
+
+  void _soundBoardChanges(OnlineRoomState room) {
+    final prev = _prevCells;
+    _prevCells = List<String?>.from(room.cells);
+    if (!_goPlayed && room.hasOpponent && !room.isFinished) {
+      _goPlayed = true;
+      if (room.moveCount == 0) SfxService.play(Sfx.countdownGo);
+    }
+    if (prev == null || prev.length != room.cells.length) return;
+    for (var i = 0; i < room.cells.length; i++) {
+      final v = room.cells[i];
+      if (v != null && prev[i] == null) {
+        SfxService.place(v);
+        return;
+      }
+    }
+  }
+
+  /// Opponent popover (tap their seat).
+  final LayerLink _oppAnchor = LayerLink();
+  OverlayEntry? _peek;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    MatchMusicService.instance.start();
     OnlineRealtimeService.state.addListener(_onRoomChanged);
     OnlineRealtimeService.connected.addListener(_onConnectionChanged);
     GameChatService.lastIncoming.addListener(_onIncomingChat);
@@ -75,8 +105,31 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     }
   }
 
+  void _closePeek() {
+    if (_peek?.mounted ?? false) _peek!.remove();
+    _peek = null;
+  }
+
+  void _openPeek(OnlineRoomState room) {
+    final oppId = room.opponentId;
+    if (oppId.isEmpty || oppId == AuthService.user?.id) return;
+    _closePeek();
+    _peek = showOpponentPeek(
+      context,
+      link: _oppAnchor,
+      // Opponent sits on the right when I am O.
+      alignRight: room.myMark == 'O',
+      userId: oppId,
+      name: _oppName,
+      avatarUrl: _oppAvatar,
+      roomId: room.roomId,
+    );
+  }
+
   @override
   void dispose() {
+    _closePeek();
+    MatchMusicService.instance.stop();
     _reconnectTimer?.cancel();
     for (final t in _burstTimers.values) {
       t.cancel();
@@ -264,6 +317,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     if (_listenedRoomId != null && room.roomId != _listenedRoomId) return;
     _ensureChatAttached(room);
     _loadProfiles(room);
+    _soundBoardChanges(room);
     if (room.winner == null || _resultShown) return;
     _resultShown = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -276,6 +330,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     _reconnectTimer?.cancel();
     final victory = room.winner == room.myMark;
     final draw = room.winner == 'draw';
+    SfxService.play(draw ? Sfx.draw : (victory ? Sfx.win : Sfx.lose));
     await GameChatService.detach();
     await OnlineRealtimeService.detach();
     if (!mounted) return;
@@ -351,62 +406,31 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     required String? avatarUrl,
     required bool active,
     required bool isYou,
-  }) {
-    final color = mark == 'O' ? C.teal : C.magenta;
-    return AppCard(
-      borderColor: active ? color : C.border,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        ClipOval(child: ProfileAvatar(url: avatarUrl, size: 36)),
-        const SizedBox(width: 8),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Tag(isYou ? 'You · $mark' : mark, color: color),
-          SizedBox(
-            width: 88,
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-            ),
-          ),
-        ]),
-      ]),
-    );
-  }
+    OnlineRoomState? room,
+  }) =>
+      TurnPlayerCard(
+        mark: mark,
+        tag: isYou ? 'You · $mark' : mark,
+        name: name,
+        active: active,
+        isYou: isYou,
+        avatar: ClipOval(child: ProfileAvatar(url: avatarUrl, size: 34)),
+        anchor: isYou ? null : _oppAnchor,
+        onTap: isYou || room == null ? null : () => _openPeek(room),
+      );
 
-  Widget _cell(OnlineRoomState s, int i) {
+  Widget _cell(OnlineRoomState s, int i, {required bool pending}) {
     final v = s.cells[i];
-    final canTap = !s.isFinished &&
-        s.isMyTurn &&
-        !OnlineRealtimeService.submitInFlight.value &&
-        v == null;
-    return Padding(
-        padding: const EdgeInsets.all(5),
-        child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: canTap ? () => _tap(i) : null,
-            child: Container(
-                decoration: BoxDecoration(
-                    color: boardColor(equippedBoard.value),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: C.border)),
-                child: v == null
-                    ? null
-                    : TweenAnimationBuilder<double>(
-                        key: ValueKey('$i-$v-${s.moveCount}'),
-                        tween: Tween(begin: 0.7, end: 1),
-                        duration: const Duration(milliseconds: 160),
-                        curve: Curves.easeOutCubic,
-                        builder: (_, scale, child) =>
-                            Transform.scale(scale: scale, child: child),
-                        child: Center(
-                            child: FractionallySizedBox(
-                                widthFactor: .55,
-                                heightFactor: .55,
-                                child: FittedBox(
-                                    child: MarkIcon(
-                                        isX: v == 'X', size: 44))))))));
+    final myTurn = !s.isFinished && s.isMyTurn && !pending;
+    return TurnBoardCell(
+      index: i,
+      value: v,
+      base: boardColor(equippedBoard.value),
+      markKey: '$i-$v-${s.moveCount}',
+      hintColor: myTurn ? markColor(s.myMark) : null,
+      dim: !s.isFinished && !s.isMyTurn,
+      onTap: myTurn && v == null ? () => _tap(i) : null,
+    );
   }
 
   @override
@@ -495,19 +519,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                   children: [
                     Column(children: [
                       Row(children: [
-                        Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                                color: C.surface,
-                                borderRadius: BorderRadius.circular(99),
-                                border: Border.all(color: C.border2)),
-                            child: Text(
+                        Expanded(
+                          child: TurnStatusPill(
+                            text:
                                 '$mover · ${live ? 'Live' : 'Reconnecting…'}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14))),
-                        const Spacer(),
+                            color: room.isFinished
+                                ? C.border2
+                                : markColor(room.currentTurn),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
                         Text('×${room.moveCount}',
                             style: const TextStyle(color: C.muted)),
                         if (showChat) ...[
@@ -567,29 +588,38 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                         ),
                       const SizedBox(height: 12),
                       Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _player(
+                            Expanded(child: _player(
                               mark: 'O',
                               name: oName,
                               avatarUrl: oAvatar,
                               active: room.currentTurn == 'O' &&
                                   room.winner == null,
                               isYou: room.myMark == 'O',
+                              room: room,
+                            )),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(6, 22, 6, 0),
+                              child: Text('VS',
+                                  style: TextStyle(
+                                      color: markColor(
+                                          room.currentTurn == 'O'
+                                              ? 'X'
+                                              : 'O'),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800)),
                             ),
-                            const Text('VS',
-                                style: TextStyle(
-                                    color: C.magenta,
-                                    fontWeight: FontWeight.w800)),
-                            _player(
+                            Expanded(child: _player(
                               mark: 'X',
                               name: xName,
                               avatarUrl: xAvatar,
                               active: room.currentTurn == 'X' &&
                                   room.winner == null,
                               isYou: room.myMark == 'X',
-                            ),
+                              room: room,
+                            )),
                           ]),
                       const SizedBox(height: 8),
                       Text(
@@ -607,9 +637,23 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                                         for (var c = 0; c < n; c++)
                                           Expanded(
                                               child: _cell(
-                                                  room, r * n + c)),
+                                                  room, r * n + c,
+                                                  pending: pending)),
                                       ])),
                                   ])))),
+                      SizedBox(
+                        height: 24,
+                        child: Center(
+                          child: room.isFinished
+                              ? null
+                              : TurnCaption(
+                                  myTurn: room.isMyTurn,
+                                  opponentName: _oppName,
+                                  color: markColor(room.currentTurn),
+                                  message: pending ? 'Sending move…' : null,
+                                ),
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       SizedBox(
                           width: double.infinity,

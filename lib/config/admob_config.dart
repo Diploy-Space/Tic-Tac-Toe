@@ -19,4 +19,7 @@ class AdMobConfig {
 
   /// Coins granted after a completed rewarded video.
   static const freeCoinsReward = 10;
+
+  /// Bonus coins for watching a rewarded video after winning a match.
+  static const matchBonusReward = 20;
 }

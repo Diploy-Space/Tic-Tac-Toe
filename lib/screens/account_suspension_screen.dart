@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/moderation_models.dart';
 import '../services/auth_service.dart';
 import '../services/moderation_service.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -19,6 +20,7 @@ class _AccountSuspensionScreenState extends State<AccountSuspensionScreen> {
   @override
   void initState() {
     super.initState();
+    SfxService.play(Sfx.suspendAlert);
     _load();
   }
 

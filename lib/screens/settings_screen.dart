@@ -51,6 +51,9 @@ class SettingsScreen extends StatelessWidget {
                   MenuTile(Icons.description_outlined,
                       context.tr('privacy_terms'),
                       onTap: () => go('/privacy')),
+                  MenuTile(Icons.gavel_outlined,
+                      context.tr('terms_of_service'),
+                      onTap: () => go('/terms')),
                   MenuTile(Icons.star_outline, context.tr('rate_app'),
                       onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

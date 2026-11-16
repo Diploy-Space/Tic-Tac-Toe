@@ -4,6 +4,7 @@ import '../models/multiplayer_match.dart';
 import '../services/auth_service.dart';
 import '../services/private_room_service.dart';
 import '../services/qr_code_service.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -63,6 +64,7 @@ class _PrivateRoomQrScannerScreenState
         await _controller.start();
         return;
       }
+      SfxService.play(Sfx.matchFound);
       Navigator.pushReplacementNamed(
         context,
         '/online-room',

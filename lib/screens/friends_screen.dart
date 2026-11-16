@@ -3,6 +3,7 @@ import '../models/challenge_args.dart';
 import '../models/cloud_match.dart';
 import '../models/friendship.dart';
 import '../services/auth_service.dart';
+import '../services/challenge_flow_service.dart';
 import '../services/friend_service.dart';
 import '../services/match_repository.dart';
 import '../theme.dart';
@@ -25,6 +26,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   bool _searching = false;
   bool _busy = false;
   final Map<String, LeaderboardEntry> _stats = {};
+  final Map<String, bool> _canChallenge = {};
 
   @override
   void initState() {
@@ -50,11 +52,20 @@ class _FriendsScreenState extends State<FriendsScreen> {
       for (final h in _hits) h.id,
     };
     for (final id in ids) {
-      if (_stats.containsKey(id)) continue;
-      try {
-        final row = await MatchRepository.fetchLeaderboardEntry(id);
-        if (row != null && mounted) setState(() => _stats[id] = row);
-      } catch (_) {}
+      if (!_stats.containsKey(id)) {
+        try {
+          final row = await MatchRepository.fetchLeaderboardEntry(id);
+          if (row != null && mounted) setState(() => _stats[id] = row);
+        } catch (_) {}
+      }
+      if (!_canChallenge.containsKey(id)) {
+        try {
+          final ok = await ChallengeFlowService.canChallenge(id);
+          if (mounted) setState(() => _canChallenge[id] = ok);
+        } catch (_) {
+          if (mounted) setState(() => _canChallenge[id] = true);
+        }
+      }
     }
   }
 
@@ -243,25 +254,27 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               name: f.otherUsername ?? 'player',
                               avatarUrl: f.otherAvatarUrl,
                               userId: f.otherUserId,
-                              trailing: PdfTealButton(
-                                'Challenge',
-                                compact: true,
-                                onTap: () {
-                                  final s = _stats[f.otherUserId];
-                                  Navigator.pushNamed(
-                                    context,
-                                    '/challenge-stake',
-                                    arguments: ChallengeStakeArgs(
-                                      opponentId: f.otherUserId,
-                                      opponentName:
-                                          f.otherUsername ?? 'player',
-                                      avatarUrl: f.otherAvatarUrl,
-                                      rank: s?.rank ?? 0,
-                                      score: s?.score ?? 0,
-                                    ),
-                                  );
-                                },
-                              ),
+                              trailing: (_canChallenge[f.otherUserId] ?? true)
+                                  ? PdfTealButton(
+                                      'Challenge',
+                                      compact: true,
+                                      onTap: () {
+                                        final s = _stats[f.otherUserId];
+                                        Navigator.pushNamed(
+                                          context,
+                                          '/challenge-stake',
+                                          arguments: ChallengeStakeArgs(
+                                            opponentId: f.otherUserId,
+                                            opponentName:
+                                                f.otherUsername ?? 'player',
+                                            avatarUrl: f.otherAvatarUrl,
+                                            rank: s?.rank ?? 0,
+                                            score: s?.score ?? 0,
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : const SizedBox.shrink(),
                             ),
                       ] else ...[
                         if (requests.isNotEmpty) ...[

@@ -1,12 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../services/challenge_flow_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
 
-/// PDF page 4 — Waiting modal with circular timer.
+/// Waiting modal — reacts in realtime when opponent accepts / declines.
 class ChallengeWaitingScreen extends StatefulWidget {
   const ChallengeWaitingScreen({super.key});
 
@@ -16,35 +17,69 @@ class ChallengeWaitingScreen extends StatefulWidget {
 
 class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen> {
   Timer? _timer;
+  String? _id;
+  bool _closing = false;
 
   ChallengeItem? get _item {
     final a = ModalRoute.of(context)?.settings.arguments;
+    if (_id == null && a is ChallengeItem) _id = a.id;
+    if (_id != null) {
+      for (final c in ChallengeFlowService.items.value) {
+        if (c.id == _id) return c;
+      }
+    }
     return a is ChallengeItem ? a : null;
   }
 
   @override
   void initState() {
     super.initState();
+    ChallengeFlowService.items.addListener(_onItems);
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      final c = _item;
+      if (!mounted || _closing) return;
       setState(() {});
-      if (c == null) return;
-      if (c.status != ChallengeItemStatus.pending || c.secondsLeft <= 0) {
-        _timer?.cancel();
-        if (c.status == ChallengeItemStatus.expired) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Challenge expired')),
-          );
-          Navigator.pop(context);
-        }
-      }
+      _checkStatus(_item);
     });
+  }
+
+  void _onItems() {
+    if (!mounted || _closing) return;
+    setState(() {});
+    _checkStatus(_item);
+  }
+
+  void _checkStatus(ChallengeItem? c) {
+    if (c == null || _closing) return;
+    if (c.status == ChallengeItemStatus.pending && c.secondsLeft > 0) return;
+    _closing = true;
+    _timer?.cancel();
+    if (!mounted) return;
+    if (c.status == ChallengeItemStatus.accepted) {
+      Navigator.pushReplacementNamed(
+        context,
+        '/match-lobby',
+        arguments: {
+          'opponentName': c.opponentName,
+          'opponentId': c.opponentId,
+          'stakeLabel': c.stakeLabel,
+        },
+      );
+      return;
+    }
+    final msg = switch (c.status) {
+      ChallengeItemStatus.declined => 'Challenge declined',
+      ChallengeItemStatus.cancelled => 'Challenge cancelled',
+      ChallengeItemStatus.expired => 'Challenge expired',
+      _ => 'Challenge closed',
+    };
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    Navigator.pop(context);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    ChallengeFlowService.items.removeListener(_onItems);
     super.dispose();
   }
 
@@ -83,33 +118,39 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen> {
                 const SizedBox(height: 20),
                 PdfGhostButton(
                   'Cancel challenge',
-                  onTap: () {
-                    if (c != null) ChallengeFlowService.cancel(c.id);
+                  onTap: () async {
+                    final nav = Navigator.of(context);
+                    if (c != null) await ChallengeFlowService.cancel(c.id);
                     _timer?.cancel();
-                    Navigator.pop(context);
+                    if (!mounted) return;
+                    nav.pop();
                   },
                 ),
               ],
             ),
           ),
           const Spacer(),
-          TextButton(
-            onPressed: () {
-              if (c == null) return;
-              ChallengeFlowService.accept(c.id);
-              Navigator.pushReplacementNamed(
-                context,
-                '/match-lobby',
-                arguments: {
-                  'opponentName': c.opponentName,
-                  'opponentId': c.opponentId,
-                  'stakeLabel': c.stakeLabel,
-                },
-              );
-            },
-            child: const Text('Simulate accept (single device)',
-                style: TextStyle(color: C.teal)),
-          ),
+          if (!AuthService.isSignedIn)
+            TextButton(
+              onPressed: () async {
+                if (c == null) return;
+                final nav = Navigator.of(context);
+                await ChallengeFlowService.accept(c.id);
+                if (!mounted) return;
+                nav.pushReplacementNamed(
+                  '/match-lobby',
+                  arguments: {
+                    'opponentName': c.opponentName,
+                    'opponentId': c.opponentId,
+                    'stakeLabel': c.stakeLabel,
+                  },
+                );
+              },
+              child: const Text(
+                'Simulate accept (single device)',
+                style: TextStyle(color: C.teal),
+              ),
+            ),
         ],
       ),
     );

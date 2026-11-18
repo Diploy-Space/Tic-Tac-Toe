@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
+import '../l10n/app_localizations.dart';
 
 /// PDF page 9 — Connection unstable.
 class ConnectionUnstableScreen extends StatefulWidget {
@@ -44,7 +46,7 @@ class _ConnectionUnstableScreenState extends State<ConnectionUnstableScreen> {
     return AppScaffold(
       child: Column(
         children: [
-          const TopBar('Online'),
+          TopBar(context.l10n.online),
           const Spacer(),
           PdfModalCard(
             borderColor: C.danger,
@@ -52,24 +54,24 @@ class _ConnectionUnstableScreenState extends State<ConnectionUnstableScreen> {
               children: [
                 const Icon(Icons.wifi_off_rounded, size: 48, color: C.danger),
                 const SizedBox(height: 14),
-                const Text(
-                  'CONNECTION UNSTABLE',
-                  style: TextStyle(
+                Text(
+                  context.l10n.connectionUnstableCaps,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.2,
                     fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text('Attempting to reconnect…',
-                    style: TextStyle(color: C.muted)),
+                Text(context.l10n.attemptingReconnect,
+                    style: const TextStyle(color: C.muted)),
                 const SizedBox(height: 18),
                 PdfCircularTimer(value: _left, total: 30, size: 110),
                 const SizedBox(height: 14),
-                const Text(
-                  'The board is hidden until you are back.',
+                Text(
+                  context.l10n.boardHiddenUntilBack,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: C.muted, fontSize: 13),
+                  style: const TextStyle(color: C.muted, fontSize: 13),
                 ),
               ],
             ),
@@ -104,27 +106,27 @@ class MatchAbandonedScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.error_outline, size: 48, color: C.danger),
                 const SizedBox(height: 14),
-                const Text(
-                  'MATCH ABANDONED',
-                  style: TextStyle(
+                Text(
+                  context.l10n.matchAbandonedCaps,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.2,
                     fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Opponent disconnected',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                Text(
+                  context.l10n.opponentDisconnected,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'The 30 second grace window has ended. You can claim the win.',
+                Text(
+                  context.l10n.graceWindowEnded,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: C.muted, height: 1.4),
+                  style: const TextStyle(color: C.muted, height: 1.4),
                 ),
                 const SizedBox(height: 20),
-                PdfPinkButton('Claim victory', onTap: () {
+                PdfPinkButton(context.l10n.claimVictory, onTap: () {
                   Navigator.pushReplacementNamed(context, '/match-result',
                       arguments: {
                         'victory': true,
@@ -134,7 +136,7 @@ class MatchAbandonedScreen extends StatelessWidget {
                 }),
                 const SizedBox(height: 10),
                 PdfGhostButton(
-                  'Back to menu',
+                  context.l10n.backToMenu,
                   onTap: () => Navigator.pushNamedAndRemoveUntil(
                       context, '/home', (r) => false),
                 ),
@@ -165,7 +167,7 @@ class MatchResultScreen extends StatelessWidget {
     return AppScaffold(
       child: Column(
         children: [
-          const TopBar('Match result'),
+          TopBar(context.l10n.matchResult),
           const Spacer(),
           PdfModalCard(
             borderColor: draw
@@ -177,10 +179,10 @@ class MatchResultScreen extends StatelessWidget {
               children: [
                 Text(
                   draw
-                      ? 'DRAW'
+                      ? context.l10n.drawBadge
                       : victory
-                          ? 'VICTORY'
-                          : 'DEFEAT',
+                          ? context.l10n.victory
+                          : context.l10n.defeat,
                   style: TextStyle(
                     fontSize: 34,
                     fontWeight: FontWeight.w900,
@@ -192,21 +194,26 @@ class MatchResultScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                Text('Match duration $duration',
+                Text(context.l10n.matchDuration(duration),
                     style: const TextStyle(color: C.muted)),
                 const SizedBox(height: 8),
                 Text(
                   coinGain == 0
-                      ? 'Balance ${coins.value}'
-                      : 'Coins ${coinGain > 0 ? '+' : ''}$coinGain · Balance ${coins.value}',
+                      ? context.l10n.balance(
+                          AppLocaleService.formatCoinAmount(coins.value))
+                      : context.l10n.coinsBalance(
+                          coinGain > 0
+                              ? '+${AppLocaleService.formatCoinAmount(coinGain)}'
+                              : AppLocaleService.formatCoinAmount(coinGain),
+                          AppLocaleService.formatCoinAmount(coins.value)),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 if (victory) ...[
                   const SizedBox(height: 8),
-                  const Text('Leaderboard updated',
-                      style: TextStyle(color: C.muted, fontSize: 13)),
-                  const Text('Score +10',
-                      style: TextStyle(
+                  Text(context.l10n.leaderboardUpdated,
+                      style: const TextStyle(color: C.muted, fontSize: 13)),
+                  Text(context.l10n.scorePlus10,
+                      style: const TextStyle(
                           color: C.coin, fontWeight: FontWeight.w800)),
                 ],
               ],
@@ -214,13 +221,13 @@ class MatchResultScreen extends StatelessWidget {
           ),
           const Spacer(),
           if (victory || draw)
-            PdfPinkButton('Rematch', onTap: () {
+            PdfPinkButton(context.l10n.rematch, onTap: () {
               Navigator.pushNamedAndRemoveUntil(
                   context, '/challenges', (r) => r.isFirst);
             }),
           const SizedBox(height: 10),
           PdfGhostButton(
-            'Return to main menu',
+            context.l10n.returnToMainMenu,
             onTap: () => Navigator.pushNamedAndRemoveUntil(
                 context, '/home', (r) => false),
           ),

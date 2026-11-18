@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/friendship.dart';
+import '../l10n/app_localizations.dart';
 
 class FriendRepository {
   FriendRepository._();
@@ -9,8 +10,28 @@ class FriendRepository {
   static Future<List<ProfileSearchHit>> searchProfiles(String query,
       {int limit = 20}) async {
     final q = query.trim().toLowerCase();
-    if (q.length < 2) return const [];
+    final isId = RegExp(r'^(player|id|#|\s)*\d+$').hasMatch(q);
+    if (q.isEmpty || (q.length < 2 && !isId)) return const [];
     final uid = _db.auth.currentUser?.id;
+    // Username or Player ID (029_search_players.sql).
+    try {
+      final rows = await _db.rpc('search_players',
+          params: {'p_query': q, 'p_limit': limit});
+      return [
+        for (final r in rows as List)
+          if ('${r['id']}' != uid)
+            ProfileSearchHit(
+              id: '${r['id']}',
+              username: '${r['username']}',
+              avatarUrl: r['avatar_url'] as String?,
+              playerNo: (r['player_no'] as num?)?.toInt(),
+            ),
+      ];
+    } on PostgrestException catch (e) {
+      // Older server without the RPC: username-only search below.
+      if (e.code != 'PGRST202') rethrow;
+    }
+    if (q.length < 2) return const [];
     final rows = await _db
         .from('public_profiles')
         .select('id, username, avatar_url')
@@ -95,8 +116,8 @@ class FriendRepository {
 
   static Future<void> sendRequest(String addresseeId) async {
     final uid = _db.auth.currentUser?.id;
-    if (uid == null) throw Exception('Sign in required');
-    if (uid == addresseeId) throw Exception('Cannot friend yourself');
+    if (uid == null) throw Exception(l10nNow.signInRequired);
+    if (uid == addresseeId) throw Exception(l10nNow.cannotFriendSelf);
     try {
       await _db.from('friendships').insert({
         'requester_id': uid,
@@ -105,7 +126,7 @@ class FriendRepository {
       });
     } on PostgrestException catch (e) {
       if (e.code == '23505') {
-        throw Exception('Friend request already exists');
+        throw Exception(l10nNow.friendRequestExists);
       }
       rethrow;
     }
@@ -113,7 +134,7 @@ class FriendRepository {
 
   static Future<void> accept(String friendshipId) async {
     final uid = _db.auth.currentUser?.id;
-    if (uid == null) throw Exception('Sign in required');
+    if (uid == null) throw Exception(l10nNow.signInRequired);
     await _db
         .from('friendships')
         .update({'status': 'accepted'})
@@ -124,7 +145,7 @@ class FriendRepository {
 
   static Future<void> decline(String friendshipId) async {
     final uid = _db.auth.currentUser?.id;
-    if (uid == null) throw Exception('Sign in required');
+    if (uid == null) throw Exception(l10nNow.signInRequired);
     await _db
         .from('friendships')
         .update({'status': 'declined'})
@@ -135,7 +156,7 @@ class FriendRepository {
 
   static Future<void> remove(String friendshipId) async {
     final uid = _db.auth.currentUser?.id;
-    if (uid == null) throw Exception('Sign in required');
+    if (uid == null) throw Exception(l10nNow.signInRequired);
     await _db.from('friendships').delete().eq('id', friendshipId);
   }
 }

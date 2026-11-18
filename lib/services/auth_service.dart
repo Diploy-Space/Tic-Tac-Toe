@@ -6,6 +6,7 @@ import 'friend_service.dart';
 import 'match_sync_service.dart';
 import 'moderation_service.dart';
 import 'challenge_flow_service.dart';
+import 'notification_service.dart';
 import 'privacy_prefs_service.dart';
 import 'profile_service.dart';
 import 'progress_sync_service.dart';
@@ -67,6 +68,7 @@ class AuthService {
       WalletService.refresh();
       PrivacyPrefsService.refresh();
       ChallengeFlowService.start();
+      NotificationService.start();
       MatchSyncService.refresh().then((_) async {
         await FriendService.refresh();
         await ProgressSyncService.refresh();
@@ -83,6 +85,7 @@ class AuthService {
           await WalletService.refresh();
           await PrivacyPrefsService.refresh();
           await ChallengeFlowService.start();
+          await NotificationService.start();
           await MatchSyncService.refresh();
           await FriendService.refresh();
           await ProgressSyncService.refresh();
@@ -95,6 +98,7 @@ class AuthService {
           ModerationService.clear();
           WalletService.clear();
           await ChallengeFlowService.clear();
+          await NotificationService.clear();
           _syncProfileNotifiers();
           break;
         default:
@@ -219,6 +223,7 @@ class AuthService {
   }
 
   static Future<void> signOut() async {
+    await NotificationService.beforeSignOut();
     await client.auth.signOut();
     ProfileService.clear();
     MatchSyncService.clear();

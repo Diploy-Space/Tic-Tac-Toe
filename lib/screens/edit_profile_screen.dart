@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
 import 'dialogs.dart';
+import '../l10n/app_localizations.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -19,14 +20,14 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _username = TextEditingController();
+  /// Username is read-only: shown, never edited. Saved back unchanged.
+  String? _username;
   final _phone = TextEditingController();
   CountryInfo _country = AppLocaleService.country.value;
   bool _busy = false;
   bool _avatarBusy = false;
   bool _loading = true;
   String? _error;
-  String? _lockedCountry;
 
   @override
   void initState() {
@@ -39,12 +40,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final p = await ProfileService.loadMyProfile(retry: false);
       if (!mounted) return;
-      _username.text =
-          p?.username ?? authDisplayName.value;
+      _username = p?.username;
       if (p != null) {
+        // Saved number keeps its country; otherwise the detected one.
         final c = CountryCurrencyService.byIso2(p.countryIso2);
         if (c != null) _country = c;
-        _lockedCountry = p.countryIso2;
         final nat = p.nationalNumber;
         if (nat != null && nat.isNotEmpty) {
           _phone.text = nat;
@@ -57,14 +57,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
-    _username.dispose();
     _phone.dispose();
     super.dispose();
   }
 
   Future<void> _pickAvatar() async {
     if (!AuthService.isSignedIn) {
-      setState(() => _error = 'Sign in to change photo');
+      setState(() => _error = context.l10n.signInChangePhoto);
       return;
     }
     if (!await requireInternet(context)) return;
@@ -77,7 +76,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await ProfileService.changeAvatarFromGallery();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Photo updated')),
+        SnackBar(content: Text(context.l10n.photoUpdated)),
       );
     } catch (e) {
       if (!mounted) return;
@@ -89,15 +88,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _save() async {
     if (_busy) return;
-    final nameErr = ProfileService.validateUsername(_username.text);
-    if (nameErr != null) {
-      setState(() => _error = nameErr);
+    final username = _username;
+    if (username == null) {
+      setState(() => _error = context.l10n.couldNotLoadProfile);
       return;
     }
     final nat = _phone.text.trim();
     final hasPhone = nat.isNotEmpty;
+    if (hasPhone && _country.callingCode.isEmpty) {
+      setState(() => _error = context.l10n.mobileNotSupported);
+      return;
+    }
     if (hasPhone && nat.length < 6) {
-      setState(() => _error = 'Enter a valid mobile number');
+      setState(() => _error = context.l10n.enterValidMobile);
       return;
     }
     setState(() {
@@ -106,15 +109,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
     try {
       await ProfileService.updateProfile(
-        username: _username.text,
+        username: username,
         callingCode: hasPhone ? _country.callingCode : null,
         nationalNumber: hasPhone ? nat : null,
         countryIso2: hasPhone ? _country.iso2 : null,
       );
-      await AppLocaleService.applyCountryIso2(_country.iso2);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated')),
+        SnackBar(content: Text(context.l10n.profileUpdated)),
       );
       Navigator.pop(context);
     } catch (e) {
@@ -146,37 +148,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const TopBar('EDIT PROFILE'),
+                        TopBar(context.l10n.editProfileCaps),
                         const SizedBox(height: 28),
-                        Center(child: _AvatarEditor(
+                        Center(
+                            child: _AvatarEditor(
                           busy: _avatarBusy,
                           onCamera: _pickAvatar,
                         )),
                         const SizedBox(height: 28),
-                        _FieldLabel('Username'),
+                        _FieldLabel(context.l10n.username),
                         _EditBox(
-                          child: TextField(
-                            controller: _username,
-                            style: const TextStyle(
-                              color: C.text,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                  RegExp(r'[a-zA-Z0-9_]')),
-                              LengthLimitingTextInputFormatter(20),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _username ?? authDisplayName.value,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: C.text,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                context.l10n.readOnly,
+                                style: const TextStyle(
+                                  color: C.muted,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ],
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              isDense: true,
-                              hintText: 'username',
-                              hintStyle: TextStyle(color: C.muted),
-                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
-                        _FieldLabel('Email'),
+                        _FieldLabel(context.l10n.email),
                         _EditBox(
                           child: Row(
                             children: [
@@ -192,9 +200,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   ),
                                 ),
                               ),
-                              const Text(
-                                'read only',
-                                style: TextStyle(
+                              Text(
+                                context.l10n.readOnly,
+                                style: const TextStyle(
                                   color: C.muted,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -204,7 +212,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        _FieldLabel('Mobile number (optional)'),
+                        _FieldLabel(context.l10n.mobileOptional),
                         _EditBox(
                           child: Row(
                             children: [
@@ -238,37 +246,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   ),
                                 ),
                               ),
-                              if (_lockedCountry == null ||
-                                  _lockedCountry!.isEmpty)
-                                PopupMenuButton<CountryInfo>(
-                                  tooltip: 'Country',
-                                  color: C.surface,
-                                  onSelected: (c) {
-                                    setState(() => _country = c);
-                                    AppLocaleService.applyCountryIso2(c.iso2);
-                                  },
-                                  itemBuilder: (_) => [
-                                    for (final c
-                                        in CountryCurrencyService.countries)
-                                      PopupMenuItem(
-                                        value: c,
-                                        child: Text(
-                                            '${c.iso2} ${c.callingCode}'),
-                                      ),
-                                  ],
-                                  child: const Icon(Icons.expand_more,
-                                      color: C.muted, size: 20),
-                                ),
                             ],
                           ),
                         ),
                         const SizedBox(height: 6),
-                        const Text(
-                          'Private. Only you can see this.',
-                          style: TextStyle(color: C.muted, fontSize: 12),
+                        Text(
+                          context.l10n.privateOnlyYou,
+                          style: const TextStyle(color: C.muted, fontSize: 12),
                         ),
                         const SizedBox(height: 16),
-                        _FieldLabel('Login method'),
+                        _FieldLabel(context.l10n.loginMethod),
                         _EditBox(
                           child: Row(
                             children: [
@@ -282,9 +269,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   ),
                                 ),
                               ),
-                              const Text(
-                                'read only',
-                                style: TextStyle(
+                              Text(
+                                context.l10n.readOnly,
+                                style: const TextStyle(
                                   color: C.muted,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -305,16 +292,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
                 PrimaryButton(
-                  _busy ? 'Saving…' : 'Save Changes',
+                  _busy ? context.l10n.saving : context.l10n.saveChanges,
                   onTap: _busy ? null : _save,
                 ),
                 const SizedBox(height: 14),
                 Center(
                   child: TextButton(
                     onPressed: _busy ? null : _deleteAccount,
-                    child: const Text(
-                      'Delete account',
-                      style: TextStyle(
+                    child: Text(
+                      context.l10n.deleteAccount,
+                      style: const TextStyle(
                         color: C.danger,
                         fontWeight: FontWeight.w600,
                         fontSize: 14,

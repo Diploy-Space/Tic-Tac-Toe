@@ -5,9 +5,9 @@ import '../config/admob_config.dart';
 import '../l10n/app_localizations.dart';
 import '../models.dart';
 import '../services/app_locale_service.dart';
+import '../services/ad_reward_service.dart';
 import '../services/rewarded_ad_service.dart';
 import '../services/storage.dart';
-import '../services/wallet_service.dart';
 import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -30,21 +30,23 @@ Future<void> startShopRewardFlow(BuildContext context) async {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.monetization_on, color: C.coin, size: 48),
+            const CurrencyMark(size: 48),
             const SizedBox(height: 10),
-            const Text('Watch a short video',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-            Text('+${AdMobConfig.freeCoinsReward} coins',
+            Text(context.l10n.watchShortVideo,
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+            Text(context.l10n.plusCoins(
+                    AppLocaleService.formatCoinAmount(AdMobConfig.freeCoinsReward)),
                 style: const TextStyle(
                     color: C.teal, fontWeight: FontWeight.w800, fontSize: 22)),
             const SizedBox(height: 8),
-            const Text(
-              'The video is about 15 to 30 seconds. Watch it to the end to get your coins.',
+            Text(
+              context.l10n.videoLength,
               textAlign: TextAlign.center,
-              style: TextStyle(color: C.muted, height: 1.35),
+              style: const TextStyle(color: C.muted, height: 1.35),
             ),
             const SizedBox(height: 16),
-            PdfPinkButton('WATCH NOW', onTap: () => Navigator.pop(ctx, true)),
+            PdfPinkButton(ctx.l10n.watchNowCaps,
+                onTap: () => Navigator.pop(ctx, true)),
           ],
         ),
       ),
@@ -54,21 +56,21 @@ Future<void> startShopRewardFlow(BuildContext context) async {
   await Navigator.pushNamed(context, '/shop-ad-loading');
 }
 
-/// Credits Free Coins after a completed rewarded ad and refreshes wallet history.
-Future<bool> grantFreeCoinsReward() async {
-  final key =
-      'ad_reward_${DateTime.now().toUtc().millisecondsSinceEpoch}';
-  final ok = await WalletService.credit(
+/// Credits Free Coins for one completed rewarded ad ([receipt]).
+/// Each receipt pays at most once; no receipt → no coins.
+Future<AdRewardStatus> grantFreeCoinsReward(AdReceipt receipt) async {
+  final status = await AdRewardService.credit(
+    receipt,
     amount: AdMobConfig.freeCoinsReward,
     reason: 'ad_reward',
-    idempotencyKey: key,
     refType: 'rewarded_ad',
     refId: AdMobConfig.rewardedUnitId,
   );
-  if (!ok) return false;
-  SfxService.play(Sfx.rewardClaim);
-  await AppStorage.incrementFreeVideosUsed();
-  return true;
+  if (status == AdRewardStatus.credited) {
+    SfxService.play(Sfx.rewardClaim);
+    await AppStorage.incrementFreeVideosUsed();
+  }
+  return status;
 }
 
 class ShopAdLoadingScreen extends StatefulWidget {
@@ -85,38 +87,46 @@ class _ShopAdLoadingScreenState extends State<ShopAdLoadingScreen> {
   }
 
   Future<void> _run() async {
-    final result = await RewardedAdService.instance.show();
+    if (AppStorage.freeVideosUsedToday >= 5) {
+      await Navigator.pushReplacementNamed(context, '/shop-daily-limit');
+      return;
+    }
+    final outcome = await RewardedAdService.instance.show();
     if (!mounted) return;
-    if (result == RewardedAdResult.failed) {
-      await Navigator.pushReplacementNamed(context, '/shop-no-video');
+    if (outcome.earned) {
+      // Only a completed ad carries a receipt → only then can coins be paid.
+      await Navigator.pushReplacementNamed(context, '/shop-ad-verifying',
+          arguments: outcome.receipt);
       return;
     }
-    if (result == RewardedAdResult.dismissed) {
-      await Navigator.pushReplacementNamed(context, '/shop-verify-fail');
+    if (outcome.result == RewardedAdResult.dismissed) {
+      SfxService.play(Sfx.error);
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.watchFullVideo)));
+      Navigator.pop(context);
       return;
     }
-    await Navigator.pushReplacementNamed(context, '/shop-ad-verifying');
+    await Navigator.pushReplacementNamed(context, '/shop-no-video');
   }
 
   @override
   Widget build(BuildContext context) {
-    return const AppScaffold(
+    return AppScaffold(
       child: Column(
         children: [
-          TopBar('Shop'),
-          Spacer(),
-          SizedBox(
+          TopBar(context.l10n.shop),
+          const Spacer(),
+          const SizedBox(
             width: 48,
             height: 48,
             child: CircularProgressIndicator(color: C.magenta, strokeWidth: 4),
           ),
-          SizedBox(height: 18),
-          Text('Getting your video…',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-          SizedBox(height: 6),
-          Text('This usually takes a few seconds.',
-              style: TextStyle(color: C.muted)),
-          Spacer(),
+          const SizedBox(height: 18),
+          Text(context.l10n.gettingVideo,
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+          const SizedBox(height: 6),
+          Text(context.l10n.takesFewSeconds, style: const TextStyle(color: C.muted)),
+          const Spacer(),
         ],
       ),
     );
@@ -140,7 +150,7 @@ class _ShopAdPlayerScreenState extends State<ShopAdPlayerScreen> {
       if (!mounted) return;
       if (left <= 1) {
         t?.cancel();
-        Navigator.pushReplacementNamed(context, '/shop-ad-verifying');
+        Navigator.pushReplacementNamed(context, '/shop-ad-loading');
         return;
       }
       setState(() => left--);
@@ -163,19 +173,19 @@ class _ShopAdPlayerScreenState extends State<ShopAdPlayerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Leave the video?',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              Text(context.l10n.leaveVideoQuestion,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
               const SizedBox(height: 10),
               Text(
-                'You will not get your 10 coins if you close it now. $left seconds left.',
+                context.l10n.loseCoinsIfClose('$left'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: C.muted, height: 1.35),
               ),
               const SizedBox(height: 18),
-              PdfPinkButton('KEEP WATCHING',
+              PdfPinkButton(context.l10n.keepWatchingCaps,
                   onTap: () => Navigator.pop(ctx, true)),
               const SizedBox(height: 10),
-              PdfGhostButton('Close and lose reward',
+              PdfGhostButton(context.l10n.closeAndLose,
                   onTap: () => Navigator.pop(ctx, false)),
             ],
           ),
@@ -220,13 +230,22 @@ class _ShopAdPlayerScreenState extends State<ShopAdPlayerScreen> {
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Text.rich(
+                        // Translated sentence; the countdown stays teal
+                        // wherever the language puts it.
                         TextSpan(children: [
-                          const TextSpan(text: 'Reward in '),
-                          TextSpan(
-                            text: '${left}s',
-                            style: const TextStyle(
-                                color: C.teal, fontWeight: FontWeight.w800),
-                          ),
+                          for (final (i, part) in context.l10n
+                              .rewardIn('\u0000')
+                              .split('\u0000')
+                              .indexed) ...[
+                            if (i > 0)
+                              TextSpan(
+                                text: '${left}s',
+                                style: const TextStyle(
+                                    color: C.teal,
+                                    fontWeight: FontWeight.w800),
+                              ),
+                            TextSpan(text: part),
+                          ],
                         ]),
                         textAlign: TextAlign.center,
                       ),
@@ -250,9 +269,9 @@ class _ShopAdPlayerScreenState extends State<ShopAdPlayerScreen> {
                   border: Border.all(
                       color: C.border2, style: BorderStyle.solid, width: 1.4),
                 ),
-                child: const Text(
-                  'Advertiser video plays here',
-                  style: TextStyle(color: C.muted),
+                child: Text(
+                  context.l10n.advertiserVideo,
+                  style: const TextStyle(color: C.muted),
                 ),
               ),
             ),
@@ -277,18 +296,19 @@ class _ShopAdPlayerScreenState extends State<ShopAdPlayerScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Advertiser app',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
-                      Text('Sponsored',
-                          style: TextStyle(color: C.muted, fontSize: 12)),
+                      Text(context.l10n.advertiserApp,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      Text(context.l10n.sponsored,
+                          style: const TextStyle(color: C.muted, fontSize: 12)),
                     ],
                   ),
                 ),
-                PdfTealButton('Install', compact: true, onTap: () {}),
+                PdfTealButton(context.l10n.install,
+                    compact: true, onTap: () {}),
               ],
             ),
           ),
@@ -312,34 +332,43 @@ class _ShopAdVerifyingScreenState extends State<ShopAdVerifyingScreen> {
   }
 
   Future<void> _grant() async {
-    final ok = await grantFreeCoinsReward();
-    if (!mounted) return;
-    if (!ok) {
-      await Navigator.pushReplacementNamed(context, '/shop-verify-fail');
+    final receipt = ModalRoute.of(context)?.settings.arguments;
+    if (receipt is! AdReceipt) {
+      // Opened without a completed ad: never pay.
+      Navigator.pop(context);
       return;
     }
-    await Navigator.pushReplacementNamed(context, '/shop-reward-earned');
+    final status = await grantFreeCoinsReward(receipt);
+    if (!mounted) return;
+    switch (status) {
+      case AdRewardStatus.credited:
+        await Navigator.pushReplacementNamed(context, '/shop-reward-earned');
+      case AdRewardStatus.creditFailed:
+        await Navigator.pushReplacementNamed(context, '/shop-verify-fail',
+            arguments: receipt);
+      default:
+        Navigator.pop(context); // already paid
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const AppScaffold(
+    return AppScaffold(
       child: Column(
         children: [
-          TopBar('Shop'),
-          Spacer(),
-          SizedBox(
+          TopBar(context.l10n.shop),
+          const Spacer(),
+          const SizedBox(
             width: 48,
             height: 48,
             child: CircularProgressIndicator(color: C.magenta, strokeWidth: 4),
           ),
-          SizedBox(height: 18),
-          Text('Verifying your reward',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-          SizedBox(height: 6),
-          Text('Confirming the video was watched. Please wait.',
-              style: TextStyle(color: C.muted)),
-          Spacer(),
+          const SizedBox(height: 18),
+          Text(context.l10n.verifyingReward,
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+          const SizedBox(height: 6),
+          Text(context.l10n.confirmingVideo, style: const TextStyle(color: C.muted)),
+          const Spacer(),
         ],
       ),
     );
@@ -358,59 +387,59 @@ class ShopRewardEarnedScreen extends StatelessWidget {
       child: Column(
         children: [
           const Spacer(),
-          const Row(
+            const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.monetization_on, color: C.coin, size: 36),
+              CurrencyMark(size: 36),
               SizedBox(width: 8),
-              Icon(Icons.monetization_on, color: C.coin, size: 64),
+              CurrencyMark(size: 64),
               SizedBox(width: 8),
-              Icon(Icons.monetization_on, color: C.coin, size: 36),
+              CurrencyMark(size: 36),
             ],
           ),
           const SizedBox(height: 16),
-          const Text(
-            'REWARD EARNED',
-            style: TextStyle(
+          Text(
+            context.l10n.rewardEarnedCaps,
+            style: const TextStyle(
               color: C.teal,
               fontWeight: FontWeight.w800,
               letterSpacing: 2,
               fontSize: 13,
             ),
           ),
-          Text('+${AdMobConfig.freeCoinsReward}',
+          Text(AppLocaleService.formatCoinAmount(AdMobConfig.freeCoinsReward),
               style: const TextStyle(
                   fontSize: 44, fontWeight: FontWeight.w900, color: C.coin)),
           Text.rich(TextSpan(children: [
             TextSpan(
-                text: 'Balance ${bal - 10} → ',
+                text: '${context.l10n.balanceArrow(AppLocaleService.formatCoinAmount(bal - 10))} ',
                 style: const TextStyle(color: C.muted)),
             TextSpan(
-                text: '$bal',
+                text: AppLocaleService.formatCoinAmount(bal),
                 style: const TextStyle(fontWeight: FontWeight.w800)),
           ])),
           const SizedBox(height: 18),
           AppCard(
             child: Row(
               children: [
-                const Text('Free videos today',
-                    style: TextStyle(color: C.muted)),
+                Text(context.l10n.freeVideosToday,
+                    style: const TextStyle(color: C.muted)),
                 const Spacer(),
-                Text('$used of 5',
+                Text(context.l10n.nOf5('$used'),
                     style: const TextStyle(fontWeight: FontWeight.w800)),
               ],
             ),
           ),
           const Spacer(),
           if (left > 0)
-            PdfPinkButton('WATCH ANOTHER ($left LEFT)', onTap: () {
+            PdfPinkButton(context.l10n.watchAnotherLeft('$left'), onTap: () {
               Navigator.pushReplacementNamed(context, '/shop');
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (context.mounted) startShopRewardFlow(context);
               });
             }),
           const SizedBox(height: 10),
-          PdfGhostButton('Done',
+          PdfGhostButton(context.l10n.done,
               onTap: () => Navigator.pushNamedAndRemoveUntil(
                   context, '/shop', (r) => false)),
         ],
@@ -427,16 +456,16 @@ class ShopDailyLimitScreen extends StatelessWidget {
     return AppScaffold(
       child: Column(
         children: [
-          const TopBar('Shop'),
+          TopBar(context.l10n.shop),
           const Spacer(),
           PdfModalCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'DAILY LIMIT REACHED',
+                Text(
+                  context.l10n.dailyLimit,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: C.coin,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 2,
@@ -444,14 +473,14 @@ class ShopDailyLimitScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text('5 of 5 videos watched',
+                Text(context.l10n.fiveOfFiveWatched,
                     textAlign: TextAlign.center,
                     style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
+                        const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
                 const SizedBox(height: 8),
-                const Text('New free videos unlock in',
+                Text(context.l10n.newVideosUnlockIn,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: C.muted)),
+                    style: const TextStyle(color: C.muted)),
                 const SizedBox(height: 8),
                 const Text('06:42:10',
                     textAlign: TextAlign.center,
@@ -461,13 +490,13 @@ class ShopDailyLimitScreen extends StatelessWidget {
                         color: C.teal)),
                 const SizedBox(height: 18),
                 PdfPinkButton(
-                    context.tr('coin_packs_from', {
-                      'price': AppLocaleService.lowestShopPackLabel(),
-                    }),
+                    context.l10n
+                        .coinPacksFrom(AppLocaleService.lowestShopPackLabel()),
                     onTap: () => Navigator.pushNamedAndRemoveUntil(
                         context, '/shop', (r) => false)),
                 const SizedBox(height: 10),
-                PdfGhostButton('Close', onTap: () => Navigator.pop(context)),
+                PdfGhostButton(context.l10n.close,
+                    onTap: () => Navigator.pop(context)),
               ],
             ),
           ),
@@ -486,7 +515,7 @@ class ShopNoVideoScreen extends StatelessWidget {
     return AppScaffold(
       child: Column(
         children: [
-          const TopBar('Shop'),
+          TopBar(context.l10n.shop),
           const Spacer(),
           PdfModalCard(
             child: Column(
@@ -506,17 +535,17 @@ class ShopNoVideoScreen extends StatelessWidget {
                           color: C.muted)),
                 ),
                 const SizedBox(height: 14),
-                const Text('No video right now',
+                Text(context.l10n.noVideoRightNow,
                     style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
+                        const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
                 const SizedBox(height: 8),
-                const Text(
-                  'We could not find a video for you. Your free video was not used. Try again in a minute.',
+                Text(
+                  context.l10n.noVideoFound,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: C.muted, height: 1.4),
+                  style: const TextStyle(color: C.muted, height: 1.4),
                 ),
                 const SizedBox(height: 18),
-                PdfPinkButton('TRY AGAIN',
+                PdfPinkButton(context.l10n.tryAgainCaps,
                     onTap: () => Navigator.pushReplacementNamed(
                         context, '/shop-ad-loading')),
               ],
@@ -537,7 +566,7 @@ class ShopVerifyFailScreen extends StatelessWidget {
     return AppScaffold(
       child: Column(
         children: [
-          const TopBar('Shop'),
+          TopBar(context.l10n.shop),
           const Spacer(),
           PdfModalCard(
             child: Column(
@@ -557,19 +586,29 @@ class ShopVerifyFailScreen extends StatelessWidget {
                           color: C.magenta)),
                 ),
                 const SizedBox(height: 14),
-                const Text('We could not verify it',
+                Text(context.l10n.couldNotVerify,
                     style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
+                        const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
                 const SizedBox(height: 8),
-                const Text(
-                  'This can happen on a weak connection, or if the reward was already claimed. Your coins are safe.',
+                Text(
+                  context.l10n.verifyFailBody,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: C.muted, height: 1.4),
+                  style: const TextStyle(color: C.muted, height: 1.4),
                 ),
                 const SizedBox(height: 18),
-                PdfPinkButton('CHECK AGAIN',
-                    onTap: () => Navigator.pushReplacementNamed(
-                        context, '/shop-ad-verifying')),
+                // Retries the SAME completed ad (same receipt), so it can
+                // only ever pay once. Without a receipt there is nothing
+                // to verify.
+                PdfPinkButton(context.l10n.checkAgainCaps, onTap: () {
+                  final receipt = ModalRoute.of(context)?.settings.arguments;
+                  if (receipt is AdReceipt) {
+                    Navigator.pushReplacementNamed(
+                        context, '/shop-ad-verifying',
+                        arguments: receipt);
+                  } else {
+                    Navigator.pop(context);
+                  }
+                }),
               ],
             ),
           ),
@@ -587,13 +626,17 @@ class RewardFlowOverviewScreen extends StatelessWidget {
   static const steps = [
     ('Player taps Watch video', 'Only entry point for ads'),
     ('Daily limit check', 'Server checks videos used today'),
-    ('Ad auction',
-        'Bidding networks compete, highest eCPM wins. Others run as a waterfall.'),
+    (
+      'Ad auction',
+      'Bidding networks compete, highest eCPM wins. Others run as a waterfall.'
+    ),
     ('Video plays', 'Reward unlocks only after full view'),
     ('Server-side verification', 'AdMob confirms the view to your server'),
     ('Wallet credit', 'Supabase credits once per unique ad transaction'),
-    ('Duplicates blocked',
-        'A repeated claim returns the same result, no extra coins'),
+    (
+      'Duplicates blocked',
+      'A repeated claim returns the same result, no extra coins'
+    ),
     ('App updates balance', 'Player sees +10 coins'),
   ];
 
@@ -615,9 +658,7 @@ class RewardFlowOverviewScreen extends StatelessWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: (i == 0 || i == 5)
-                          ? C.magenta
-                          : C.surface2,
+                      color: (i == 0 || i == 5) ? C.magenta : C.surface2,
                     ),
                     child: Text(
                       '${i + 1}',
@@ -634,8 +675,8 @@ class RewardFlowOverviewScreen extends StatelessWidget {
                                 fontWeight: FontWeight.w800, fontSize: 15)),
                         const SizedBox(height: 2),
                         Text(steps[i].$2,
-                            style: const TextStyle(
-                                color: C.muted, height: 1.35)),
+                            style:
+                                const TextStyle(color: C.muted, height: 1.35)),
                       ],
                     ),
                   ),

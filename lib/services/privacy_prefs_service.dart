@@ -6,12 +6,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models.dart';
 import 'auth_service.dart';
 import 'storage.dart';
+import '../l10n/app_localizations.dart';
 
 /// Syncs Challenge privacy prefs with Supabase (signed-in) + SharedPreferences cache.
 class PrivacyPrefsService {
   PrivacyPrefsService._();
 
   static final ValueNotifier<int> challengeWho = ValueNotifier<int>(0);
+
+  /// Who can send me in-match chat messages: 0 everyone, 1 friends, 2 nobody.
+  static final ValueNotifier<int> chatWho = ValueNotifier<int>(0);
   static final ValueNotifier<bool> saving = ValueNotifier<bool>(false);
   static final ValueNotifier<String?> error = ValueNotifier<String?>(null);
 
@@ -33,7 +37,9 @@ class PrivacyPrefsService {
     if (_bound) return;
     _bound = true;
     challengeWho.value = AppStorage.challengePrivacyWho;
+    chatWho.value = AppStorage.chatPrivacyWho;
     challengeWho.addListener(_onLocalChanged);
+    chatWho.addListener(_onLocalChanged);
     notifyChallengeRequests.addListener(_onLocalChanged);
     notifyMatchInvites.addListener(_onLocalChanged);
     notifyMatchResults.addListener(_onLocalChanged);
@@ -43,6 +49,7 @@ class PrivacyPrefsService {
     if (_applyingRemote) return;
     // Always mirror to local prefs.
     unawaited(AppStorage.setChallengePrivacyWho(challengeWho.value));
+    unawaited(AppStorage.setChatPrivacyWho(chatWho.value));
     unawaited(AppStorage.save());
     if (!_signedIn) return;
     _debounce?.cancel();
@@ -53,17 +60,20 @@ class PrivacyPrefsService {
 
   static void _apply({
     required int who,
+    int? chat,
     required bool challengeReq,
     required bool matchInvites,
     required bool matchResults,
   }) {
     _applyingRemote = true;
     challengeWho.value = who.clamp(0, 2);
+    if (chat != null) chatWho.value = chat.clamp(0, 2);
     notifyChallengeRequests.value = challengeReq;
     notifyMatchInvites.value = matchInvites;
     notifyMatchResults.value = matchResults;
     _applyingRemote = false;
     unawaited(AppStorage.setChallengePrivacyWho(challengeWho.value));
+    unawaited(AppStorage.setChatPrivacyWho(chatWho.value));
     unawaited(AppStorage.save());
   }
 
@@ -71,6 +81,7 @@ class PrivacyPrefsService {
   static Future<void> refresh() async {
     if (!_signedIn) {
       challengeWho.value = AppStorage.challengePrivacyWho;
+      chatWho.value = AppStorage.chatPrivacyWho;
       error.value = null;
       return;
     }
@@ -78,11 +89,12 @@ class PrivacyPrefsService {
       final raw = await _db.rpc('get_my_privacy_prefs');
       final map = _asMap(raw);
       if (map == null || '${map['status']}' != 'ok') {
-        error.value = '${map?['message'] ?? 'Could not load privacy prefs'}';
+        error.value = '${map?['message'] ?? l10nNow.couldNotLoadPrivacy}';
         return;
       }
       _apply(
         who: (map['challenge_who'] as num?)?.toInt() ?? 0,
+        chat: (map['chat_who'] as num?)?.toInt(),
         challengeReq: map['notify_challenge_requests'] == true,
         matchInvites: map['notify_match_invites'] == true,
         matchResults: map['notify_match_results'] == true,
@@ -100,19 +112,30 @@ class PrivacyPrefsService {
     saving.value = true;
     error.value = null;
     try {
-      final raw = await _db.rpc('update_my_privacy_prefs', params: {
+      final params = <String, dynamic>{
         'p_challenge_who': challengeWho.value.clamp(0, 2),
         'p_notify_challenge_requests': notifyChallengeRequests.value,
         'p_notify_match_invites': notifyMatchInvites.value,
         'p_notify_match_results': notifyMatchResults.value,
-      });
+        'p_chat_who': chatWho.value.clamp(0, 2),
+      };
+      dynamic raw;
+      try {
+        raw = await _db.rpc('update_my_privacy_prefs', params: params);
+      } on PostgrestException catch (e) {
+        // DB without APPLY_CHAT_PRIVACY.sql yet: save the other prefs.
+        if (e.code != 'PGRST202') rethrow;
+        raw = await _db.rpc('update_my_privacy_prefs',
+            params: params..remove('p_chat_who'));
+      }
       final map = _asMap(raw);
       if (map == null || '${map['status']}' != 'ok') {
-        error.value = '${map?['message'] ?? 'Could not save privacy prefs'}';
+        error.value = '${map?['message'] ?? l10nNow.couldNotSavePrivacy}';
         return false;
       }
       _apply(
         who: (map['challenge_who'] as num?)?.toInt() ?? challengeWho.value,
+        chat: (map['chat_who'] as num?)?.toInt(),
         challengeReq: map['notify_challenge_requests'] == true,
         matchInvites: map['notify_match_invites'] == true,
         matchResults: map['notify_match_results'] == true,
@@ -125,6 +148,10 @@ class PrivacyPrefsService {
     } finally {
       saving.value = false;
     }
+  }
+
+  static Future<void> setChatWho(int who) async {
+    chatWho.value = who.clamp(0, 2);
   }
 
   static Future<void> setChallengeWho(int who) async {

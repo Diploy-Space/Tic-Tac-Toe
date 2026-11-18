@@ -25,9 +25,13 @@ class ProfileSearchHit {
   final String username;
   final String? avatarUrl;
 
+  /// Player ID (null on servers without 029_search_players.sql).
+  final int? playerNo;
+
   const ProfileSearchHit({
     required this.id,
     required this.username,
     this.avatarUrl,
+    this.playerNo,
   });
 }

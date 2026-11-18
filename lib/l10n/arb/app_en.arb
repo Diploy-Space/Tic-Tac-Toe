@@ -1,0 +1,2389 @@
+{
+  "@@locale": "en",
+  "aboutDescription": "DROTIX is a fast, competitive game of three in a row. Play the computer, match with real players, challenge friends and climb the leaderboard.",
+  "@aboutDescription": {},
+  "aboutUs": "About us",
+  "@aboutUs": {},
+  "accept": "Accept",
+  "@accept": {},
+  "acceptCaps": "ACCEPT",
+  "@acceptCaps": {},
+  "acceptRequestCaps": "ACCEPT REQUEST",
+  "@acceptRequestCaps": {},
+  "accountCheckFailed": "Account check failed",
+  "@accountCheckFailed": {},
+  "accountIsSuspended": "Your account is suspended.",
+  "@accountIsSuspended": {},
+  "accountRestricted": "Your account remains restricted until a moderator finishes review. Gameplay, matchmaking, and chat stay locked.",
+  "@accountRestricted": {},
+  "accountStatusUnknown": "Account status unknown. Try again.",
+  "@accountStatusUnknown": {},
+  "accountSuspended": "Account suspended",
+  "@accountSuspended": {},
+  "accountSuspendedSignIn": "Your account was suspended. Sign in to view details or appeal.",
+  "@accountSuspendedSignIn": {},
+  "accountSuspendedTitle": "Your account has been suspended",
+  "@accountSuspendedTitle": {},
+  "ach100Wins": "100 wins",
+  "@ach100Wins": {},
+  "ach10Matches": "10 matches",
+  "@ach10Matches": {},
+  "ach50Matches": "50 matches",
+  "@ach50Matches": {},
+  "achChallenger": "Challenger",
+  "@achChallenger": {},
+  "achChampion": "Champion",
+  "@achChampion": {},
+  "achFirstWin": "First win",
+  "@achFirstWin": {},
+  "achScore100": "Score 100",
+  "@achScore100": {},
+  "achStreak3": "Win streak 3",
+  "@achStreak3": {},
+  "achStreak5": "Win streak 5",
+  "@achStreak5": {},
+  "achSurvivor": "Survivor",
+  "@achSurvivor": {},
+  "achTop3": "Top 3",
+  "@achTop3": {},
+  "achievements": "Achievements",
+  "@achievements": {},
+  "add": "Add",
+  "@add": {},
+  "addFriend": "Add friend",
+  "@addFriend": {},
+  "addFriendCaps": "ADD FRIEND",
+  "@addFriendCaps": {},
+  "advanceQuarter": "You advance to the Quarter-final",
+  "@advanceQuarter": {},
+  "advancedMode": "Advanced mode (4×4)",
+  "@advancedMode": {},
+  "advertiserApp": "Advertiser app",
+  "@advertiserApp": {},
+  "advertiserVideo": "Advertiser video plays here",
+  "@advertiserVideo": {},
+  "all": "All",
+  "@all": {},
+  "allowAndInstall": "Allow & install",
+  "@allowAndInstall": {},
+  "allowUnknownApps": "Allow \"Install unknown apps\" for DROTIX, then come back. The update installs automatically.",
+  "@allowUnknownApps": {},
+  "alreadyPlayer": "Already a player?",
+  "@alreadyPlayer": {},
+  "alsoBlock": "Also block this player",
+  "@alsoBlock": {},
+  "alwaysTrue": "Always true",
+  "@alwaysTrue": {},
+  "appUpdate": "App update",
+  "@appUpdate": {},
+  "appealExplain": "Explain why your account should be reinstated. A moderator will review your message.",
+  "@appealExplain": {},
+  "appealFailed": "Appeal failed",
+  "@appealFailed": {},
+  "appealHint": "Write your appeal (min 20 characters)…",
+  "@appealHint": {},
+  "appealIsUnderReview": "Your appeal is under review.",
+  "@appealIsUnderReview": {},
+  "appealMin20": "Appeal must be at least 20 characters",
+  "@appealMin20": {},
+  "appealSubmitted": "Appeal submitted successfully",
+  "@appealSubmitted": {},
+  "appealSuspension": "Appeal suspension",
+  "@appealSuspension": {},
+  "appealUnderReview": "Appeal under review",
+  "@appealUnderReview": {},
+  "applyCodeCaps": "APPLY CODE",
+  "@applyCodeCaps": {},
+  "attachRecentChat": "Attach recent chat messages",
+  "@attachRecentChat": {},
+  "attemptingReconnect": "Attempting to reconnect…",
+  "@attemptingReconnect": {},
+  "auto": "Auto",
+  "@auto": {},
+  "avatars": "Avatars",
+  "@avatars": {},
+  "back": "Back",
+  "@back": {},
+  "backToEvent": "Back to event",
+  "@backToEvent": {},
+  "backToEvents": "Back to events",
+  "@backToEvents": {},
+  "backToEventsCaps": "BACK TO EVENTS",
+  "@backToEventsCaps": {},
+  "backToHome": "Back to home",
+  "@backToHome": {},
+  "backToMenu": "Back to menu",
+  "@backToMenu": {},
+  "backToSignIn": "Back to Sign in",
+  "@backToSignIn": {},
+  "balance": "Balance {n}",
+  "@balance": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "balanceAfter": "Balance after",
+  "@balanceAfter": {},
+  "balanceArrow": "Balance {from} →",
+  "@balanceArrow": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      }
+    }
+  },
+  "bestStreak": "Best streak",
+  "@bestStreak": {},
+  "bestValue": "Best value",
+  "@bestValue": {},
+  "biggerBoardsBody": "On larger boards you need four in a row to win. If the board fills up with no line, it is a draw.",
+  "@biggerBoardsBody": {},
+  "biggerBoardsCaps": "BIGGER BOARDS",
+  "@biggerBoardsCaps": {},
+  "biggerNeedFour": "Bigger boards need four in a row",
+  "@biggerNeedFour": {},
+  "blockPlayer": "Block player",
+  "@blockPlayer": {},
+  "boardHiddenUntilBack": "The board is hidden until you are back.",
+  "@boardHiddenUntilBack": {},
+  "boards": "Boards",
+  "@boards": {},
+  "bonusAddedToWallet": "+{n} coins added to your wallet",
+  "@bonusAddedToWallet": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "bonusClaimed": "Bonus claimed!",
+  "@bonusClaimed": {},
+  "bonusCoinsAdded": "+{n} bonus coins added",
+  "@bonusCoinsAdded": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "bracket": "Bracket",
+  "@bracket": {},
+  "bracketInfo": "Round of 16 · 8 matches, 4 shown. You are highlighted.",
+  "@bracketInfo": {},
+  "buyCoinsCaps": "BUY COINS",
+  "@buyCoinsCaps": {},
+  "byBoard": "By board",
+  "@byBoard": {},
+  "cameraOnlyForScan": "The camera is only used to scan the code.",
+  "@cameraOnlyForScan": {},
+  "cameraPermissionNeeded": "Camera permission needed to scan. You can still enter the code below.",
+  "@cameraPermissionNeeded": {},
+  "cameraPermissionRequired": "Camera permission is required to scan a room QR code. Enable Camera for this app in system settings, then try again.",
+  "@cameraPermissionRequired": {},
+  "cancel": "Cancel",
+  "@cancel": {},
+  "cancelChallenge": "Cancel challenge",
+  "@cancelChallenge": {},
+  "cancelDownload": "Cancel download",
+  "@cancelDownload": {},
+  "cannotChallengeSelf": "You cannot challenge yourself",
+  "@cannotChallengeSelf": {},
+  "cannotFriendSelf": "You cannot add yourself as a friend",
+  "@cannotFriendSelf": {},
+  "cantChallengeNow": "You can't challenge this player right now.",
+  "@cantChallengeNow": {},
+  "challenge": "Challenge",
+  "@challenge": {},
+  "challengeAccepted": "Challenge accepted",
+  "@challengeAccepted": {},
+  "challengeCancelled": "Challenge cancelled",
+  "@challengeCancelled": {},
+  "challengeCaps": "CHALLENGE",
+  "@challengeCaps": {},
+  "challengeClosed": "Challenge closed",
+  "@challengeClosed": {},
+  "challengeDeclined": "Challenge declined",
+  "@challengeDeclined": {},
+  "challengeExpired": "Challenge expired",
+  "@challengeExpired": {},
+  "challengeExpiresIn60": "Challenge expires in 60 seconds if not accepted.",
+  "@challengeExpiresIn60": {},
+  "challengePrivacy": "Challenge privacy",
+  "@challengePrivacy": {},
+  "challengeRequests": "Challenge requests",
+  "@challengeRequests": {},
+  "challengeSentCoins": "Challenge sent · 5 coins",
+  "@challengeSentCoins": {},
+  "challengeSentFree": "Challenge sent · Free match",
+  "@challengeSentFree": {},
+  "challenges": "Challenges",
+  "@challenges": {},
+  "championCaps": "CHAMPION",
+  "@championCaps": {},
+  "change": "Change",
+  "@change": {},
+  "chat": "Chat",
+  "@chat": {},
+  "chatAfterAccept": "Chat after both players accept the request.",
+  "@chatAfterAccept": {},
+  "chatAfterAcceptRandom": "Chat after both players accept. Nothing is shared beyond the username.",
+  "@chatAfterAcceptRandom": {},
+  "chatBlockedFriendsOnly": "{name} only accepts messages from friends.",
+  "@chatBlockedFriendsOnly": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatBlockedNobody": "{name} has turned off messages.",
+  "@chatBlockedNobody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatNotConnected": "Chat is not connected",
+  "@chatNotConnected": {},
+  "chatOn": "Chat on",
+  "@chatOn": {},
+  "chatPrivacyNote": "Applies to in-match chat. Changes work right away, even during a match.",
+  "@chatPrivacyNote": {},
+  "chatRules": "Chat rules",
+  "@chatRules": {},
+  "chatRulesIntro": "Text chat never starts on its own. One player asks, the other must accept.",
+  "@chatRulesIntro": {},
+  "checkAgainCaps": "CHECK AGAIN",
+  "@checkAgainCaps": {},
+  "checkEmail": "Check email",
+  "@checkEmail": {},
+  "checkEmailConfirm": "Check your email and open the confirmation link",
+  "@checkEmailConfirm": {},
+  "checkForUpdates": "Check for Updates",
+  "@checkForUpdates": {},
+  "checkInbox": "Check your inbox",
+  "@checkInbox": {},
+  "checking": "Checking…",
+  "@checking": {},
+  "chooseEntryStake": "Choose your entry stake",
+  "@chooseEntryStake": {},
+  "chooseGameMode": "Choose your game mode",
+  "@chooseGameMode": {},
+  "chooseNewPassword": "Choose a new password",
+  "@chooseNewPassword": {},
+  "chooseOpponent": "Choose an opponent",
+  "@chooseOpponent": {},
+  "claim": "CLAIM",
+  "@claim": {},
+  "claimBonusCoins": "Claim {n} Bonus Coins",
+  "@claimBonusCoins": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "claimLabel": "Claim",
+  "@claimLabel": {},
+  "claimPlusCoins": "Claim +{n} coins",
+  "@claimPlusCoins": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "claimVictory": "Claim victory",
+  "@claimVictory": {},
+  "claimsSync": "Claims sync to your cloud account",
+  "@claimsSync": {},
+  "classicMode": "Classic mode (3×3)",
+  "@classicMode": {},
+  "clearAll": "Clear all",
+  "@clearAll": {},
+  "clipboardNoCode": "Clipboard has no room code",
+  "@clipboardNoCode": {},
+  "close": "Close",
+  "@close": {},
+  "closeAndLose": "Close and lose reward",
+  "@closeAndLose": {},
+  "closeRoom": "Close room",
+  "@closeRoom": {},
+  "closing": "Closing…",
+  "@closing": {},
+  "cloud": "Cloud",
+  "@cloud": {},
+  "cloudSaveFailed": "Cloud save failed: {message}",
+  "@cloudSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "codeSent": "Code sent",
+  "@codeSent": {},
+  "coinPacks": "Coin packs",
+  "@coinPacks": {},
+  "coinPacksFrom": "COIN PACKS FROM {price}",
+  "@coinPacksFrom": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "coins5": "5 coins",
+  "@coins5": {},
+  "coinsAdded": "+{n} coins added",
+  "@coinsAdded": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "coinsBalance": "Coins {delta} · Balance {balance}",
+  "@coinsBalance": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      },
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "coinsEntryFee": "5 coins entry fee",
+  "@coinsEntryFee": {},
+  "coinsEntryFeeBody": "Used after free matches run out, or to raise the stakes.",
+  "@coinsEntryFeeBody": {},
+  "coinsLabel": "{n} coins",
+  "@coinsLabel": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "coinsSavedCloud": "+{n} coins (saved to cloud)",
+  "@coinsSavedCloud": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "column": "Column",
+  "@column": {},
+  "comeBackTomorrow": "Come back tomorrow",
+  "@comeBackTomorrow": {},
+  "completeGoogleReturnApp": "Complete Google sign-in, then return to the app",
+  "@completeGoogleReturnApp": {},
+  "completeGoogleSignIn": "Complete Google sign-in, then return",
+  "@completeGoogleSignIn": {},
+  "computer": "Computer",
+  "@computer": {},
+  "confirm": "Confirm",
+  "@confirm": {},
+  "confirmJoinCaps": "CONFIRM & JOIN",
+  "@confirmJoinCaps": {},
+  "confirmLinkSentTo": "We sent a confirmation link to {target}.\nOpen the link on this device, then return here — you’ll be signed in automatically.",
+  "@confirmLinkSentTo": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmPassword": "Confirm password",
+  "@confirmPassword": {},
+  "confirmationEmailSent": "Confirmation email sent — check your inbox",
+  "@confirmationEmailSent": {},
+  "confirmingVideo": "Confirming the video was watched. Please wait.",
+  "@confirmingVideo": {},
+  "connectingChat": "Connecting chat…",
+  "@connectingChat": {},
+  "connectionUnstable": "Connection unstable",
+  "@connectionUnstable": {},
+  "connectionUnstableCaps": "CONNECTION UNSTABLE",
+  "@connectionUnstableCaps": {},
+  "contactAbout": "Contact & about",
+  "@contactAbout": {},
+  "contactUsCaps": "CONTACT US",
+  "@contactUsCaps": {},
+  "continueLabel": "Continue",
+  "@continueLabel": {},
+  "continuePlaying": "Continue playing",
+  "@continuePlaying": {},
+  "continueWithGoogle": "Continue with Google",
+  "@continueWithGoogle": {},
+  "copiedValue": "{label} copied: {value}",
+  "@copiedValue": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotAddCoins": "Could not add coins",
+  "@couldNotAddCoins": {},
+  "couldNotApplyReferral": "Could not apply referral code",
+  "@couldNotApplyReferral": {},
+  "couldNotCheck": "Could not check: {error}",
+  "@couldNotCheck": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotJoinRoom": "Could not join room",
+  "@couldNotJoinRoom": {},
+  "couldNotLoadPrivacy": "Could not load privacy settings",
+  "@couldNotLoadPrivacy": {},
+  "couldNotLoadProfile": "Could not load your profile. Try again.",
+  "@couldNotLoadProfile": {},
+  "couldNotOpenGoogle": "Could not open Google sign-in",
+  "@couldNotOpenGoogle": {},
+  "couldNotSavePrivacy": "Could not save privacy settings",
+  "@couldNotSavePrivacy": {},
+  "couldNotStopChat": "Could not stop chat",
+  "@couldNotStopChat": {},
+  "couldNotSubmitAppeal": "Could not submit appeal",
+  "@couldNotSubmitAppeal": {},
+  "couldNotVerify": "We could not verify it",
+  "@couldNotVerify": {},
+  "couldNotVerifyAccount": "Could not verify account status. Try again.",
+  "@couldNotVerifyAccount": {},
+  "createAccount": "Create account",
+  "@createAccount": {},
+  "createPrivateRoom": "Create private room",
+  "@createPrivateRoom": {},
+  "customize": "Customize",
+  "@customize": {},
+  "daily": "Daily",
+  "@daily": {},
+  "dailyChest": "Daily chest",
+  "@dailyChest": {},
+  "dailyLimit": "DAILY LIMIT REACHED",
+  "@dailyLimit": {},
+  "date": "Date",
+  "@date": {},
+  "dayN": "Day {n}",
+  "@dayN": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "dayStreak": "{n}-day streak",
+  "@dayStreak": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "days30": "30 days",
+  "@days30": {},
+  "days7": "7 days",
+  "@days7": {},
+  "debitFailed": "Could not take coins",
+  "@debitFailed": {},
+  "declineCaps": "DECLINE",
+  "@declineCaps": {},
+  "defeat": "DEFEAT",
+  "@defeat": {},
+  "deleteAccount": "Delete account",
+  "@deleteAccount": {},
+  "deleteAccountBody": "This removes your coins, score and history for good.",
+  "@deleteAccountBody": {},
+  "deleteAccountQuestion": "Delete account?",
+  "@deleteAccountQuestion": {},
+  "descriptionMin10": "Description must be at least 10 characters",
+  "@descriptionMin10": {},
+  "diagonal": "Diagonal",
+  "@diagonal": {},
+  "difficultyEasy": "Easy",
+  "@difficultyEasy": {},
+  "difficultyHard": "Hard",
+  "@difficultyHard": {},
+  "difficultyMedium": "Medium",
+  "@difficultyMedium": {},
+  "doll": "Doll",
+  "@doll": {},
+  "done": "Done",
+  "@done": {},
+  "downloadAndInstall": "Download & Install",
+  "@downloadAndInstall": {},
+  "downloading": "Downloading…",
+  "@downloading": {},
+  "downloadingPercent": "Downloading {percent}%",
+  "@downloadingPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "draw": "Draw",
+  "@draw": {},
+  "drawBadge": "DRAW",
+  "@drawBadge": {},
+  "draws": "Draws",
+  "@draws": {},
+  "duration": "Duration",
+  "@duration": {},
+  "earned": "Earned",
+  "@earned": {},
+  "earnedThisWeek": "Earned this week, by source",
+  "@earnedThisWeek": {},
+  "editProfileCaps": "EDIT PROFILE",
+  "@editProfileCaps": {},
+  "eliminatedCaps": "ELIMINATED",
+  "@eliminatedCaps": {},
+  "email": "Email",
+  "@email": {},
+  "emailNotConfirmed": "Email not confirmed",
+  "@emailNotConfirmed": {},
+  "emailNotConfirmedBody": "Your registration worked, but your email isn't confirmed yet.\n\nOpen the confirmation link in your Inbox or Spam folder, then sign in again.\n\n{email}",
+  "@emailNotConfirmedBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailSentAgain": "Email sent again — check your inbox",
+  "@emailSentAgain": {},
+  "endsIn": "Ends in",
+  "@endsIn": {},
+  "enterCode": "Enter code",
+  "@enterCode": {},
+  "enterCodeFromEmail": "Enter the code from your email",
+  "@enterCodeFromEmail": {},
+  "enterCodeInstead": "Enter code instead",
+  "@enterCodeInstead": {},
+  "enterEmailPassword": "Enter email and password",
+  "@enterEmailPassword": {},
+  "enterFullCode": "Enter the full room code",
+  "@enterFullCode": {},
+  "enterReferralOrSkip": "Enter a referral code, or skip for now",
+  "@enterReferralOrSkip": {},
+  "enterResetCode": "Enter reset code",
+  "@enterResetCode": {},
+  "enterValidMobile": "Enter a valid mobile number",
+  "@enterValidMobile": {},
+  "enterValidReferral": "Enter a valid referral code",
+  "@enterValidReferral": {},
+  "enterYourEmail": "Enter your email",
+  "@enterYourEmail": {},
+  "entry": "Entry",
+  "@entry": {},
+  "entryFee": "Entry fee",
+  "@entryFee": {},
+  "equip": "Equip",
+  "@equip": {},
+  "equipped": "Equipped",
+  "@equipped": {},
+  "events": "Events",
+  "@events": {},
+  "everyone": "Everyone",
+  "@everyone": {},
+  "expertMode": "Expert mode (5×5)",
+  "@expertMode": {},
+  "expiredMoveToHistory": "Expired challenges move to History.",
+  "@expiredMoveToHistory": {},
+  "failed": "Failed",
+  "@failed": {},
+  "fillAllFields": "Fill in all fields",
+  "@fillAllFields": {},
+  "finalRound": "Final",
+  "@finalRound": {},
+  "findAMatch": "Find a match",
+  "@findAMatch": {},
+  "findOpponent": "Find opponent",
+  "@findOpponent": {},
+  "findPrivateJoin": "Find · private room · join code",
+  "@findPrivateJoin": {},
+  "findingOpponent": "Finding an opponent",
+  "@findingOpponent": {},
+  "findingPlayer": "Finding a player",
+  "@findingPlayer": {},
+  "firstMatchSet": "Your first match is set when the round opens.",
+  "@firstMatchSet": {},
+  "fiveOfFiveWatched": "5 of 5 videos watched",
+  "@fiveOfFiveWatched": {},
+  "flash": "Flash",
+  "@flash": {},
+  "flashUnavailable": "Flash not available",
+  "@flashUnavailable": {},
+  "forgotPassword": "Forgot password?",
+  "@forgotPassword": {},
+  "forgotPasswordTitle": "Forgot password",
+  "@forgotPasswordTitle": {},
+  "free": "Free",
+  "@free": {},
+  "freeCoins": "FREE COINS",
+  "@freeCoins": {},
+  "freeMatch": "Free match",
+  "@freeMatch": {},
+  "freeMatchesPerDay": "3 free matches per day",
+  "@freeMatchesPerDay": {},
+  "freeVideosToday": "Free videos today",
+  "@freeVideosToday": {},
+  "freeVideosUsed": "{used} of 5 free videos used today",
+  "@freeVideosUsed": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      }
+    }
+  },
+  "friendChallenge": "Friend challenge",
+  "@friendChallenge": {},
+  "friendRequestExists": "Friend request already exists",
+  "@friendRequestExists": {},
+  "friendRequestSent": "Friend request sent to {name}",
+  "@friendRequestSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "friendRequestSentShort": "Friend request sent",
+  "@friendRequestSentShort": {},
+  "friendsCaps": "FRIENDS",
+  "@friendsCaps": {},
+  "friendsLabel": "Friends",
+  "@friendsLabel": {},
+  "friendsOnly": "Friends only",
+  "@friendsOnly": {},
+  "fromPhoto": "From photo",
+  "@fromPhoto": {},
+  "gameComingSoon": "{game}: coming soon",
+  "@gameComingSoon": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "gameOver": "Game over",
+  "@gameOver": {},
+  "gamePaused": "Game paused",
+  "@gamePaused": {},
+  "getStarted": "Get started",
+  "@getStarted": {},
+  "gettingVideo": "Getting your video…",
+  "@gettingVideo": {},
+  "goToMatchCaps": "GO TO MATCH",
+  "@goToMatchCaps": {},
+  "gotIt": "Got it",
+  "@gotIt": {},
+  "graceWindowEnded": "The 30 second grace window has ended. You can claim the win.",
+  "@graceWindowEnded": {},
+  "greatRun": "Great run in the {name}",
+  "@greatRun": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "guard": "Guard",
+  "@guard": {},
+  "guest": "Guest",
+  "@guest": {},
+  "history": "History",
+  "@history": {},
+  "historyNeverPublic": "Your match history and activity are never shown on your public profile.",
+  "@historyNeverPublic": {},
+  "historySummary": "{matches} matches · {wins} wins · {losses} losses · {draws} draws",
+  "@historySummary": {
+    "placeholders": {
+      "matches": {
+        "type": "String"
+      },
+      "wins": {
+        "type": "String"
+      },
+      "losses": {
+        "type": "String"
+      },
+      "draws": {
+        "type": "String"
+      }
+    }
+  },
+  "howItWorks": "How it works",
+  "@howItWorks": {},
+  "howToPlay": "How to play",
+  "@howToPlay": {},
+  "howToPlayRules": "Place three of your marks in a row, horizontal, vertical or diagonal, before your rival does. On bigger boards you need four in a row.",
+  "@howToPlayRules": {},
+  "howToPlayStep": "HOW TO PLAY · {n}/3",
+  "@howToPlayStep": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "imReadyCaps": "I'M READY",
+  "@imReadyCaps": {},
+  "imageTooBig": "Image must be under 2 MB",
+  "@imageTooBig": {},
+  "install": "Install",
+  "@install": {},
+  "installUpdate": "Install update",
+  "@installUpdate": {},
+  "installed": "Installed",
+  "@installed": {},
+  "internetRequired": "Internet connection required. You can still play vs The Doll offline.",
+  "@internetRequired": {},
+  "introBody1": "Beat the AI on 3×3, 4×4 or 5×5 boards.",
+  "@introBody1": {},
+  "introBody2": "Random matches with real players. Stake coins, win coins.",
+  "@introBody2": {},
+  "introBody3": "Daily rewards, missions and tournaments keep you moving up.",
+  "@introBody3": {},
+  "introTitle1": "Outsmart the Doll",
+  "@introTitle1": {},
+  "introTitle2": "Duel the world",
+  "@introTitle2": {},
+  "introTitle3": "Climb the ranks",
+  "@introTitle3": {},
+  "invalidRoomQr": "Invalid room QR",
+  "@invalidRoomQr": {},
+  "inviteImage": "Invite image",
+  "@inviteImage": {},
+  "inviteImageBody": "Code, QR and link in one picture. Send it on WhatsApp or anywhere.",
+  "@inviteImageBody": {},
+  "isThinking": "{name} is thinking",
+  "@isThinking": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "joinCaps": "JOIN",
+  "@joinCaps": {},
+  "joinForCoins": "JOIN FOR {n} COINS",
+  "@joinForCoins": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "joinRoomCaps": "JOIN ROOM",
+  "@joinRoomCaps": {},
+  "joinTheGame": "Join the game",
+  "@joinTheGame": {},
+  "joinTournamentQuestion": "Join {name}?",
+  "@joinTournamentQuestion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "joinWithCode": "Join with code",
+  "@joinWithCode": {},
+  "joined": "Joined",
+  "@joined": {},
+  "joiningCaps": "JOINING…",
+  "@joiningCaps": {},
+  "joiningQueue": "Joining queue…",
+  "@joiningQueue": {},
+  "joiningRoom": "Joining room…",
+  "@joiningRoom": {},
+  "keepWatchingCaps": "KEEP WATCHING",
+  "@keepWatchingCaps": {},
+  "language": "Language",
+  "@language": {},
+  "languageUpdated": "Language updated",
+  "@languageUpdated": {},
+  "last20Sent": "The last 20 messages are sent with your report.",
+  "@last20Sent": {},
+  "last7Games": "Last 7 games",
+  "@last7Games": {},
+  "lastUpdated": "Last updated {date}",
+  "@lastUpdated": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "later": "Later",
+  "@later": {},
+  "latestVersion": "You are using the latest version.",
+  "@latestVersion": {},
+  "leaderboard": "Leaderboard",
+  "@leaderboard": {},
+  "leaderboardUpdated": "Leaderboard updated",
+  "@leaderboardUpdated": {},
+  "leave": "Leave",
+  "@leave": {},
+  "leaveForfeitBody": "Leaving now counts as a forfeit. Your opponent wins.",
+  "@leaveForfeitBody": {},
+  "leaveGame": "Leave game",
+  "@leaveGame": {},
+  "leaveMatchQuestion": "Leave match?",
+  "@leaveMatchQuestion": {},
+  "leaveVideoQuestion": "Leave the video?",
+  "@leaveVideoQuestion": {},
+  "letsPlay": "Let's play",
+  "@letsPlay": {},
+  "linkCopied": "Link copied",
+  "@linkCopied": {},
+  "live": "Live",
+  "@live": {},
+  "liveEventCaps": "LIVE EVENT",
+  "@liveEventCaps": {},
+  "loading": "Loading…",
+  "@loading": {},
+  "local": "Local",
+  "@local": {},
+  "locked": "Locked",
+  "@locked": {},
+  "logOut": "Log out",
+  "@logOut": {},
+  "loginMethod": "Login method",
+  "@loginMethod": {},
+  "loseCoinsIfClose": "You will not get your 10 coins if you close it now. {seconds} seconds left.",
+  "@loseCoinsIfClose": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "losses": "Losses",
+  "@losses": {},
+  "markAllRead": "Mark all read",
+  "@markAllRead": {},
+  "marks": "Marks",
+  "@marks": {},
+  "match": "Match",
+  "@match": {},
+  "matchAbandonedCaps": "MATCH ABANDONED",
+  "@matchAbandonedCaps": {},
+  "matchDuration": "Match duration {duration}",
+  "@matchDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "matchHistory": "Match History",
+  "@matchHistory": {},
+  "matchHistoryCaps": "MATCH HISTORY",
+  "@matchHistoryCaps": {},
+  "matchInvitations": "Match invitations",
+  "@matchInvitations": {},
+  "matchLobby": "Match lobby",
+  "@matchLobby": {},
+  "matchResult": "Match result",
+  "@matchResult": {},
+  "matchResults": "Match results",
+  "@matchResults": {},
+  "matchStakes": "Match stakes",
+  "@matchStakes": {},
+  "matchStartsIn": "Match starts in",
+  "@matchStartsIn": {},
+  "matches": "Matches",
+  "@matches": {},
+  "matchmakingError": "Matchmaking error",
+  "@matchmakingError": {},
+  "matchmakingFailed": "Matchmaking failed",
+  "@matchmakingFailed": {},
+  "matchmakingStopped": "Matchmaking stopped",
+  "@matchmakingStopped": {},
+  "memberSince": "Member since {date}",
+  "@memberSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "messageEmpty": "Message cannot be empty",
+  "@messageEmpty": {},
+  "messagesStayForMatch": "Messages stay for this match",
+  "@messagesStayForMatch": {},
+  "minusCoins": "-{n} coins",
+  "@minusCoins": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "misPlay30": "Play 30 matches",
+  "@misPlay30": {},
+  "misPlay5": "Play 5 matches",
+  "@misPlay5": {},
+  "misQuick": "Play a random match",
+  "@misQuick": {},
+  "misTourney": "Join a tournament",
+  "@misTourney": {},
+  "misWin15": "Win 15 games",
+  "@misWin15": {},
+  "misWin3": "Win 3 games",
+  "@misWin3": {},
+  "misWin4x4": "Win on a 4×4 board",
+  "@misWin4x4": {},
+  "missResets": "Miss a day and it resets. Come back tomorrow for the next reward.",
+  "@missResets": {},
+  "missingChallengeData": "Missing challenge data",
+  "@missingChallengeData": {},
+  "missingEmail": "Missing email — go back and try again",
+  "@missingEmail": {},
+  "missions": "Missions",
+  "@missions": {},
+  "missionsDone": "{done} of {total} missions done",
+  "@missionsDone": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "mobileNotSupported": "Mobile numbers are not supported in your region yet",
+  "@mobileNotSupported": {},
+  "mobileOptional": "Mobile number (optional)",
+  "@mobileOptional": {},
+  "mode": "Mode {n}",
+  "@mode": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "more": "More",
+  "@more": {},
+  "moreGames": "More games",
+  "@moreGames": {},
+  "music": "Music",
+  "@music": {},
+  "nOf5": "{n} of 5",
+  "@nOf5": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "navPlay": "Play",
+  "@navPlay": {},
+  "newCodeSent": "New code sent — check your inbox",
+  "@newCodeSent": {},
+  "newHere": "New here?",
+  "@newHere": {},
+  "newMatchChallengeCaps": "NEW MATCH CHALLENGE!",
+  "@newMatchChallengeCaps": {},
+  "newPassword": "New password",
+  "@newPassword": {},
+  "newPasswordBody": "Enter a new password for your account. You’ll stay signed in after saving.",
+  "@newPasswordBody": {},
+  "newVersion": "New version",
+  "@newVersion": {},
+  "newVersionReady": "A new version of DROTIX is ready.",
+  "@newVersionReady": {},
+  "newVideosUnlockIn": "New free videos unlock in",
+  "@newVideosUnlockIn": {},
+  "next": "Next",
+  "@next": {},
+  "nextCaps": "NEXT",
+  "@nextCaps": {},
+  "nextRound": "Next round",
+  "@nextRound": {},
+  "no": "No",
+  "@no": {},
+  "noChallenge": "No challenge",
+  "@noChallenge": {},
+  "noChallengesHere": "No challenges here.",
+  "@noChallengesHere": {},
+  "noCloudMatches": "No cloud matches yet. Play vs The Doll while signed in to appear here.",
+  "@noCloudMatches": {},
+  "noFriendsYet": "No friends yet — search to add someone.",
+  "@noFriendsYet": {},
+  "noHistory": "No history found",
+  "@noHistory": {},
+  "noMatchesYet": "No matches yet",
+  "@noMatchesYet": {},
+  "noMessagesYet": "No messages yet.\nQuick replies work too.",
+  "@noMessagesYet": {},
+  "noNotificationsYet": "No notifications yet",
+  "@noNotificationsYet": {},
+  "noOpponentFound": "No opponent found — try again",
+  "@noOpponentFound": {},
+  "noPendingRequests": "No pending requests.",
+  "@noPendingRequests": {},
+  "noPlayersFound": "No players found",
+  "@noPlayersFound": {},
+  "noQrInPhoto": "No QR found in photo",
+  "@noQrInPhoto": {},
+  "noRankedPlayers": "No ranked players yet. Sign in and play to join the board.",
+  "@noRankedPlayers": {},
+  "noTransactions": "No transactions yet.",
+  "@noTransactions": {},
+  "noVideoFound": "We could not find a video for you. Your free video was not used. Try again in a minute.",
+  "@noVideoFound": {},
+  "noVideoNow": "No video available right now. Try again later.",
+  "@noVideoNow": {},
+  "noVideoRightNow": "No video right now",
+  "@noVideoRightNow": {},
+  "nobody": "Nobody",
+  "@nobody": {},
+  "nobodyBlinked": "Nobody blinked.",
+  "@nobodyBlinked": {},
+  "nobodyBlinkedVs": "Nobody blinked. {name} held you off.",
+  "@nobodyBlinkedVs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notAcceptingChallenges": "{name} is not accepting challenges right now.",
+  "@notAcceptingChallenges": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notEnoughCoins": "Not enough coins",
+  "@notEnoughCoins": {},
+  "notEnoughCoinsAnother": "Not enough coins for another stake.",
+  "@notEnoughCoinsAnother": {},
+  "notEnoughCoinsStake": "Not enough coins for this stake.",
+  "@notEnoughCoinsStake": {},
+  "notNow": "Not now",
+  "@notNow": {},
+  "notSignedIn": "Not signed in",
+  "@notSignedIn": {},
+  "notSignedInYet": "Not signed in yet — open the email link first",
+  "@notSignedInYet": {},
+  "notifChallengeAcceptedBody": "{name} accepted your challenge. Match starting!",
+  "@notifChallengeAcceptedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifChallengeAcceptedTitle": "Challenge accepted",
+  "@notifChallengeAcceptedTitle": {},
+  "notifChallengeBusyBody": "{name} is in a match right now. Try again later.",
+  "@notifChallengeBusyBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifChallengeBusyTitle": "Player is busy",
+  "@notifChallengeBusyTitle": {},
+  "notifChallengeCancelledBody": "{name} cancelled the challenge",
+  "@notifChallengeCancelledBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifChallengeCancelledTitle": "Challenge cancelled",
+  "@notifChallengeCancelledTitle": {},
+  "notifChallengeDeclinedBody": "{name} declined your challenge",
+  "@notifChallengeDeclinedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifChallengeDeclinedTitle": "Challenge declined",
+  "@notifChallengeDeclinedTitle": {},
+  "notifChallengeExpiredBody": "{name} did not respond in time",
+  "@notifChallengeExpiredBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifChallengeExpiredTitle": "Challenge expired",
+  "@notifChallengeExpiredTitle": {},
+  "notifChallengeRequestBody": "{name} challenged you to a match",
+  "@notifChallengeRequestBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifChallengeRequestTitle": "New challenge",
+  "@notifChallengeRequestTitle": {},
+  "notifChannelDesc": "Challenges, matches and coin updates",
+  "@notifChannelDesc": {},
+  "notifChannelName": "Game alerts",
+  "@notifChannelName": {},
+  "notifCoinsAddedBody": "{amount} coins added. Balance: {balance}",
+  "@notifCoinsAddedBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "notifCoinsCreditTitle": "Coins added",
+  "@notifCoinsCreditTitle": {},
+  "notifCoinsDebitBody": "{amount} coins deducted. Balance: {balance}",
+  "@notifCoinsDebitBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "notifCoinsDebitTitle": "Coins deducted",
+  "@notifCoinsDebitTitle": {},
+  "notifCoinsPurchaseTitle": "Purchase complete",
+  "@notifCoinsPurchaseTitle": {},
+  "notifCoinsRewardBody": "You earned {amount} coins. Balance: {balance}",
+  "@notifCoinsRewardBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "notifCoinsRewardTitle": "Reward received",
+  "@notifCoinsRewardTitle": {},
+  "notifEmptyHint": "Challenges, match results and coin updates will show up here.",
+  "@notifEmptyHint": {},
+  "notifFriendAcceptedBody": "{name} accepted your friend request",
+  "@notifFriendAcceptedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifFriendAcceptedTitle": "New friend",
+  "@notifFriendAcceptedTitle": {},
+  "notifFriendRequestBody": "{name} wants to be your friend",
+  "@notifFriendRequestBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifFriendRequestTitle": "Friend request",
+  "@notifFriendRequestTitle": {},
+  "notifGeneric": "New notification",
+  "@notifGeneric": {},
+  "notifMatchBody": "Your match vs {name} has ended",
+  "@notifMatchBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifMatchDrawTitle": "Draw",
+  "@notifMatchDrawTitle": {},
+  "notifMatchLostTitle": "You lost",
+  "@notifMatchLostTitle": {},
+  "notifMatchWonTitle": "You won!",
+  "@notifMatchWonTitle": {},
+  "notifRoomJoinedBody": "{name} joined your private room",
+  "@notifRoomJoinedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifRoomJoinedTitle": "Player joined",
+  "@notifRoomJoinedTitle": {},
+  "notifications": "Notifications",
+  "@notifications": {},
+  "nowFriends": "You and {name} are now friends",
+  "@nowFriends": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nowFriendsShort": "You are now friends",
+  "@nowFriendsShort": {},
+  "officialWebsite": "Official website",
+  "@officialWebsite": {},
+  "offlineAi": "Offline AI",
+  "@offlineAi": {},
+  "offlineAiSubtitle": "No internet · AI rivals only · {size} · Stake {stake}",
+  "@offlineAiSubtitle": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "stake": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineBanner": "Offline · Play vs The Doll still works",
+  "@offlineBanner": {},
+  "offlineBody": "Online matches and tournaments need a connection. You can still play against The Doll.",
+  "@offlineBody": {},
+  "offlineProfilesNote": "These are offline AI profiles — not real online players.",
+  "@offlineProfilesNote": {},
+  "offlineSmart": "Offline, smart opponent",
+  "@offlineSmart": {},
+  "ok": "OK",
+  "@ok": {},
+  "oneLastStepCaps": "ONE LAST STEP",
+  "@oneLastStepCaps": {},
+  "online": "Online",
+  "@online": {},
+  "onlineMatch": "Online match",
+  "@onlineMatch": {},
+  "onlineMultiplayer": "Online multiplayer",
+  "@onlineMultiplayer": {},
+  "onlineOfflineAi": "Online players · Offline AI",
+  "@onlineOfflineAi": {},
+  "onlineStake": "Online · Stake {stake}",
+  "@onlineStake": {
+    "placeholders": {
+      "stake": {
+        "type": "String"
+      }
+    }
+  },
+  "onlyFriendsChallenges": "{name} only accepts challenges from friends. Add them first.",
+  "@onlyFriendsChallenges": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "open": "Open",
+  "@open": {},
+  "openedTheLink": "I’ve opened the link",
+  "@openedTheLink": {},
+  "openingInstaller": "Opening installer…",
+  "@openingInstaller": {},
+  "opponent": "Opponent",
+  "@opponent": {},
+  "opponentAdvances": "If you do not join in time, your opponent advances.",
+  "@opponentAdvances": {},
+  "opponentDisconnected": "Opponent disconnected",
+  "@opponentDisconnected": {},
+  "opponentWins": "Opponent wins",
+  "@opponentWins": {},
+  "opponentsMove": "{name}'s move",
+  "@opponentsMove": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "or": "Or",
+  "@or": {},
+  "orEnterCodeCaps": "OR ENTER THE CODE",
+  "@orEnterCodeCaps": {},
+  "otherEvents": "Other events",
+  "@otherEvents": {},
+  "owned": "Owned",
+  "@owned": {},
+  "passAndPlay": "Pass & Play",
+  "@passAndPlay": {},
+  "password": "Password",
+  "@password": {},
+  "passwordMin6": "Password must be at least 6 characters",
+  "@passwordMin6": {},
+  "passwordUpdated": "Password updated",
+  "@passwordUpdated": {},
+  "passwordsNoMatch": "Passwords do not match",
+  "@passwordsNoMatch": {},
+  "pasteCode": "Paste code",
+  "@pasteCode": {},
+  "pause": "Pause",
+  "@pause": {},
+  "paused": "Paused",
+  "@paused": {},
+  "perMove20s": "20s per move",
+  "@perMove20s": {},
+  "photoUpdated": "Photo updated",
+  "@photoUpdated": {},
+  "pickClosestReason": "What is happening? Pick the closest reason.",
+  "@pickClosestReason": {},
+  "pickYourGame": "Pick your game",
+  "@pickYourGame": {},
+  "playAgain": "Play again",
+  "@playAgain": {},
+  "playAsGuest": "Play as guest",
+  "@playAsGuest": {},
+  "playCaps": "PLAY",
+  "@playCaps": {},
+  "playDollOffline": "Play vs The Doll offline",
+  "@playDollOffline": {},
+  "playToBuildForm": "Play a match to build your form.",
+  "@playToBuildForm": {},
+  "playVsDoll": "Play vs The Doll",
+  "@playVsDoll": {},
+  "playVsName": "Play vs {name}",
+  "@playVsName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "played": "Played",
+  "@played": {},
+  "player": "Player",
+  "@player": {},
+  "player1": "Player 1",
+  "@player1": {},
+  "player1Move": "Player 1's move",
+  "@player1Move": {},
+  "player1Wins": "Player 1 wins!",
+  "@player1Wins": {},
+  "player2": "Player 2",
+  "@player2": {},
+  "player2Move": "Player 2's move",
+  "@player2Move": {},
+  "player2Wins": "Player 2 wins!",
+  "@player2Wins": {},
+  "playerAdded": "{name} added",
+  "@playerAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playerBlocked": "Player blocked",
+  "@playerBlocked": {},
+  "playerIdLabel": "PLAYER {id}",
+  "@playerIdLabel": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "playerUnblocked": "Player unblocked",
+  "@playerUnblocked": {},
+  "players": "Players",
+  "@players": {},
+  "playersLeft": "Players left",
+  "@playersLeft": {},
+  "pleaseWait": "Please wait…",
+  "@pleaseWait": {},
+  "plusCoins": "+{n} coins",
+  "@plusCoins": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "podium": "Podium",
+  "@podium": {},
+  "pointAtHostQr": "Point at the host’s QR. Same code as the lobby.",
+  "@pointAtHostQr": {},
+  "pointCameraAtQr": "Point your camera at the room QR code",
+  "@pointCameraAtQr": {},
+  "pointsWins": "{points} pts · {wins} wins",
+  "@pointsWins": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      },
+      "wins": {
+        "type": "String"
+      }
+    }
+  },
+  "popular": "Popular",
+  "@popular": {},
+  "previousMatchExpired": "Previous match expired. Try again in a moment.",
+  "@previousMatchExpired": {},
+  "privacy": "Privacy",
+  "@privacy": {},
+  "privacyBody": "We collect only the gameplay data needed to run the app (coins, cosmetics, match history and settings). Guest play does not require an account.\n\nIf you sign in, your details are used only to save and restore your progress. We do not sell personal data. You can delete your data anytime from Settings → Delete account.\n\nContact: {email}",
+  "@privacyBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyPolicy": "Privacy policy",
+  "@privacyPolicy": {},
+  "privateOnlyYou": "Private. Only you can see this.",
+  "@privateOnlyYou": {},
+  "privateRoomByUsername": "Private room (by username)",
+  "@privateRoomByUsername": {},
+  "privateRoomCaps": "PRIVATE ROOM",
+  "@privateRoomCaps": {},
+  "prizeAdded": "Prize added to your balance",
+  "@prizeAdded": {},
+  "prizePool": "Prize pool",
+  "@prizePool": {},
+  "profile": "Profile",
+  "@profile": {},
+  "profileNotFound": "Profile not found",
+  "@profileNotFound": {},
+  "profilePrivacyNote": "Match history and activity stay private. Reporting is for profile abuse; in-match chat reports use the chat Report button.",
+  "@profilePrivacyNote": {},
+  "profileUpdated": "Profile updated",
+  "@profileUpdated": {},
+  "progressOf": "{done} of {total}",
+  "@progressOf": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "publicStatsNote": "Only rank, score and wins are public. Match history and activity stay private.",
+  "@publicStatsNote": {},
+  "purchaseFailed": "Purchase failed",
+  "@purchaseFailed": {},
+  "purchases": "Purchases",
+  "@purchases": {},
+  "purchasesComingSoon": "Coin purchases are coming soon. Watch a video in Free Coins to earn coins now.",
+  "@purchasesComingSoon": {},
+  "quarter": "Quarter",
+  "@quarter": {},
+  "quarterFinal": "Quarter-final",
+  "@quarterFinal": {},
+  "quickCloseOne": "Close one!",
+  "@quickCloseOne": {},
+  "quickGg": "GG",
+  "@quickGg": {},
+  "quickGoodMove": "Good move!",
+  "@quickGoodMove": {},
+  "quickMatchVsAi": "Quick match vs AI · {time}",
+  "@quickMatchVsAi": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quitMatch": "Quit match",
+  "@quitMatch": {},
+  "randomMatch": "Random match",
+  "@randomMatch": {},
+  "rank": "Rank",
+  "@rank": {},
+  "rankScore": "Rank #{rank} · Score {score}",
+  "@rankScore": {
+    "placeholders": {
+      "rank": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "rankScoreUnknown": "Rank – · Score –",
+  "@rankScoreUnknown": {},
+  "ranks": "Ranks",
+  "@ranks": {},
+  "rateApp": "Rate the app",
+  "@rateApp": {},
+  "ratingsSoon": "Ratings are coming soon",
+  "@ratingsSoon": {},
+  "readOnly": "read only",
+  "@readOnly": {},
+  "readyCaps": "READY",
+  "@readyCaps": {},
+  "reasonHarassment": "Harassment or bullying",
+  "@reasonHarassment": {},
+  "reasonInappropriate": "Sexual or inappropriate content",
+  "@reasonInappropriate": {},
+  "reasonOffensive": "Hate speech or abuse",
+  "@reasonOffensive": {},
+  "reasonOther": "Something else",
+  "@reasonOther": {},
+  "reasonSpam": "Spam or scams",
+  "@reasonSpam": {},
+  "reasonThreatening": "Threats or violence",
+  "@reasonThreatening": {},
+  "received": "Received",
+  "@received": {},
+  "reconnecting": "Reconnecting…",
+  "@reconnecting": {},
+  "reference": "Reference: {id}",
+  "@reference": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "referralCode": "Referral code",
+  "@referralCode": {},
+  "referralHint": "Referral code (optional)",
+  "@referralHint": {},
+  "referralOnce": "You can only use a referral code once, right after signing up.",
+  "@referralOnce": {},
+  "referralPrompt": "Got a referral code from a friend? Enter it now and get 50 coins.",
+  "@referralPrompt": {},
+  "referralWorked": "Your referral code worked. The coins are in your wallet and ready to use.",
+  "@referralWorked": {},
+  "refresh": "Refresh",
+  "@refresh": {},
+  "refreshStatus": "Refresh status",
+  "@refreshStatus": {},
+  "region": "Region",
+  "@region": {},
+  "regionIndiaNote": "Detected automatically from your SIM / device. India shows Indian languages and prices in ₹.",
+  "@regionIndiaNote": {},
+  "regionIntlNote": "Detected automatically from your SIM / device. International languages, prices in {currency}.",
+  "@regionIntlNote": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "register": "Register",
+  "@register": {},
+  "released": "Released",
+  "@released": {},
+  "rematch": "Rematch",
+  "@rematch": {},
+  "rematchQuestion": "Rematch?",
+  "@rematchQuestion": {},
+  "remindMe": "Remind me before my match",
+  "@remindMe": {},
+  "reportButtonCaps": "REPORT BUTTON",
+  "@reportButtonCaps": {},
+  "reportButtonHelp": "Top right of the live chat, next to Stop chat. Always visible while chat is on.\nTap → pick a reason → add details and screenshots → submit.",
+  "@reportButtonHelp": {},
+  "reportCaps": "REPORT",
+  "@reportCaps": {},
+  "reportFailed": "Report failed",
+  "@reportFailed": {},
+  "reportName": "Report {name}",
+  "@reportName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportOrBlock": "Report or block",
+  "@reportOrBlock": {},
+  "reportOrBlockPlayer": "Report or block this player",
+  "@reportOrBlockPlayer": {},
+  "reportPlayer": "Report player",
+  "@reportPlayer": {},
+  "requestSentCaps": "REQUEST SENT",
+  "@requestSentCaps": {},
+  "requestSentTo": "Request sent to {name}",
+  "@requestSentTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "requests": "Requests",
+  "@requests": {},
+  "requestsCount": "Requests · {n}",
+  "@requestsCount": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "requestsExpire7d": "Requests expire after 7 days if not answered.",
+  "@requestsExpire7d": {},
+  "resendCode": "Resend code",
+  "@resendCode": {},
+  "resendEmail": "Resend email",
+  "@resendEmail": {},
+  "resetCode": "Reset code",
+  "@resetCode": {},
+  "resetCodeSentTo": "We sent a reset code to {target}.\nType it below — you don’t need to open the email link.",
+  "@resetCodeSentTo": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "resetPassword": "Reset password",
+  "@resetPassword": {},
+  "resetPasswordBody": "Enter your email and we’ll send a reset code. Type that code in the app — no need to open the email link.",
+  "@resetPasswordBody": {},
+  "restart": "Restart",
+  "@restart": {},
+  "result": "Result",
+  "@result": {},
+  "resume": "Resume",
+  "@resume": {},
+  "returnToMainMenu": "Return to main menu",
+  "@returnToMainMenu": {},
+  "rewardEarnedCaps": "REWARD EARNED",
+  "@rewardEarnedCaps": {},
+  "rewardFlowOverview": "Reward flow overview",
+  "@rewardFlowOverview": {},
+  "rewardIn": "Reward in {time}",
+  "@rewardIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "rivalO": "Rival: O",
+  "@rivalO": {},
+  "roomCancelled": "Room cancelled",
+  "@roomCancelled": {},
+  "roomClosesIn": "Room closes in {time} if nobody joins.",
+  "@roomClosesIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "roomClosesSoon": "Room closes soon if nobody joins.",
+  "@roomClosesSoon": {},
+  "roomClosing": "Room is closing…",
+  "@roomClosing": {},
+  "roomCodeCaps": "ROOM CODE",
+  "@roomCodeCaps": {},
+  "roomCodeCopied": "Room code copied",
+  "@roomCodeCopied": {},
+  "roomExpired": "Room expired",
+  "@roomExpired": {},
+  "roomOpenCaps": "ROOM OPEN",
+  "@roomOpenCaps": {},
+  "roundOf16": "Round of 16",
+  "@roundOf16": {},
+  "roundOf16Caps": "ROUND OF 16",
+  "@roundOf16Caps": {},
+  "roundOf16Vs": "Round of 16 · vs {name}",
+  "@roundOf16Vs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "roundsWon": "Rounds won",
+  "@roundsWon": {},
+  "row": "Row",
+  "@row": {},
+  "ruleEmoji": "• Emoji reactions work without a request, and can be muted.",
+  "@ruleEmoji": {},
+  "ruleEnds": "• Chat ends automatically when the match ends.",
+  "@ruleEnds": {},
+  "ruleStop": "• Either player can stop the chat at any time.",
+  "@ruleStop": {},
+  "ruleVanish": "• Messages vanish in seconds and are never saved.",
+  "@ruleVanish": {},
+  "saveChanges": "Save Changes",
+  "@saveChanges": {},
+  "savePassword": "Save password",
+  "@savePassword": {},
+  "saving": "Saving…",
+  "@saving": {},
+  "savingToCloud": "Saving to cloud…",
+  "@savingToCloud": {},
+  "scanOrShare": "Scan to join, or share the link",
+  "@scanOrShare": {},
+  "scanQr": "Scan QR",
+  "@scanQr": {},
+  "score": "Score",
+  "@score": {},
+  "scorePlus10": "Score +10",
+  "@scorePlus10": {},
+  "screenshotTooBig": "Screenshot must be under 2 MB",
+  "@screenshotTooBig": {},
+  "screenshotsOptionalCaps": "SCREENSHOTS (OPTIONAL)",
+  "@screenshotsOptionalCaps": {},
+  "searchPlayersHint": "Search by username or Player ID",
+  "@searchPlayersHint": {},
+  "searchResults": "Search results",
+  "@searchResults": {},
+  "searchingSubtitle": "Online · {size} · stake {stake} · {time}",
+  "@searchingSubtitle": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "stake": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "seatWaiting": "Player, your seat is waiting.",
+  "@seatWaiting": {},
+  "secondsLeft": "{seconds}s left",
+  "@secondsLeft": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "secondsLeftToRespond": "{seconds}s left to respond",
+  "@secondsLeftToRespond": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "selectDifficulty": "Select difficulty",
+  "@selectDifficulty": {},
+  "selectOpponent": "Select an opponent",
+  "@selectOpponent": {},
+  "selectReportReason": "Select a report reason",
+  "@selectReportReason": {},
+  "semi": "Semi",
+  "@semi": {},
+  "send": "Send",
+  "@send": {},
+  "sendChallenge": "Send challenge",
+  "@sendChallenge": {},
+  "sendResetCode": "Send reset code",
+  "@sendResetCode": {},
+  "sending": "Sending…",
+  "@sending": {},
+  "sendingMove": "Sending move…",
+  "@sendingMove": {},
+  "sent": "Sent",
+  "@sent": {},
+  "serverTournamentsDemo": "Server tournaments unavailable — showing demo.\n{error}",
+  "@serverTournamentsDemo": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionExpiredReset": "Session expired — request a new reset code",
+  "@sessionExpiredReset": {},
+  "settings": "Settings",
+  "@settings": {},
+  "shareComingSoon": "Share coming soon",
+  "@shareComingSoon": {},
+  "shareInviteCaps": "SHARE INVITE",
+  "@shareInviteCaps": {},
+  "shareOnWhatsApp": "Share on WhatsApp",
+  "@shareOnWhatsApp": {},
+  "shareProfile": "Share profile",
+  "@shareProfile": {},
+  "shareWin": "I just won a match of DROTIX! Think you can beat me? Play now: {url}",
+  "@shareWin": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "shareWinVs": "I just won a match of DROTIX against {name}! Think you can beat me? Play now: {url}",
+  "@shareWinVs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "shop": "Shop",
+  "@shop": {},
+  "showHidePassword": "Show or hide password",
+  "@showHidePassword": {},
+  "signIn": "Sign in",
+  "@signIn": {},
+  "signInChangePhoto": "Sign in to change photo",
+  "@signInChangePhoto": {},
+  "signInFindFriends": "Sign in to find friends",
+  "@signInFindFriends": {},
+  "signInMatchmaking": "Sign in required for online matchmaking",
+  "@signInMatchmaking": {},
+  "signInNotifications": "Sign in to see your notifications",
+  "@signInNotifications": {},
+  "signInOnline": "Sign in to play online multiplayer",
+  "@signInOnline": {},
+  "signInRandomMatch": "Sign in to play Random Match against real players",
+  "@signInRandomMatch": {},
+  "signInRequired": "Sign in required",
+  "@signInRequired": {},
+  "signInSearchPlayers": "Sign in to search players and sync friends to the cloud.",
+  "@signInSearchPlayers": {},
+  "signInToAddFriends": "Sign in to add friends",
+  "@signInToAddFriends": {},
+  "signInToChallenge": "Sign in to challenge this player",
+  "@signInToChallenge": {},
+  "signInWalletHistory": "Sign in to see your wallet history.",
+  "@signInWalletHistory": {},
+  "signInWithEmail": "Sign in with email",
+  "@signInWithEmail": {},
+  "signOut": "Sign out",
+  "@signOut": {},
+  "signUp": "Sign up",
+  "@signUp": {},
+  "skip": "Skip",
+  "@skip": {},
+  "skipForNow": "Skip for now",
+  "@skipForNow": {},
+  "somethingWentWrong": "Something went wrong",
+  "@somethingWentWrong": {},
+  "somethingWentWrongDetail": "Something went wrong: {error}",
+  "@somethingWentWrongDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "soundDisabled": "Sound disabled",
+  "@soundDisabled": {},
+  "soundEffects": "Sound effects",
+  "@soundEffects": {},
+  "soundEnabled": "Sound enabled",
+  "@soundEnabled": {},
+  "spent": "Spent",
+  "@spent": {},
+  "sponsored": "Sponsored",
+  "@sponsored": {},
+  "stakeDot": "Stake · {n}",
+  "@stakeDot": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "stakeReturned": "Stake returned",
+  "@stakeReturned": {},
+  "stakeRoom": "Stake {stake} · {room}…",
+  "@stakeRoom": {
+    "placeholders": {
+      "stake": {
+        "type": "String"
+      },
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "start": "Start",
+  "@start": {},
+  "startPlayingCaps": "START PLAYING",
+  "@startPlayingCaps": {},
+  "starterPack": "Starter pack",
+  "@starterPack": {},
+  "starting": "Starting…",
+  "@starting": {},
+  "startsInCaps": "STARTS IN",
+  "@startsInCaps": {},
+  "stats": "Stats",
+  "@stats": {},
+  "statusLabel": "Status: {status}",
+  "@statusLabel": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "stayInApp": "Stay in the app. We will alert you when your match is ready.",
+  "@stayInApp": {},
+  "stillOffline": "Still offline. Check your connection and try again.",
+  "@stillOffline": {},
+  "stopChat": "Stop chat",
+  "@stopChat": {},
+  "submitAppeal": "Submit appeal",
+  "@submitAppeal": {},
+  "submitReportCaps": "SUBMIT REPORT",
+  "@submitReportCaps": {},
+  "submittedAt": "Submitted: {date}",
+  "@submittedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "submitting": "Submitting…",
+  "@submitting": {},
+  "submittingCaps": "SUBMITTING…",
+  "@submittingCaps": {},
+  "supportEmail": "Support email",
+  "@supportEmail": {},
+  "suspendedAt": "Suspended: {date}",
+  "@suspendedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "suspendedByModerator": "A moderator suspended this account after a report review.",
+  "@suspendedByModerator": {},
+  "suspendedRules": "You cannot play matches, join rooms, or use chat while suspended. You may submit one appeal for review.",
+  "@suspendedRules": {},
+  "t20Seconds": "20 seconds per move",
+  "@t20Seconds": {},
+  "tDrawReplays": "A draw replays the round",
+  "@tDrawReplays": {},
+  "tSingleElim": "Single elimination: lose once and you are out",
+  "@tSingleElim": {},
+  "tSingleElimFee": "Single elimination. If you lose a round you are out, and the entry fee is not returned.",
+  "@tSingleElimFee": {},
+  "tagline": "The deadliest little game",
+  "@tagline": {},
+  "takeTurnsBody": "You and your rival place one mark each turn. Tap an empty square to make your move.",
+  "@takeTurnsBody": {},
+  "takeTurnsCaps": "TAKE TURNS",
+  "@takeTurnsCaps": {},
+  "takesFewSeconds": "This usually takes a few seconds.",
+  "@takesFewSeconds": {},
+  "tapEmptySquare": "Tap an empty square",
+  "@tapEmptySquare": {},
+  "tbd": "TBD",
+  "@tbd": {},
+  "tellUsMin10": "Please tell us what happened (at least 10 characters)",
+  "@tellUsMin10": {},
+  "termsAccountBody": "Keep your sign-in secure. You are responsible for activity on your account.",
+  "@termsAccountBody": {},
+  "termsAccountTitle": "2. Your account",
+  "@termsAccountTitle": {},
+  "termsChangesBody": "We may update these terms. Continued use means you accept the updates.",
+  "@termsChangesBody": {},
+  "termsChangesTitle": "5. Changes",
+  "@termsChangesTitle": {},
+  "termsCoinsBody": "Coins are virtual items with no cash value and cannot be exchanged for money.",
+  "@termsCoinsBody": {},
+  "termsCoinsTitle": "3. Virtual coins",
+  "@termsCoinsTitle": {},
+  "termsFairBody": "No cheating, abuse or harassment. We may suspend accounts that break the rules.",
+  "@termsFairBody": {},
+  "termsFairTitle": "4. Fair play and chat",
+  "@termsFairTitle": {},
+  "termsOfService": "Terms of service",
+  "@termsOfService": {},
+  "termsUsingBody": "You must follow these terms and play fairly.",
+  "@termsUsingBody": {},
+  "termsUsingTitle": "1. Using DROTIX",
+  "@termsUsingTitle": {},
+  "theirTurnCaps": "THEIR TURN",
+  "@theirTurnCaps": {},
+  "threeInRowBody": "Line up three of your marks in a row, in a column or on a diagonal before your rival does.",
+  "@threeInRowBody": {},
+  "threeInRowCaps": "THREE IN A ROW",
+  "@threeInRowCaps": {},
+  "timeDaysAgo": "{n}d ago",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "timeHoursAgo": "{n}h ago",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "timeJustNow": "Just now",
+  "@timeJustNow": {},
+  "timeMinutesAgo": "{n}m ago",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "timeSkipped": "Run out of time and the move is skipped.",
+  "@timeSkipped": {},
+  "timesUp": "Time's up · {who}",
+  "@timesUp": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      }
+    }
+  },
+  "today": "Today",
+  "@today": {},
+  "todayCaps": "TODAY",
+  "@todayCaps": {},
+  "top16": "Top 16",
+  "@top16": {},
+  "totalCoinsCaps": "TOTAL COINS",
+  "@totalCoinsCaps": {},
+  "tournament": "Tournament",
+  "@tournament": {},
+  "tryAgain": "Try again",
+  "@tryAgain": {},
+  "tryAgainCaps": "TRY AGAIN",
+  "@tryAgainCaps": {},
+  "twoPlayers": "Two players, one phone",
+  "@twoPlayers": {},
+  "txChallengeEntry": "Challenge entry",
+  "@txChallengeEntry": {},
+  "txCoinPurchase": "Coin purchase",
+  "@txCoinPurchase": {},
+  "txDailyBonus": "Daily bonus · {time}",
+  "@txDailyBonus": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "txDailyReward": "Daily reward",
+  "@txDailyReward": {},
+  "txFreeVideo": "Free video reward",
+  "@txFreeVideo": {},
+  "txMatchWin": "Match win",
+  "@txMatchWin": {},
+  "txPurchasing": "Purchasing coins · {time}",
+  "@txPurchasing": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "txReferral": "Referral code · {time}",
+  "@txReferral": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "txTournament": "Tournament · {time}",
+  "@txTournament": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "txTournamentPrize": "Tournament prize",
+  "@txTournamentPrize": {},
+  "txWatchingAds": "Watching ads · {time}",
+  "@txWatchingAds": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "txWelcomeBonus": "Welcome bonus",
+  "@txWelcomeBonus": {},
+  "txWinning": "Winning matches · {time}",
+  "@txWinning": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "typeMessage": "Type a message",
+  "@typeMessage": {},
+  "unblockPlayer": "Unblock player",
+  "@unblockPlayer": {},
+  "unblockToAdd": "Unblock this player to add them",
+  "@unblockToAdd": {},
+  "unblockToChallenge": "Unblock this player to challenge",
+  "@unblockToChallenge": {},
+  "unlockFor": "Unlock · {n} coins",
+  "@unlockFor": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "unlocked": "Unlocked",
+  "@unlocked": {},
+  "unlockedCount": "{n} of {total} unlocked",
+  "@unlockedCount": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "unranked": "Unranked",
+  "@unranked": {},
+  "upTo3Images": "Up to 3 images. Only our team can see them.",
+  "@upTo3Images": {},
+  "updateAvailable": "Update available",
+  "@updateAvailable": {},
+  "updateFailed": "Update failed",
+  "@updateFailed": {},
+  "updateOnAppStore": "Update on the App Store",
+  "@updateOnAppStore": {},
+  "updateRequired": "Update required",
+  "@updateRequired": {},
+  "updatesOnlyMobile": "Updates are available on Android and iOS.",
+  "@updatesOnlyMobile": {},
+  "useChatReport": "Use Chat → Report during a live match for evidence-based reports.",
+  "@useChatReport": {},
+  "username": "Username",
+  "@username": {},
+  "usernameHint": "Username (a-z, 0-9, _)",
+  "@usernameHint": {},
+  "verifyCode": "Verify code",
+  "@verifyCode": {},
+  "verifyFailBody": "This can happen on a weak connection, or if the reward was already claimed. Your coins are safe.",
+  "@verifyFailBody": {},
+  "verifying": "Verifying…",
+  "@verifying": {},
+  "verifyingReward": "Verifying your reward",
+  "@verifyingReward": {},
+  "versionLabel": "Version {version}",
+  "@versionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "versionUnsupported": "This version is no longer supported. Update to keep playing.",
+  "@versionUnsupported": {},
+  "vibration": "Vibration",
+  "@vibration": {},
+  "victory": "VICTORY",
+  "@victory": {},
+  "videoLength": "The video is about 15 to 30 seconds. Watch it to the end to get your coins.",
+  "@videoLength": {},
+  "videos": "Videos",
+  "@videos": {},
+  "viewAppealStatus": "View appeal status",
+  "@viewAppealStatus": {},
+  "viewBracket": "View bracket",
+  "@viewBracket": {},
+  "viewBracketCaps": "VIEW BRACKET",
+  "@viewBracketCaps": {},
+  "viewProfile": "View profile",
+  "@viewProfile": {},
+  "vsName": "vs {name}",
+  "@vsName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "waitingCaps": "WAITING",
+  "@waitingCaps": {},
+  "waitingForAccept": "Waiting for {name} to accept…",
+  "@waitingForAccept": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "waitingForFriend": "Waiting for a friend...",
+  "@waitingForFriend": {},
+  "waitingOtherMatches": "Waiting for other matches",
+  "@waitingOtherMatches": {},
+  "waitingRoundOpen": "Waiting for the round to open",
+  "@waitingRoundOpen": {},
+  "wallet": "Wallet",
+  "@wallet": {},
+  "walletBalance": "Wallet balance",
+  "@walletBalance": {},
+  "walletCaps": "WALLET",
+  "@walletCaps": {},
+  "walletUnavailable": "Wallet unavailable",
+  "@walletUnavailable": {},
+  "watchAnotherLeft": "WATCH ANOTHER ({n} LEFT)",
+  "@watchAnotherLeft": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "watchBracketCaps": "WATCH THE BRACKET",
+  "@watchBracketCaps": {},
+  "watchFullVideo": "Watch the full video to claim your bonus coins.",
+  "@watchFullVideo": {},
+  "watchNowCaps": "WATCH NOW",
+  "@watchNowCaps": {},
+  "watchShortVideo": "Watch a short video",
+  "@watchShortVideo": {},
+  "watchShortVideoToGet": "Watch a short video to get +{n}",
+  "@watchShortVideoToGet": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "watchVideo": "WATCH VIDEO",
+  "@watchVideo": {},
+  "watchVideoCoins": "Watch a video, get 10 coins",
+  "@watchVideoCoins": {},
+  "weekly": "Weekly",
+  "@weekly": {},
+  "weeklyChest": "Weekly chest",
+  "@weeklyChest": {},
+  "welcomeBack": "Welcome back",
+  "@welcomeBack": {},
+  "welcomeBonusCaps": "WELCOME BONUS",
+  "@welcomeBonusCaps": {},
+  "welcomeName": "Welcome, {name}",
+  "@welcomeName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "whatHappenedCaps": "WHAT HAPPENED",
+  "@whatHappenedCaps": {},
+  "whatHappenedHint": "Tell us what happened and why you are reporting this player",
+  "@whatHappenedHint": {},
+  "whatsNewCaps": "WHAT'S NEW",
+  "@whatsNewCaps": {},
+  "whoCanChallenge": "Who can challenge you",
+  "@whoCanChallenge": {},
+  "whoCanMessage": "Who can send you messages",
+  "@whoCanMessage": {},
+  "winRate": "Win rate",
+  "@winRate": {},
+  "winner": "WINNER",
+  "@winner": {},
+  "wins": "Wins",
+  "@wins": {},
+  "winsThisRound": "{name} wins this round.",
+  "@winsThisRound": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "yesDelete": "Yes, delete",
+  "@yesDelete": {},
+  "yesterday": "Yesterday",
+  "@yesterday": {},
+  "yesterdayCaps": "YESTERDAY",
+  "@yesterdayCaps": {},
+  "you": "You",
+  "@you": {},
+  "youBeat": "You beat {name}.",
+  "@youBeat": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "youFinished": "You finished",
+  "@youFinished": {},
+  "youLose": "You lose",
+  "@youLose": {},
+  "youMark": "You · {mark}",
+  "@youMark": {
+    "placeholders": {
+      "mark": {
+        "type": "String"
+      }
+    }
+  },
+  "youWin": "You win!",
+  "@youWin": {},
+  "youWinCaps": "YOU WIN",
+  "@youWinCaps": {},
+  "youX": "You: X",
+  "@youX": {},
+  "yourBalance": "Your balance: {n} coins",
+  "@yourBalance": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "yourEmail": "your email",
+  "@yourEmail": {},
+  "yourMatchReadyCaps": "YOUR MATCH IS READY",
+  "@yourMatchReadyCaps": {},
+  "yourMove": "Your move",
+  "@yourMove": {},
+  "yourNextMatch": "Your next match",
+  "@yourNextMatch": {},
+  "yourTurnCaps": "YOUR TURN",
+  "@yourTurnCaps": {},
+  "youreInCaps": "YOU'RE IN",
+  "@youreInCaps": {},
+  "youreInViewBracket": "YOU'RE IN — VIEW BRACKET",
+  "@youreInViewBracket": {},
+  "youreOffline": "You’re offline",
+  "@youreOffline": {}
+}

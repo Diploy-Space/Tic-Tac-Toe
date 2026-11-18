@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../services/referral_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../l10n/app_localizations.dart';
 
 /// Post-signup: enter optional referral code or skip to home.
 class ReferralCodeScreen extends StatefulWidget {
@@ -56,7 +57,7 @@ class _ReferralCodeScreenState extends State<ReferralCodeScreen> {
   Future<void> _apply() async {
     final raw = _code.text.trim();
     if (raw.isEmpty) {
-      _toast('Enter a referral code, or skip for now');
+      _toast(context.l10n.enterReferralOrSkip);
       return;
     }
     setState(() => _loading = true);
@@ -101,10 +102,10 @@ class _ReferralCodeScreenState extends State<ReferralCodeScreen> {
             ),
           ),
           const SizedBox(height: 28),
-          const Text(
-            'ONE LAST STEP',
+          Text(
+            context.l10n.oneLastStepCaps,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: C.teal,
               fontWeight: FontWeight.w800,
               fontSize: 12,
@@ -115,7 +116,7 @@ class _ReferralCodeScreenState extends State<ReferralCodeScreen> {
           ValueListenableBuilder<String>(
             valueListenable: authDisplayName,
             builder: (_, __, ___) => Text(
-              'Welcome, $_username',
+              context.l10n.welcomeName(_username),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontWeight: FontWeight.w800,
@@ -125,10 +126,10 @@ class _ReferralCodeScreenState extends State<ReferralCodeScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
-            'Got a referral code from a friend? Enter it now and get 50 coins.',
+          Text(
+            context.l10n.referralPrompt,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: C.muted,
               fontSize: 14,
               height: 1.45,
@@ -157,10 +158,10 @@ class _ReferralCodeScreenState extends State<ReferralCodeScreen> {
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.6,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: 'Referral code (optional)',
-                hintStyle: TextStyle(
+                hintText: context.l10n.referralHint,
+                hintStyle: const TextStyle(
                   color: C.muted,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0,
@@ -184,7 +185,7 @@ class _ReferralCodeScreenState extends State<ReferralCodeScreen> {
                 ),
               ),
               child: Text(
-                _loading ? 'Please wait…' : 'APPLY CODE',
+                _loading ? context.l10n.pleaseWait : context.l10n.applyCodeCaps,
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1,
@@ -205,9 +206,9 @@ class _ReferralCodeScreenState extends State<ReferralCodeScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                'Skip for now',
-                style: TextStyle(
+              child: Text(
+                context.l10n.skipForNow,
+                style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
                 ),
@@ -215,10 +216,10 @@ class _ReferralCodeScreenState extends State<ReferralCodeScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
-            'You can only use a referral code once, right after signing up.',
+          Text(
+            context.l10n.referralOnce,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: C.muted,
               fontSize: 12,
               height: 1.35,

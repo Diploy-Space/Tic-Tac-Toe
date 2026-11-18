@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
+import '../l10n/app_localizations.dart';
 
 /// "Finding an opponent" screen with a radar animation.
 /// Currently simulates a match after 4 seconds; replace with real matchmaking.
@@ -72,12 +74,13 @@ class _MatchingScreenState extends State<MatchingScreen>
                   color: C.surface,
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(color: C.border2)),
-              child: Text('Stake · $stake',
+              child: Text(context.l10n.stakeDot(AppLocaleService.formatCoinAmount(stake)),
                   style: const TextStyle(fontWeight: FontWeight.w600))),
           const CoinChip(),
         ]),
         Expanded(
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            child:
+                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           SizedBox(
               width: 250,
               height: 250,
@@ -98,14 +101,17 @@ class _MatchingScreenState extends State<MatchingScreen>
                         child: PlayerFace(size: 90))),
               ])),
           const SizedBox(height: 22),
-          const Heading('Finding an opponent', size: 24),
+          Heading(context.l10n.findingOpponent, size: 24),
           const SizedBox(height: 8),
-          Text('Quick match vs AI · 0:${_sec.toString().padLeft(2, '0')}',
+          Text(
+              context.l10n
+                  .quickMatchVsAi('0:${_sec.toString().padLeft(2, '0')}'),
               style: const TextStyle(color: C.muted)),
         ])),
         SizedBox(
             width: double.infinity,
-            child: GhostButton('Cancel', onTap: () => Navigator.pop(context))),
+            child: GhostButton(context.l10n.cancel,
+                onTap: () => Navigator.pop(context))),
       ]),
     );
   }

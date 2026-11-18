@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../data/offline_ai_opponents.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../models/ai_opponent_profile.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
+import '../l10n/app_localizations.dart';
 
 /// Arguments for offline Random Match AI selection.
 class OfflineAiPickerArgs {
@@ -52,6 +54,13 @@ class _OfflineAiPickerScreenState extends State<OfflineAiPickerScreen> {
     }
   }
 
+  /// Difficulty values stay English (data); only the label is translated.
+  String _diffLabel(String d) => switch (d) {
+        'Easy' => context.l10n.difficultyEasy,
+        'Hard' => context.l10n.difficultyHard,
+        _ => context.l10n.difficultyMedium,
+      };
+
   Color _diffColor(String d) {
     switch (d) {
       case 'Easy':
@@ -92,7 +101,7 @@ class _OfflineAiPickerScreenState extends State<OfflineAiPickerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const TopBar('Offline AI'),
+          TopBar(context.l10n.offlineAi),
           const SizedBox(height: 8),
           AppCard(
             borderColor: C.border2,
@@ -103,7 +112,8 @@ class _OfflineAiPickerScreenState extends State<OfflineAiPickerScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'No internet · AI rivals only · ${size}x$size · Stake $stake',
+                    context.l10n.offlineAiSubtitle('${size}x$size',
+                        AppLocaleService.formatCoinAmount(stake)),
                     style: const TextStyle(color: C.muted, fontSize: 13),
                   ),
                 ),
@@ -111,14 +121,14 @@ class _OfflineAiPickerScreenState extends State<OfflineAiPickerScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Choose an opponent',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+          Text(
+            context.l10n.chooseOpponent,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'These are offline AI profiles — not real online players.',
-            style: TextStyle(color: C.muted, fontSize: 13),
+          Text(
+            context.l10n.offlineProfilesNote,
+            style: const TextStyle(color: C.muted, fontSize: 13),
           ),
           const SizedBox(height: 12),
           Expanded(
@@ -132,12 +142,11 @@ class _OfflineAiPickerScreenState extends State<OfflineAiPickerScreen> {
                 return Semantics(
                   button: true,
                   selected: selected,
-                  label: '${p.name}, ${p.difficulty}',
+                  label: '${p.name}, ${_diffLabel(p.difficulty)}',
                   child: InkWell(
                     borderRadius: BorderRadius.circular(18),
-                    onTap: _starting
-                        ? null
-                        : () => setState(() => _selected = p),
+                    onTap:
+                        _starting ? null : () => setState(() => _selected = p),
                     child: AppCard(
                       borderColor: selected ? accent : C.border,
                       padding: const EdgeInsets.symmetric(
@@ -174,7 +183,8 @@ class _OfflineAiPickerScreenState extends State<OfflineAiPickerScreen> {
                                         ),
                                       ),
                                     ),
-                                    Tag(p.difficulty, color: accent),
+                                    Tag(_diffLabel(p.difficulty),
+                                        color: accent),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
@@ -199,10 +209,10 @@ class _OfflineAiPickerScreenState extends State<OfflineAiPickerScreen> {
           const SizedBox(height: 12),
           PrimaryButton(
             _starting
-                ? 'Starting…'
+                ? context.l10n.starting
                 : (_selected == null
-                    ? 'Select an opponent'
-                    : 'Play vs ${_selected!.name}'),
+                    ? context.l10n.selectOpponent
+                    : context.l10n.playVsName(_selected!.name)),
             onTap: (_selected == null || _starting) ? null : _play,
           ),
         ],

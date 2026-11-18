@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/moderation_models.dart';
 import 'auth_service.dart';
+import '../l10n/app_localizations.dart';
 
 /// Reports, suspension status, appeals (ValueNotifier — no GetX).
 class ModerationService {
@@ -45,12 +46,12 @@ class ModerationService {
       final raw = await _db.rpc('get_my_moderation_status');
       final map = _asMap(raw);
       if (map == null) {
-        error.value = 'Could not verify account status';
+        error.value = l10nNow.couldNotVerifyAccount;
         status.value = null;
         return null;
       }
       if ('${map['status']}' == 'error') {
-        error.value = '${map['message'] ?? 'Moderation check failed'}';
+        error.value = '${map['message'] ?? l10nNow.accountCheckFailed}';
         status.value = null;
         return null;
       }
@@ -81,13 +82,13 @@ class ModerationService {
       return error.value ?? 'Account status unavailable. Try again.';
     }
     if (s.accountStatus == AccountStatus.suspended) {
-      return 'Your account is suspended.';
+      return l10nNow.accountIsSuspended;
     }
     if (s.accountStatus == AccountStatus.underReview) {
-      return 'Your appeal is under review.';
+      return l10nNow.appealIsUnderReview;
     }
     if (s.accountStatus == AccountStatus.unknown) {
-      return 'Account status unknown. Try again.';
+      return l10nNow.accountStatusUnknown;
     }
     return null;
   }
@@ -113,8 +114,8 @@ class ModerationService {
         final current = status.value;
         status.value = ModerationStatus(
           accountStatus: next,
-          suspensionReason: row['suspension_reason'] as String? ??
-              current?.suspensionReason,
+          suspensionReason:
+              row['suspension_reason'] as String? ?? current?.suspensionReason,
           suspendedAt: DateTime.tryParse('${row['suspended_at'] ?? ''}') ??
               current?.suspendedAt,
           suspensionId: current?.suspensionId,
@@ -165,7 +166,7 @@ class ModerationService {
     if (file == null) return null;
     final bytes = await file.readAsBytes();
     if (bytes.length > maxScreenshotBytes) {
-      throw Exception('Screenshot must be under 2 MB');
+      throw Exception(l10nNow.screenshotTooBig);
     }
     return bytes;
   }
@@ -189,13 +190,12 @@ class ModerationService {
 
   static Future<String> uploadEvidence(Uint8List bytes) async {
     final uid = AuthService.user?.id;
-    if (uid == null) throw Exception('Not signed in');
+    if (uid == null) throw Exception(l10nNow.notSignedIn);
     if (bytes.length > maxScreenshotBytes) {
-      throw Exception('Screenshot must be under 2 MB');
+      throw Exception(l10nNow.screenshotTooBig);
     }
     final ext = _contentType(bytes) == 'image/png' ? 'png' : 'jpg';
-    final path =
-        '$uid/${DateTime.now().millisecondsSinceEpoch}_report.$ext';
+    final path = '$uid/${DateTime.now().millisecondsSinceEpoch}_report.$ext';
     await _db.storage.from(evidenceBucket).uploadBinary(
           path,
           bytes,
@@ -216,11 +216,11 @@ class ModerationService {
   }) async {
     error.value = null;
     if (!ReportReason.all.any((r) => r.code == reasonCode)) {
-      error.value = 'Select a report reason';
+      error.value = l10nNow.selectReportReason;
       return null;
     }
     if (description.trim().length < 10) {
-      error.value = 'Description must be at least 10 characters';
+      error.value = l10nNow.descriptionMin10;
       return null;
     }
     try {
@@ -245,7 +245,7 @@ class ModerationService {
       );
       final map = _asMap(raw);
       if (map == null || '${map['status']}' != 'ok') {
-        error.value = '${map?['message'] ?? 'Report failed'}';
+        error.value = '${map?['message'] ?? l10nNow.reportFailed}';
         return null;
       }
       return '${map['report_id']}';
@@ -259,7 +259,7 @@ class ModerationService {
   static Future<String?> submitAppeal(String message) async {
     error.value = null;
     if (message.trim().length < 20) {
-      error.value = 'Appeal must be at least 20 characters';
+      error.value = l10nNow.appealMin20;
       return null;
     }
     try {
@@ -269,7 +269,7 @@ class ModerationService {
       );
       final map = _asMap(raw);
       if (map == null || '${map['status']}' != 'ok') {
-        error.value = '${map?['message'] ?? 'Appeal failed'}';
+        error.value = '${map?['message'] ?? l10nNow.appealFailed}';
         return null;
       }
       await refresh();

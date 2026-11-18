@@ -10,6 +10,7 @@ import '../services/sfx_service.dart';
 import '../theme.dart';
 import 'extras.dart';
 import 'report_user_sheet.dart';
+import '../l10n/app_localizations.dart';
 
 /// Shows [OpponentPeekCard] as a popover anchored under [link]
 /// (a `CompositedTransformTarget` around the opponent's seat).
@@ -133,7 +134,7 @@ class _OpponentPeekCardState extends State<OpponentPeekCard> {
   Future<void> _add() async {
     if (_busy) return;
     if (!AuthService.isSignedIn) {
-      _toast('Sign in to add friends');
+      _toast(context.l10n.signInToAddFriends);
       return;
     }
     setState(() => _busy = true);
@@ -141,19 +142,22 @@ class _OpponentPeekCardState extends State<OpponentPeekCard> {
       if (_friend == 'incoming' && _friendshipId != null) {
         await FriendRepository.accept(_friendshipId!);
         _friend = 'friends';
-        _toast('You and ${widget.name} are now friends');
+        _toast(context.l10n.nowFriends(widget.name));
       } else {
         if (_friend == 'declined' && _friendshipId != null) {
           await FriendRepository.remove(_friendshipId!);
         }
         await FriendRepository.sendRequest(widget.userId);
         _friend = 'pending';
-        _toast('Friend request sent to ${widget.name}');
+        _toast(context.l10n.friendRequestSent(widget.name));
       }
     } catch (e) {
       SfxService.play(Sfx.error);
       final msg = e.toString().replaceFirst('Exception: ', '');
-      if (msg.contains('already exists')) _friend = 'pending';
+      if (msg == context.l10n.friendRequestExists ||
+          msg.contains('already exists')) {
+        _friend = 'pending';
+      }
       _toast(msg);
     }
     if (mounted) setState(() => _busy = false);
@@ -161,8 +165,7 @@ class _OpponentPeekCardState extends State<OpponentPeekCard> {
 
   Future<void> _more(BuildContext anchor) async {
     final box = anchor.findRenderObject() as RenderBox;
-    final overlay =
-        Overlay.of(anchor).context.findRenderObject() as RenderBox;
+    final overlay = Overlay.of(anchor).context.findRenderObject() as RenderBox;
     final pos = RelativeRect.fromRect(
       Rect.fromPoints(
         box.localToGlobal(box.size.bottomLeft(Offset.zero), ancestor: overlay),
@@ -179,21 +182,21 @@ class _OpponentPeekCardState extends State<OpponentPeekCard> {
         side: const BorderSide(color: C.border),
       ),
       items: [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'profile',
           child: Row(children: [
-            Icon(Icons.person_outline, size: 20, color: C.muted),
-            SizedBox(width: 10),
-            Text('View profile'),
+            const Icon(Icons.person_outline, size: 20, color: C.muted),
+            const SizedBox(width: 10),
+            Text(context.l10n.viewProfile),
           ]),
         ),
         if (widget.roomId != null)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'report',
             child: Row(children: [
-              Icon(Icons.outlined_flag, size: 20, color: C.danger),
-              SizedBox(width: 10),
-              Text('Report player'),
+              const Icon(Icons.outlined_flag, size: 20, color: C.danger),
+              const SizedBox(width: 10),
+              Text(context.l10n.reportPlayer),
             ]),
           ),
       ],
@@ -223,11 +226,19 @@ class _OpponentPeekCardState extends State<OpponentPeekCard> {
 
   Widget _addButton() {
     final (label, icon, enabled) = switch (_friend) {
-      'friends' => ('Friends', Icons.how_to_reg_outlined, false),
-      'pending' => ('Sent', Icons.schedule, false),
-      'incoming' => ('Accept', Icons.person_add_alt_1_outlined, true),
-      'loading' => ('Add', Icons.person_add_alt_1_outlined, false),
-      _ => ('Add', Icons.person_add_alt_1_outlined, true),
+      'friends' => (
+          context.l10n.friendsLabel,
+          Icons.how_to_reg_outlined,
+          false
+        ),
+      'pending' => (context.l10n.sent, Icons.schedule, false),
+      'incoming' => (
+          context.l10n.accept,
+          Icons.person_add_alt_1_outlined,
+          true
+        ),
+      'loading' => (context.l10n.add, Icons.person_add_alt_1_outlined, false),
+      _ => (context.l10n.add, Icons.person_add_alt_1_outlined, true),
     };
     const ink = Color(0xFF04201F);
     return SizedBox(
@@ -263,8 +274,8 @@ class _OpponentPeekCardState extends State<OpponentPeekCard> {
   Widget build(BuildContext context) {
     final s = _stats;
     final line = s == null
-        ? (_friend == 'loading' ? 'Loading…' : 'Unranked')
-        : '${s.rank > 0 ? '#${s.rank} · ' : ''}${s.score} pts · ${s.wins} wins';
+        ? (_friend == 'loading' ? context.l10n.loading : context.l10n.unranked)
+        : '${s.rank > 0 ? '#${s.rank} · ' : ''}${context.l10n.pointsWins('${s.score}', '${s.wins}')}';
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: const Duration(milliseconds: 220),
@@ -272,7 +283,9 @@ class _OpponentPeekCardState extends State<OpponentPeekCard> {
       builder: (_, v, child) => Opacity(
           opacity: v.clamp(0.0, 1.0),
           child: Transform.scale(
-              scale: .9 + .1 * v, alignment: Alignment.topCenter, child: child)),
+              scale: .9 + .1 * v,
+              alignment: Alignment.topCenter,
+              child: child)),
       child: Container(
         width: 250,
         padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
@@ -281,8 +294,7 @@ class _OpponentPeekCardState extends State<OpponentPeekCard> {
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: C.magenta, width: 1.5),
           boxShadow: [
-            BoxShadow(
-                color: C.magenta.withValues(alpha: .3), blurRadius: 18),
+            BoxShadow(color: C.magenta.withValues(alpha: .3), blurRadius: 18),
             const BoxShadow(color: Colors.black54, blurRadius: 12),
           ],
         ),

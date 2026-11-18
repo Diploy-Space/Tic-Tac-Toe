@@ -3,6 +3,7 @@ import '../services/challenge_flow_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
+import '../l10n/app_localizations.dart';
 
 /// PDF page 6 — Challenges Received / Sent / History.
 class ChallengesListScreen extends StatefulWidget {
@@ -16,15 +17,7 @@ class _ChallengesListScreenState extends State<ChallengesListScreen> {
   int tab = 0;
 
   void _goLobby(ChallengeItem c) {
-    Navigator.pushNamed(
-      context,
-      '/match-lobby',
-      arguments: {
-        'opponentName': c.opponentName,
-        'opponentId': c.opponentId,
-        'stakeLabel': c.stakeLabel,
-      },
-    );
+    Navigator.pushNamed(context, '/match-lobby', arguments: c.lobbyArgs());
   }
 
   Widget _row(ChallengeItem c, {required bool canAccept}) {
@@ -52,7 +45,7 @@ class _ChallengesListScreenState extends State<ChallengesListScreen> {
                         fontWeight: FontWeight.w700, fontSize: 16)),
                 Text(
                   c.status == ChallengeItemStatus.pending
-                      ? '${c.stakeLabel} · ${c.secondsLeft}s left'
+                      ? '${c.stakeLabel} · ${context.l10n.secondsLeft('${c.secondsLeft}')}'
                       : '${c.stakeLabel} · ${c.status.name}',
                   style: const TextStyle(color: C.muted, fontSize: 13),
                 ),
@@ -60,11 +53,11 @@ class _ChallengesListScreenState extends State<ChallengesListScreen> {
             ),
           ),
           if (canAccept && c.status == ChallengeItemStatus.pending) ...[
-            PdfTealButton('Accept', compact: true, onTap: () async {
+            PdfTealButton(context.l10n.accept, compact: true, onTap: () async {
               try {
-                await ChallengeFlowService.accept(c.id);
+                final acc = await ChallengeFlowService.accept(c.id);
                 if (!mounted) return;
-                _goLobby(c);
+                _goLobby(acc ?? c);
               } catch (e) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -99,10 +92,14 @@ class _ChallengesListScreenState extends State<ChallengesListScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const TopBar('Challenges'),
+              TopBar(context.l10n.challenges),
               const SizedBox(height: 12),
               PdfSegRow(
-                options: const ['Received', 'Sent', 'History'],
+                options: [
+                  context.l10n.received,
+                  context.l10n.sent,
+                  context.l10n.history
+                ],
                 selected: tab,
                 onChanged: (i) => setState(() => tab = i),
               ),
@@ -111,19 +108,19 @@ class _ChallengesListScreenState extends State<ChallengesListScreen> {
                 child: ListView(
                   children: [
                     if (rows.isEmpty)
-                      const AppCard(
-                        child: Text('No challenges here.',
-                            style: TextStyle(color: C.muted)),
+                      AppCard(
+                        child: Text(context.l10n.noChallengesHere,
+                            style: const TextStyle(color: C.muted)),
                       )
                     else
                       for (final c in rows)
                         _row(c, canAccept: tab == 0 && !c.outgoing),
                     if (tab == 0) ...[
                       const SizedBox(height: 8),
-                      const Center(
+                      Center(
                         child: Text(
-                          'Expired challenges move to History.',
-                          style: TextStyle(color: C.muted, fontSize: 12),
+                          context.l10n.expiredMoveToHistory,
+                          style: const TextStyle(color: C.muted, fontSize: 12),
                         ),
                       ),
                     ],

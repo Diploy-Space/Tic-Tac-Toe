@@ -5,6 +5,7 @@ import '../services/challenge_flow_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
+import '../l10n/app_localizations.dart';
 
 /// PDF page 3 — Challenge stakes (visual match).
 class ChallengeStakeScreen extends StatefulWidget {
@@ -27,9 +28,8 @@ class _ChallengeStakeScreenState extends State<ChallengeStakeScreen> {
   Future<void> _send() async {
     final args = _args;
     if (args == null || _sending) return;
-    final kind = _stakeIndex == 0
-        ? ChallengeStakeKind.free
-        : ChallengeStakeKind.coins5;
+    final kind =
+        _stakeIndex == 0 ? ChallengeStakeKind.free : ChallengeStakeKind.coins5;
     setState(() => _sending = true);
     try {
       final c = await ChallengeFlowService.send(
@@ -96,7 +96,8 @@ class _ChallengeStakeScreenState extends State<ChallengeStakeScreen> {
             const SizedBox(height: 6),
             Text(
               subtitle,
-              style: const TextStyle(color: C.muted, fontSize: 13, height: 1.35),
+              style:
+                  const TextStyle(color: C.muted, fontSize: 13, height: 1.35),
             ),
           ],
         ),
@@ -108,8 +109,8 @@ class _ChallengeStakeScreenState extends State<ChallengeStakeScreen> {
   Widget build(BuildContext context) {
     final args = _args;
     if (args == null) {
-      return const AppScaffold(
-        child: Center(child: Text('Missing challenge data')),
+      return AppScaffold(
+        child: Center(child: Text(context.l10n.missingChallengeData)),
       );
     }
 
@@ -118,7 +119,7 @@ class _ChallengeStakeScreenState extends State<ChallengeStakeScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TopBar(
-            'Challenge',
+            context.l10n.challenge,
             trailing: ValueListenableBuilder<int>(
               valueListenable: coins,
               builder: (_, c, __) => PdfCoinChip(c),
@@ -151,7 +152,7 @@ class _ChallengeStakeScreenState extends State<ChallengeStakeScreen> {
                         ),
                       ),
                       Text(
-                        'Rank #${args.rank} · Score ${args.score}',
+                        context.l10n.rankScore('${args.rank}', '${args.score}'),
                         style: const TextStyle(color: C.muted, fontSize: 13),
                       ),
                     ],
@@ -161,33 +162,32 @@ class _ChallengeStakeScreenState extends State<ChallengeStakeScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          const PdfSectionLabel('Match stakes'),
+          PdfSectionLabel(context.l10n.matchStakes),
           const SizedBox(height: 10),
           _stakeCard(
             selected: _stakeIndex == 0,
-            title: 'Free match',
-            subtitle: '3 free matches per day',
+            title: context.l10n.freeMatch,
+            subtitle: context.l10n.freeMatchesPerDay,
             onTap: () => setState(() => _stakeIndex = 0),
           ),
           const SizedBox(height: 10),
           _stakeCard(
             selected: _stakeIndex == 1,
-            title: '5 coins entry fee',
-            titleLeading: const Icon(Icons.diamond, color: C.teal, size: 18),
-            subtitle:
-                'Used after free matches run out, or to raise the stakes.',
+            title: context.l10n.coinsEntryFee,
+            titleLeading: const CurrencyMark(size: 18, color: C.teal),
+            subtitle: context.l10n.coinsEntryFeeBody,
             onTap: () => setState(() => _stakeIndex = 1),
           ),
           const SizedBox(height: 14),
-          const Center(
+          Center(
             child: Text(
-              'Challenge expires in 60 seconds if not accepted.',
-              style: TextStyle(color: C.muted, fontSize: 13),
+              context.l10n.challengeExpiresIn60,
+              style: const TextStyle(color: C.muted, fontSize: 13),
             ),
           ),
           const Spacer(),
           PdfPinkButton(
-            _sending ? 'Sending…' : 'Send challenge',
+            _sending ? context.l10n.sending : context.l10n.sendChallenge,
             onTap: _sending ? null : _send,
           ),
           const SizedBox(height: 10),
@@ -203,9 +203,9 @@ class _ChallengeStakeScreenState extends State<ChallengeStakeScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              child: Text(
+                context.l10n.cancel,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
               ),
             ),
           ),

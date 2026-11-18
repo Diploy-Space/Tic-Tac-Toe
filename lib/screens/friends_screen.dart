@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../models.dart' show formatPlayerId;
 import '../models/challenge_args.dart';
 import '../models/cloud_match.dart';
 import '../models/friendship.dart';
@@ -11,6 +14,7 @@ import '../widgets/common.dart';
 import '../widgets/extras.dart';
 import '../widgets/pdf_ui.dart';
 import 'dialogs.dart';
+import '../l10n/app_localizations.dart';
 
 /// PDF page 2 — Friends / Requests / Search (visual match).
 class FriendsScreen extends StatefulWidget {
@@ -24,6 +28,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
   final _search = TextEditingController();
   List<ProfileSearchHit> _hits = const [];
   bool _searching = false;
+  // Query the current results belong to ('' = nothing searched yet).
+  String _searchedFor = '';
+  int _searchSeq = 0;
+  Timer? _debounce;
   bool _busy = false;
   final Map<String, LeaderboardEntry> _stats = {};
   final Map<String, bool> _canChallenge = {};
@@ -38,6 +46,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _search.dispose();
     super.dispose();
   }
@@ -71,27 +80,51 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   String _rankScore(String userId) {
     final s = _stats[userId];
-    if (s == null) return 'Rank – · Score –';
-    return 'Rank #${s.rank} · Score ${s.score}';
+    if (s == null) return context.l10n.rankScoreUnknown;
+    return context.l10n.rankScore('${s.rank}', '${s.score}');
   }
 
-  Future<void> _runSearch(String q) async {
-    if (!AuthService.isSignedIn) {
-      _msg('Sign in to find friends');
+  /// Live search while typing (debounced); Enter searches immediately.
+  void _onQueryChanged(String q) {
+    _debounce?.cancel();
+    if (q.trim().isEmpty) {
+      _searchSeq++;
+      setState(() {
+        _hits = const [];
+        _searchedFor = '';
+        _searching = false;
+      });
       return;
     }
-    if (!await requireInternet(context)) return;
+    _debounce = Timer(const Duration(milliseconds: 400),
+        () => _runSearch(q, live: true));
+  }
+
+  Future<void> _runSearch(String q, {bool live = false}) async {
+    _debounce?.cancel();
+    final query = q.trim();
+    if (query.isEmpty) return;
+    if (!AuthService.isSignedIn) {
+      _msg(context.l10n.signInFindFriends);
+      return;
+    }
+    // While typing, don't pop the offline dialog on every keystroke.
+    if (!live && !await requireInternet(context)) return;
     if (!mounted) return;
+    final seq = ++_searchSeq;
     setState(() => _searching = true);
     try {
-      final hits = await FriendService.search(q);
-      if (!mounted) return;
-      setState(() => _hits = hits);
+      final hits = await FriendService.search(query);
+      if (!mounted || seq != _searchSeq) return; // a newer query won
+      setState(() {
+        _hits = hits;
+        _searchedFor = query;
+      });
       await _prefetchStats();
     } catch (e) {
-      _msg(AuthService.messageFromError(e));
+      if (!live && mounted) _msg(AuthService.messageFromError(e));
     } finally {
-      if (mounted) setState(() => _searching = false);
+      if (mounted && seq == _searchSeq) setState(() => _searching = false);
     }
   }
 
@@ -101,9 +134,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
     setState(() => _busy = true);
     try {
       await FriendService.sendRequest(hit.id);
-      _msg('Request sent to ${hit.username}');
+      _msg(context.l10n.requestSentTo(hit.username));
       setState(() {
-        _hits = [for (final h in _hits) if (h.id != hit.id) h];
+        _hits = [
+          for (final h in _hits)
+            if (h.id != hit.id) h
+        ];
       });
     } catch (e) {
       _msg(AuthService.messageFromError(e));
@@ -140,6 +176,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     required String? avatarUrl,
     required String userId,
     required Widget trailing,
+    int? playerNo,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -160,6 +197,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Same look as the Player ID on Home.
+                  if (playerNo != null)
+                    Text(context.l10n.playerIdLabel(formatPlayerId(playerNo)),
+                        style: const TextStyle(
+                            color: C.teal,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 2.4,
+                            fontFeatures: [FontFeature.tabularFigures()])),
                   Text(name,
                       style: const TextStyle(
                           fontWeight: FontWeight.w700, fontSize: 16)),
@@ -185,29 +231,32 @@ class _FriendsScreenState extends State<FriendsScreen> {
           final signedIn = AuthService.isSignedIn;
           final friends = FriendService.friends.value;
           final requests = FriendService.incoming.value;
-          final reqLabel =
-              requests.isEmpty ? 'Requests' : 'Requests · ${requests.length}';
+          final reqLabel = requests.isEmpty
+              ? context.l10n.requests
+              : context.l10n.requestsCount('${requests.length}');
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const TopBar('Friends'),
+              TopBar(context.l10n.friendsLabel),
               const SizedBox(height: 14),
               if (!signedIn)
-                const AppCard(
+                AppCard(
                   child: Text(
-                    'Sign in to search players and sync friends to the cloud.',
-                    style: TextStyle(color: C.muted),
+                    context.l10n.signInSearchPlayers,
+                    style: const TextStyle(color: C.muted),
                   ),
                 )
               else ...[
                 PdfSearchField(
                   controller: _search,
-                  onSubmitted: _runSearch,
+                  hint: context.l10n.searchPlayersHint,
+                  onChanged: _onQueryChanged,
+                  onSubmitted: (q) => _runSearch(q),
                 ),
                 const SizedBox(height: 12),
                 PdfSegRow(
-                  options: ['Friends', reqLabel],
+                  options: [context.l10n.friendsLabel, reqLabel],
                   selected: tab.clamp(0, 1),
                   onChanged: (i) => setState(() => tab = i),
                 ),
@@ -221,19 +270,31 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           padding: EdgeInsets.all(24),
                           child: Center(child: CircularProgressIndicator()),
                         ),
+                      if (!_searching &&
+                          _hits.isEmpty &&
+                          _searchedFor.isNotEmpty &&
+                          _search.text.trim() == _searchedFor)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: Text(context.l10n.noPlayersFound,
+                                style: const TextStyle(color: C.muted)),
+                          ),
+                        ),
                       if (_hits.isNotEmpty) ...[
-                        const PdfSectionLabel('Search results'),
+                        PdfSectionLabel(context.l10n.searchResults),
                         const SizedBox(height: 10),
                         for (final h in _hits)
                           _rowCard(
                             name: h.username,
                             avatarUrl: h.avatarUrl,
                             userId: h.id,
+                            playerNo: h.playerNo,
                             trailing: FriendService.friends.value
                                     .any((f) => f.otherUserId == h.id)
-                                ? const PdfOutlineButton('Friends')
+                                ? PdfOutlineButton(context.l10n.friendsLabel)
                                 : PdfTealButton(
-                                    'Add friend',
+                                    context.l10n.addFriend,
                                     compact: true,
                                     onTap: _busy ? null : () => _send(h),
                                   ),
@@ -242,10 +303,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       ],
                       if (tab == 0) ...[
                         if (friends.isEmpty)
-                          const AppCard(
+                          AppCard(
                             child: Text(
-                              'No friends yet — search to add someone.',
-                              style: TextStyle(color: C.muted),
+                              context.l10n.noFriendsYet,
+                              style: const TextStyle(color: C.muted),
                             ),
                           )
                         else
@@ -256,7 +317,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               userId: f.otherUserId,
                               trailing: (_canChallenge[f.otherUserId] ?? true)
                                   ? PdfTealButton(
-                                      'Challenge',
+                                      context.l10n.challenge,
                                       compact: true,
                                       onTap: () {
                                         final s = _stats[f.otherUserId];
@@ -278,13 +339,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             ),
                       ] else ...[
                         if (requests.isNotEmpty) ...[
-                          const PdfSectionLabel('Requests'),
+                          PdfSectionLabel(context.l10n.requests),
                           const SizedBox(height: 10),
                         ],
                         if (requests.isEmpty)
-                          const AppCard(
-                            child: Text('No pending requests.',
-                                style: TextStyle(color: C.muted)),
+                          AppCard(
+                            child: Text(context.l10n.noPendingRequests,
+                                style: const TextStyle(color: C.muted)),
                           )
                         else
                           for (final r in requests)
@@ -296,7 +357,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   PdfTealButton(
-                                    'Accept',
+                                    context.l10n.accept,
                                     compact: true,
                                     onTap: _busy
                                         ? null
@@ -309,11 +370,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                             setState(() => _busy = true);
                                             try {
                                               await FriendService.accept(r.id);
-                                              _msg(
-                                                  '${r.otherUsername ?? 'player'} added');
+                                              _msg(context.l10n.playerAdded(
+                                                  r.otherUsername ??
+                                                      context.l10n.player));
                                             } catch (e) {
-                                              _msg(AuthService
-                                                  .messageFromError(e));
+                                              _msg(AuthService.messageFromError(
+                                                  e));
                                             } finally {
                                               if (mounted) {
                                                 setState(() => _busy = false);
@@ -333,11 +395,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                             if (!mounted) return;
                                             setState(() => _busy = true);
                                             try {
-                                              await FriendService.decline(
-                                                  r.id);
+                                              await FriendService.decline(r.id);
                                             } catch (e) {
-                                              _msg(AuthService
-                                                  .messageFromError(e));
+                                              _msg(AuthService.messageFromError(
+                                                  e));
                                             } finally {
                                               if (mounted) {
                                                 setState(() => _busy = false);
@@ -349,10 +410,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               ),
                             ),
                         const SizedBox(height: 16),
-                        const Center(
+                        Center(
                           child: Text(
-                            'Requests expire after 7 days if not answered.',
-                            style: TextStyle(color: C.muted, fontSize: 12),
+                            context.l10n.requestsExpire7d,
+                            style: const TextStyle(color: C.muted, fontSize: 12),
                           ),
                         ),
                       ],

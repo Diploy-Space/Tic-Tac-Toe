@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models.dart';
 import '../models/user_profile.dart';
-import 'app_locale_service.dart';
 import 'avatar_service.dart';
 import 'profile_repository.dart';
 
@@ -36,6 +35,7 @@ class ProfileService {
   static void clear() {
     current.value = null;
     authAvatarUrl.value = null;
+    authPlayerNo.value = null;
     loading.value = false;
   }
 
@@ -44,10 +44,7 @@ class ProfileService {
     if (p != null) {
       authDisplayName.value = p.username;
       authAvatarUrl.value = p.avatarUrl;
-      // Prefer profile country for currency + language catalog.
-      if (p.countryIso2 != null && p.countryIso2!.isNotEmpty) {
-        AppLocaleService.applyCountryIso2(p.countryIso2);
-      }
+      // Country / currency come from automatic detection, not the profile.
     } else if (!_signedIn) {
       authDisplayName.value = 'Guest';
       authAvatarUrl.value = null;
@@ -71,6 +68,7 @@ class ProfileService {
           ? await ProfileRepository.fetchOwnWithRetry()
           : await ProfileRepository.fetchOwn();
       _apply(p, fallbackName: fallbackName);
+      if (p != null) await _loadPlayerNo();
       return p;
     } catch (e) {
       debugPrint('loadMyProfile: $e');
@@ -80,6 +78,15 @@ class ProfileService {
       return null;
     } finally {
       loading.value = false;
+    }
+  }
+
+  static Future<void> _loadPlayerNo() async {
+    try {
+      authPlayerNo.value = await ProfileRepository.fetchMyPlayerNo();
+    } catch (e) {
+      // Column missing until APPLY_PLAYER_ID.sql is run.
+      debugPrint('loadPlayerNo: $e');
     }
   }
 

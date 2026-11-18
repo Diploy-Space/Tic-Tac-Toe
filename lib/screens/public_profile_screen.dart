@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import '../models/challenge_args.dart';
 import '../models/cloud_match.dart';
@@ -13,6 +14,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
 import '../widgets/pdf_ui.dart';
+import '../l10n/app_localizations.dart';
 
 /// PDF · Public Profile – Player Screen (page 1).
 class PublicProfileScreen extends StatefulWidget {
@@ -95,7 +97,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
         _stats = s ?? _stats;
         _canChallenge = allow;
         _loading = false;
-        if (_profile == null) _error = 'Profile not found';
+        if (_profile == null) _error = context.l10n.profileNotFound;
       });
     } catch (e) {
       if (!mounted) return;
@@ -128,7 +130,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Future<void> _addFriend() async {
     if (!AuthService.isSignedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to add friends')),
+        SnackBar(content: Text(context.l10n.signInToAddFriends)),
       );
       return;
     }
@@ -137,16 +139,16 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     if (_friendState == 'friends' || _friendState == 'pending') return;
     if (_blocked) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unblock this player to add them')),
+        SnackBar(content: Text(context.l10n.unblockToAdd)),
       );
       return;
     }
     setState(() => _friendBusy = true);
-    String msg = 'Friend request sent';
+    String msg = context.l10n.friendRequestSentShort;
     try {
       if (_friendState == 'incoming' && _friendshipId != null) {
         await FriendRepository.accept(_friendshipId!);
-        msg = 'You are now friends';
+        msg = context.l10n.nowFriendsShort;
         if (mounted) setState(() => _friendState = 'friends');
         // Friends-only challenge privacy may now allow a challenge.
         final allow = await ChallengeFlowService.canChallenge(p.id);
@@ -163,7 +165,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     } catch (e) {
       SfxService.play(Sfx.error);
       msg = e.toString().replaceFirst('Exception: ', '');
-      if (msg.contains('already exists') && mounted) {
+      if ((msg == context.l10n.friendRequestExists ||
+              msg.contains('already exists')) &&
+          mounted) {
         setState(() => _friendState = 'pending');
       }
     }
@@ -174,10 +178,14 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
   Widget _friendButton() {
     final (label, icon, enabled) = switch (_friendState) {
-      'friends' => ('FRIENDS', Icons.how_to_reg_outlined, false),
-      'pending' => ('REQUEST SENT', Icons.schedule, false),
-      'incoming' => ('ACCEPT REQUEST', Icons.person_add_alt_1_outlined, true),
-      _ => ('ADD FRIEND', Icons.person_add_alt_1_outlined, true),
+      'friends' => (context.l10n.friendsCaps, Icons.how_to_reg_outlined, false),
+      'pending' => (context.l10n.requestSentCaps, Icons.schedule, false),
+      'incoming' => (
+          context.l10n.acceptRequestCaps,
+          Icons.person_add_alt_1_outlined,
+          true
+        ),
+      _ => (context.l10n.addFriendCaps, Icons.person_add_alt_1_outlined, true),
     };
     final color = enabled ? C.teal : C.muted;
     return SizedBox(
@@ -223,19 +231,16 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          child: const Text('CHALLENGE',
-              style: TextStyle(
+          child: Text(context.l10n.challengeCaps,
+              style: const TextStyle(
                   fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 1)),
         ),
       );
 
   String _memberSince(DateTime d) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    final l = d.toLocal();
-    return 'Member since ${months[l.month - 1]} ${l.year}';
+    final l10n = context.l10n;
+    return l10n
+        .memberSince(DateFormat.yMMM(l10n.localeName).format(d.toLocal()));
   }
 
   void _openMenu() {
@@ -251,11 +256,11 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.share_outlined, color: C.muted),
-              title: const Text('Share profile'),
+              title: Text(context.l10n.shareProfile),
               onTap: () {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Share coming soon')),
+                  SnackBar(content: Text(context.l10n.shareComingSoon)),
                 );
               },
             ),
@@ -264,7 +269,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 _blocked ? Icons.lock_open : Icons.block,
                 color: C.danger,
               ),
-              title: Text(_blocked ? 'Unblock player' : 'Block player'),
+              title: Text(_blocked
+                  ? context.l10n.unblockPlayer
+                  : context.l10n.blockPlayer),
               onTap: () async {
                 Navigator.pop(ctx);
                 await _toggleBlock();
@@ -286,14 +293,17 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     if (!mounted) return;
     setState(() => _blocked = !_blocked);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_blocked ? 'Player blocked' : 'Player unblocked')),
+      SnackBar(
+          content: Text(_blocked
+              ? context.l10n.playerBlocked
+              : context.l10n.playerUnblocked)),
     );
   }
 
   Future<void> _challenge() async {
     if (!AuthService.isSignedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to challenge this player')),
+        SnackBar(content: Text(context.l10n.signInToChallenge)),
       );
       return;
     }
@@ -301,13 +311,13 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     if (p == null) return;
     if (p.id == AuthService.user?.id) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You cannot challenge yourself')),
+        SnackBar(content: Text(context.l10n.cannotChallengeSelf)),
       );
       return;
     }
     if (_blocked) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unblock this player to challenge')),
+        SnackBar(content: Text(context.l10n.unblockToChallenge)),
       );
       return;
     }
@@ -321,10 +331,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
         final reason = ChallengeFlowService.challengeBlockReason[p.id];
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(switch (reason) {
-            'friends_only' =>
-              '${p.username} only accepts challenges from friends. Add them first.',
-            'nobody' => '${p.username} is not accepting challenges right now.',
-            _ => 'You can\'t challenge this player right now.',
+            'friends_only' => context.l10n.onlyFriendsChallenges(p.username),
+            'nobody' => context.l10n.notAcceptingChallenges(p.username),
+            _ => context.l10n.cantChallengeNow,
           }),
         ));
         return;
@@ -357,26 +366,28 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Report or block',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+              Text(
+                context.l10n.reportOrBlock,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Match history and activity stay private. Reporting is for profile abuse; in-match chat reports use the chat Report button.',
-                style: TextStyle(color: C.muted, height: 1.35, fontSize: 13),
+              Text(
+                context.l10n.profilePrivacyNote,
+                style:
+                    const TextStyle(color: C.muted, height: 1.35, fontSize: 13),
               ),
               const SizedBox(height: 16),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.flag_outlined, color: C.danger),
-                title: const Text('Report player'),
+                title: Text(context.l10n.reportPlayer),
                 onTap: () {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
-                        'Use Chat → Report during a live match for evidence-based reports.',
+                        context.l10n.useChatReport,
                       ),
                     ),
                   );
@@ -388,7 +399,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                   _blocked ? Icons.lock_open : Icons.block,
                   color: C.danger,
                 ),
-                title: Text(_blocked ? 'Unblock player' : 'Block player'),
+                title: Text(_blocked
+                    ? context.l10n.unblockPlayer
+                    : context.l10n.blockPlayer),
                 onTap: () async {
                   Navigator.pop(ctx);
                   await _toggleBlock();
@@ -482,17 +495,17 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final rank = s?.rank ?? 0;
     final score = s?.score ?? 0;
     final wins = s?.wins ?? 0;
-    final isSelf = _friendState == 'self' ||
-        (p != null && p.id == AuthService.user?.id);
+    final isSelf =
+        _friendState == 'self' || (p != null && p.id == AuthService.user?.id);
 
     return AppScaffold(
       child: ScrollFill(
         child: staggered([
           TopBar(
-            'Player',
+            context.l10n.player,
             trailing: RoundIconBox(
               Icons.more_horiz,
-              label: 'More',
+              label: context.l10n.more,
               onTap: _openMenu,
             ),
           ),
@@ -502,7 +515,8 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (_error != null && p == null)
-            AppCard(child: Text(_error!, style: const TextStyle(color: C.muted)))
+            AppCard(
+                child: Text(_error!, style: const TextStyle(color: C.muted)))
           else if (p != null) ...[
             Container(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
@@ -555,16 +569,16 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                     child: Row(
                       children: [
                         _stat(
-                          'Rank',
+                          context.l10n.rank,
                           rank > 0 ? '#$rank' : '–',
                           valueColor: C.coin,
                         ),
                         const VerticalDivider(
                             width: 1, thickness: 1, color: C.border),
-                        _stat('Score', '$score'),
+                        _stat(context.l10n.score, '$score'),
                         const VerticalDivider(
                             width: 1, thickness: 1, color: C.border),
-                        _stat('Wins', '$wins', valueColor: C.teal),
+                        _stat(context.l10n.wins, '$wins', valueColor: C.teal),
                       ],
                     ),
                   ),
@@ -578,14 +592,15 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: C.border),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.lock_outline, color: C.teal, size: 22),
-                  SizedBox(width: 14),
+                  const Icon(Icons.lock_outline, color: C.teal, size: 22),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      'Only rank, score and wins are public. Match history and activity stay private.',
-                      style: TextStyle(color: C.muted, height: 1.4, fontSize: 14),
+                      context.l10n.publicStatsNote,
+                      style: const TextStyle(
+                          color: C.muted, height: 1.4, fontSize: 14),
                     ),
                   ),
                 ],
@@ -600,16 +615,17 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
               child: InkWell(
                 onTap: _reportOrBlock,
                 borderRadius: BorderRadius.circular(8),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.outlined_flag, size: 18, color: C.muted),
-                      SizedBox(width: 10),
+                      const Icon(Icons.outlined_flag, size: 18, color: C.muted),
+                      const SizedBox(width: 10),
                       Text(
-                        'Report or block this player',
-                        style: TextStyle(color: C.muted, fontSize: 14),
+                        context.l10n.reportOrBlockPlayer,
+                        style: const TextStyle(color: C.muted, fontSize: 14),
                       ),
                     ],
                   ),

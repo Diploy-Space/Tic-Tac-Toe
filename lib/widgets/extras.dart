@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../services/sfx_service.dart';
 import '../theme.dart';
 import 'painters.dart';
+import '../l10n/app_localizations.dart';
 
 class IconCircle extends StatelessWidget {
   final IconData icon;
@@ -212,10 +214,11 @@ class CosmeticTile extends StatelessWidget {
       builder: (_, own, __) {
         final has = own.contains(item.name);
         final sub = equipped
-            ? 'Equipped'
+            ? context.l10n.equipped
             : has
-                ? 'Owned'
-                : '${item.price} coins';
+                ? context.l10n.owned
+                : context.l10n.coinsLabel(
+                    AppLocaleService.formatCoinAmount(item.price));
         return InkWell(
             borderRadius: BorderRadius.circular(18),
             onTap: sfxTap(onTap, Sfx.tap),

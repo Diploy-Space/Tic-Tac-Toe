@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../models.dart';
@@ -159,8 +162,7 @@ class AppLocaleService {
 
   static final ValueNotifier<Locale> locale =
       ValueNotifier<Locale>(const Locale('en'));
-  static final ValueNotifier<String> languageCode =
-      ValueNotifier<String>('en');
+  static final ValueNotifier<String> languageCode = ValueNotifier<String>('en');
   static final ValueNotifier<CountryInfo> country =
       ValueNotifier<CountryInfo>(CountryCurrencyService.fallback);
   static final ValueNotifier<int> revision = ValueNotifier<int>(0);
@@ -169,19 +171,6 @@ class AppLocaleService {
 
   static List<AppLanguage> get availableLanguages =>
       isIndia ? indiaLanguages : internationalLanguages;
-
-  static List<Locale> get supportedLocales {
-    final all = <Locale>[
-      ...indiaLanguages.map((e) => e.locale),
-      ...internationalLanguages.map((e) => e.locale),
-    ];
-    // Deduplicate by language(+country) string.
-    final seen = <String>{};
-    return [
-      for (final l in all)
-        if (seen.add('${l.languageCode}_${l.countryCode ?? ''}')) l,
-    ];
-  }
 
   static AppLanguage get currentLanguage {
     final list = availableLanguages;
@@ -194,74 +183,99 @@ class AppLocaleService {
   static String get currencyCode => country.value.currencyCode;
   static String get currencySymbol => country.value.currencySymbol;
 
-  /// Locales Material/Cupertino widgets reliably support.
-  static const _materialSafe = {
-    'en',
-    'es',
-    'fr',
-    'de',
-    'ar',
-    'pt',
-    'zh',
-    'ja',
-    'ko',
-    'ru',
-    'it',
-    'hi',
-    'bn',
-  };
+  /// Formats a virtual coin count with the region's currency symbol.
+  static String formatCoinAmount(int amount) => amount < 0
+      ? '-$currencySymbol${amount.abs()}'
+      : '$currencySymbol$amount';
 
-  /// Use for MaterialApp.locale (falls back to en when unsupported).
-  static Locale get materialSafeLocale {
-    final l = locale.value;
-    if (_materialSafe.contains(l.languageCode)) return l;
-    return Locale('en', country.value.iso2);
-  }
+  static const _region = MethodChannel('drotix/region');
 
+  /// Detects the country on every app start (never chosen by the user),
+  /// then restores the saved language or picks one from the device.
   static Future<void> init() async {
-    final detected = _detectDeviceCountry();
     final savedIso = AppStorage.getString(_kCountryIso);
-    final fromSaved = CountryCurrencyService.byIso2(savedIso);
+    final detected = await detectCountry(savedIso: savedIso);
+    country.value = detected;
+    await AppStorage.setString(_kCountryIso, detected.iso2);
 
-    // Earlier builds defaulted unknowns to US. If saved US but device is not
-    // actually US, prefer the fresh detection (usually India primary market).
-    CountryInfo chosen;
-    if (fromSaved != null) {
-      if (fromSaved.iso2 == 'US' && detected.iso2 != 'US') {
-        chosen = detected;
-      } else {
-        chosen = fromSaved;
-      }
-    } else {
-      chosen = detected;
-    }
-    country.value = chosen;
-    await AppStorage.setString(_kCountryIso, chosen.iso2);
-
-    final savedCode = AppStorage.getString(_kLangCode);
-    final migrated = _migrateLegacyLanguageName(language.value);
-    final code = savedCode ?? migrated ?? 'en';
+    final savedCode = AppStorage.getString(_kLangCode) ??
+        _migrateLegacyLanguageName(language.value);
+    final code =
+        savedCode != null && availableLanguages.any((l) => l.code == savedCode)
+            ? savedCode
+            : _deviceLanguageCode();
     await setLanguageCode(code, persist: true, bump: false);
     _syncLegacyLanguageNotifier();
     _bump();
+    // SIM swap / travel: check again whenever the app comes back.
+    _lifecycle ??= AppLifecycleListener(onResume: () => redetect());
   }
 
-  /// Prefer profile country when the user has one (phone / signup).
-  static Future<void> applyCountryIso2(String? iso2, {bool persist = true}) async {
-    final info = CountryCurrencyService.byIso2(iso2);
-    if (info == null) return;
+  static AppLifecycleListener? _lifecycle;
+
+  /// First device language that this region offers, else English.
+  static String _deviceLanguageCode() {
+    for (final l in PlatformDispatcher.instance.locales) {
+      if (availableLanguages.any((a) => a.code == l.languageCode)) {
+        return l.languageCode;
+      }
+    }
+    return 'en';
+  }
+
+  /// SIM → mobile network → device region(s) → Indic language → time zone
+  /// → last detected → India.
+  static Future<CountryInfo> detectCountry({String? savedIso}) async {
+    for (final iso in await _nativeCountries()) {
+      return CountryCurrencyService.forDetectedIso2(iso);
+    }
+    for (final l in PlatformDispatcher.instance.locales) {
+      final c = l.countryCode?.trim().toUpperCase();
+      if (c != null && c.length == 2) {
+        return CountryCurrencyService.forDetectedIso2(c);
+      }
+    }
+    final guess = _guessFromLanguageAndZone();
+    if (guess != null) return guess;
+    if (savedIso != null && savedIso.length == 2) {
+      return CountryCurrencyService.forDetectedIso2(savedIso);
+    }
+    return CountryCurrencyService.fallback;
+  }
+
+  /// Android: SIM, network and device country (non-null, in that order).
+  static Future<List<String>> _nativeCountries() async {
+    if (kIsWeb || !Platform.isAndroid) return const [];
+    try {
+      final m = await _region.invokeMapMethod<String, String?>('countries');
+      return [
+        for (final k in const ['sim', 'network', 'device'])
+          if ((m?[k] ?? '').length == 2) m![k]!,
+      ];
+    } catch (e) {
+      debugPrint('Region detect: $e');
+      return const [];
+    }
+  }
+
+  /// Internal: switch region (detection only, never from the UI).
+  static Future<void> _applyCountry(CountryInfo info) async {
     if (country.value.iso2 == info.iso2) return;
     country.value = info;
-    if (persist) await AppStorage.setString(_kCountryIso, info.iso2);
+    await AppStorage.setString(_kCountryIso, info.iso2);
 
-    // If current language is not offered in the new region, fall back to English.
-    final stillOk =
-        availableLanguages.any((l) => l.code == languageCode.value);
-    if (!stillOk) {
-      await setLanguageCode('en', persist: true, bump: false);
+    // If current language is not offered in the new region, fall back.
+    if (!availableLanguages.any((l) => l.code == languageCode.value)) {
+      await setLanguageCode(_deviceLanguageCode(), persist: true, bump: false);
     }
     _syncLegacyLanguageNotifier();
     _bump();
+  }
+
+  /// Re-runs detection (e.g. app resumed after travelling / SIM change).
+  static Future<void> redetect() async {
+    final info = await detectCountry(savedIso: country.value.iso2);
+    await _applyCountry(info);
   }
 
   static Future<void> setLanguageCode(
@@ -294,15 +308,9 @@ class AppLocaleService {
 
   static void _bump() => revision.value = revision.value + 1;
 
-  static CountryInfo _detectDeviceCountry() {
+  static CountryInfo? _guessFromLanguageAndZone() {
     final loc = PlatformDispatcher.instance.locale;
-    final code = loc.countryCode?.trim().toUpperCase();
-    if (code != null && code.isNotEmpty) {
-      final hit = CountryCurrencyService.byIso2(code);
-      if (hit != null) return hit;
-    }
-
-    // Indic UI language without a country → India language catalog + INR.
+    // Indic UI language without a country → India.
     const indic = {
       'hi',
       'bn',
@@ -318,24 +326,18 @@ class AppLocaleService {
       'ur',
     };
     if (indic.contains(loc.languageCode)) {
-      return CountryCurrencyService.byIso2('IN')!;
+      return CountryCurrencyService.byIso2('IN');
     }
-
     final tz = DateTime.now().timeZoneName.toUpperCase();
     final offset = DateTime.now().timeZoneOffset;
     if (tz == 'IST' ||
         tz.contains('KOLKATA') ||
         tz.contains('CALCUTTA') ||
         offset == const Duration(hours: 5, minutes: 30)) {
-      return CountryCurrencyService.byIso2('IN')!;
+      return CountryCurrencyService.byIso2('IN');
     }
-    if (tz.contains('DHAKA') || offset == const Duration(hours: 6)) {
-      return CountryCurrencyService.byIso2('BD') ??
-          CountryCurrencyService.fallback;
-    }
-
-    // App primary market when device country is unknown.
-    return CountryCurrencyService.fallback;
+    if (tz.contains('DHAKA')) return CountryCurrencyService.byIso2('BD');
+    return null;
   }
 
   static String? _migrateLegacyLanguageName(String name) {
@@ -364,7 +366,12 @@ class AppLocaleService {
 
   /// Convert an INR-authored amount into the user's currency and format it.
   static String formatMoneyFromInr(num inrAmount, {int? decimals}) {
-    final c = country.value;
+    final local = country.value;
+    // No exchange rate for this currency → show US dollars instead.
+    final c =
+        CountryCurrencyService.inrToCurrency.containsKey(local.currencyCode)
+            ? local
+            : CountryCurrencyService.byIso2('US')!;
     final converted = CountryCurrencyService.convertFromInr(
       inrAmount.toDouble(),
       c.currencyCode,
@@ -380,9 +387,8 @@ class AppLocaleService {
   static String formatShopPackPriceInr(int inr) => formatMoneyFromInr(inr);
 
   static String lowestShopPackLabel() {
-    final lowest = shopPacksInr
-        .map((e) => e.inr)
-        .reduce((a, b) => a < b ? a : b);
+    final lowest =
+        shopPacksInr.map((e) => e.inr).reduce((a, b) => a < b ? a : b);
     return formatShopPackPriceInr(lowest);
   }
 }

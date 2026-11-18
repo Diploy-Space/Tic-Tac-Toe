@@ -56,6 +56,29 @@ class Board {
     return false;
   }
 
+  /// Cells of the winning run through [idx] (sorted), or empty if none.
+  List<int> winningLine(int idx, String player) {
+    if (cells[idx] != player) return const [];
+    final r = idx ~/ size, c = idx % size;
+    for (final d in _dirs) {
+      final line = <int>[idx];
+      for (final s in const [1, -1]) {
+        var rr = r + d[0] * s, cc = c + d[1] * s;
+        while (rr >= 0 &&
+            rr < size &&
+            cc >= 0 &&
+            cc < size &&
+            cells[rr * size + cc] == player) {
+          line.add(rr * size + cc);
+          rr += d[0] * s;
+          cc += d[1] * s;
+        }
+      }
+      if (line.length >= winLength) return line..sort();
+    }
+    return const [];
+  }
+
   /// Returns winning player, 'draw', or null if ongoing.
   String? outcomeIfPlace(int idx, String player) {
     cells[idx] = player;

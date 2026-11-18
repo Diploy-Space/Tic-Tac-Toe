@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'common.dart';
 import 'painters.dart';
+import '../l10n/app_localizations.dart';
 
 /// Theme colour for a mark: O = teal, X = pink.
 Color markColor(String mark) => mark == 'O' ? C.teal : C.magenta;
@@ -66,7 +67,10 @@ class TurnStatusPill extends StatelessWidget {
   final Color color;
   final bool urgent;
   const TurnStatusPill(
-      {super.key, required this.text, required this.color, this.urgent = false});
+      {super.key,
+      required this.text,
+      required this.color,
+      this.urgent = false});
 
   @override
   Widget build(BuildContext context) => _Loop(
@@ -91,8 +95,8 @@ class TurnStatusPill extends StatelessWidget {
             child: Text(text,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 16)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
           );
         },
       );
@@ -105,7 +109,10 @@ class TurnTimerBar extends StatelessWidget {
   final Color color;
   final bool urgent;
   const TurnTimerBar(
-      {super.key, required this.value, required this.color, this.urgent = false});
+      {super.key,
+      required this.value,
+      required this.color,
+      this.urgent = false});
 
   @override
   Widget build(BuildContext context) => _Loop(
@@ -150,6 +157,9 @@ class TurnPlayerCard extends StatelessWidget {
   /// Optional tap (e.g. open the opponent popover) and anchor for it.
   final VoidCallback? onTap;
   final LayerLink? anchor;
+
+  /// Replaces "YOUR TURN" / "THEIR TURN" under an active card (e.g. "WINNER").
+  final String? label;
   const TurnPlayerCard({
     super.key,
     required this.mark,
@@ -160,65 +170,64 @@ class TurnPlayerCard extends StatelessWidget {
     this.avatar,
     this.onTap,
     this.anchor,
+    this.label,
   });
 
   @override
   Widget build(BuildContext context) {
     final color = markColor(mark);
     Widget card = _Loop(
-        period: const Duration(milliseconds: 1400),
-        running: active,
-        builder: (_, t) {
-          final w = active ? _wave(t) : 0.0;
-          return AnimatedOpacity(
-            duration: const Duration(milliseconds: 250),
-            opacity: active ? 1 : .5,
-            child: Transform.scale(
-              scale: 1 + .025 * w,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                decoration: BoxDecoration(
-                  color: C.surface,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                      color: active ? color : C.border,
-                      width: active ? 2 : 1),
-                  boxShadow: active
-                      ? [
-                          BoxShadow(
-                              color: color.withValues(alpha: .35 + .5 * w),
-                              blurRadius: 10 + 20 * w),
-                        ]
-                      : null,
-                ),
-                child: Row(children: [
-                  avatar ??
-                      Text(mark,
-                          style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w700,
-                              color: color,
-                              shadows: [Shadow(color: color, blurRadius: 10)])),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Tag(tag, color: color),
-                          Text(name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 17, fontWeight: FontWeight.w600)),
-                        ]),
-                  ),
-                ]),
+      period: const Duration(milliseconds: 1400),
+      running: active,
+      builder: (_, t) {
+        final w = active ? _wave(t) : 0.0;
+        return AnimatedOpacity(
+          duration: const Duration(milliseconds: 250),
+          opacity: active ? 1 : .5,
+          child: Transform.scale(
+            scale: 1 + .025 * w,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: C.surface,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                    color: active ? color : C.border, width: active ? 2 : 1),
+                boxShadow: active
+                    ? [
+                        BoxShadow(
+                            color: color.withValues(alpha: .35 + .5 * w),
+                            blurRadius: 10 + 20 * w),
+                      ]
+                    : null,
               ),
+              child: Row(children: [
+                avatar ??
+                    Text(mark,
+                        style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w700,
+                            color: color,
+                            shadows: [Shadow(color: color, blurRadius: 10)])),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Tag(tag, color: color),
+                        Text(name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 17, fontWeight: FontWeight.w600)),
+                      ]),
+                ),
+              ]),
             ),
-          );
-        },
-      );
+          ),
+        );
+      },
+    );
     if (onTap != null) {
       card = GestureDetector(
           behavior: HitTestBehavior.opaque, onTap: onTap, child: card);
@@ -234,23 +243,30 @@ class TurnPlayerCard extends StatelessWidget {
             ? Center(
                 child: _Loop(
                   period: const Duration(milliseconds: 1000),
-                  builder: (_, t) => Row(mainAxisSize: MainAxisSize.min, children: [
-                    Opacity(
-                      opacity: .25 + .75 * _wave(t),
-                      child: Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                              color: color, shape: BoxShape.circle)),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(isYou ? 'YOUR TURN' : 'THEIR TURN',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 2,
-                            color: color)),
-                  ]),
+                  builder: (_, t) => FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Opacity(
+                        opacity: .25 + .75 * _wave(t),
+                        child: Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                                color: color, shape: BoxShape.circle)),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                          label ??
+                              (isYou
+                                  ? context.l10n.yourTurnCaps
+                                  : context.l10n.theirTurnCaps),
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2,
+                              color: color)),
+                    ]),
+                  ),
                 ),
               )
             : null,
@@ -273,6 +289,12 @@ class TurnBoardCell extends StatelessWidget {
   final String? ghostMark;
   final VoidCallback? onTap;
   final Object? markKey;
+
+  /// Part of the winning line: glows and pulses in this colour.
+  final Color? winColor;
+
+  /// Game over and not part of the winning line: fades back.
+  final bool faded;
   const TurnBoardCell({
     super.key,
     required this.index,
@@ -283,6 +305,8 @@ class TurnBoardCell extends StatelessWidget {
     this.ghostMark,
     this.onTap,
     this.markKey,
+    this.winColor,
+    this.faded = false,
   });
 
   @override
@@ -304,19 +328,37 @@ class TurnBoardCell extends StatelessWidget {
         onTap: onTap,
         child: _Loop(
           period: const Duration(milliseconds: 1600),
-          running: hinting || ghosting,
+          running: hinting || ghosting || winColor != null,
           builder: (_, t) {
             final w = hinting ? _wave(t, (index % 4) * .18 / 1.6) : 0.0;
             final hc = hintColor ?? C.border;
             final g = ghosting ? _wave(t) : 0.0;
+            final wc = winColor;
+            final wp = wc != null ? _wave(t) : 0.0;
             return AnimatedOpacity(
-              duration: const Duration(milliseconds: 250),
-              opacity: v == null && dim && !ghosting ? .6 : 1,
-              child: Container(
+              duration: const Duration(milliseconds: 350),
+              opacity: faded
+                  ? .35
+                  : v == null && dim && !ghosting
+                      ? .6
+                      : 1,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
                 decoration: BoxDecoration(
-                  color: Color.lerp(base, hc, .16 * w),
+                  color: wc != null
+                      ? Color.lerp(base, wc, .18 + .14 * wp)
+                      : Color.lerp(base, hc, .16 * w),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Color.lerp(C.border, hc, w)!),
+                  border: wc != null
+                      ? Border.all(color: wc, width: 2.5)
+                      : Border.all(color: Color.lerp(C.border, hc, w)!),
+                  boxShadow: wc != null
+                      ? [
+                          BoxShadow(
+                              color: wc.withValues(alpha: .35 + .3 * wp),
+                              blurRadius: 10 + 12 * wp),
+                        ]
+                      : null,
                 ),
                 child: v != null
                     ? TweenAnimationBuilder<double>(
@@ -324,8 +366,8 @@ class TurnBoardCell extends StatelessWidget {
                         tween: Tween(begin: 0, end: 1),
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOutBack,
-                        builder: (_, s, child) =>
-                            Transform.scale(scale: s, child: child),
+                        builder: (_, s, child) => Transform.scale(
+                            scale: s * (1 + .1 * wp), child: child),
                         child: mark(v))
                     : ghosting
                         ? Opacity(
@@ -363,13 +405,13 @@ class TurnCaption extends StatelessWidget {
           style: const TextStyle(color: C.muted, fontSize: 15));
     }
     if (myTurn) {
-      return Text('Tap an empty square',
+      return Text(context.l10n.tapEmptySquare,
           style: TextStyle(
               color: color, fontSize: 15, fontWeight: FontWeight.w600));
     }
     return Row(mainAxisSize: MainAxisSize.min, children: [
       Flexible(
-        child: Text('$opponentName is thinking',
+        child: Text(context.l10n.isThinking(opponentName),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: C.muted, fontSize: 15)),
@@ -429,9 +471,13 @@ class TimeoutFlash extends StatelessWidget {
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.timer_off_rounded, color: color),
             const SizedBox(width: 10),
-            Text(text,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            Flexible(
+              child: Text(text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
           ]),
         ),
       );

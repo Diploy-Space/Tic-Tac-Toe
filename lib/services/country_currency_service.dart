@@ -341,6 +341,18 @@ class CountryCurrencyService {
     return null;
   }
 
+  /// Detected country even when it is not in [countries]: unknown
+  /// countries get US dollars (no calling code).
+  static CountryInfo forDetectedIso2(String iso) =>
+      byIso2(iso) ??
+      CountryInfo(
+        iso2: iso.toUpperCase(),
+        name: iso.toUpperCase(),
+        callingCode: '',
+        currencyCode: 'USD',
+        currencySymbol: '\$',
+      );
+
   static CountryInfo byCurrencyCode(String code) {
     final u = code.toUpperCase();
     for (final c in countries) {
@@ -350,9 +362,9 @@ class CountryCurrencyService {
   }
 
   static double convertFromInr(double inrAmount, String currencyCode) {
-    final rate = inrToCurrency[currencyCode.toUpperCase()] ??
-        inrToCurrency['USD']!;
-    return inrAmount * rate;
+    final rate = inrToCurrency[currencyCode.toUpperCase()];
+    // No rate: callers fall back to USD display (see AppLocaleService).
+    return inrAmount * (rate ?? inrToCurrency['USD']!);
   }
 
   /// Smart rounding for shop display (whole for JPY/KRW/VND/IDR, else 2dp).

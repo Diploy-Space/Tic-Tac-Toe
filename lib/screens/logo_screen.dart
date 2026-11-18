@@ -40,8 +40,8 @@ class LogoScreen extends StatelessWidget {
             ],
           ),
           _label('Horizontal lockup'),
-          AppCard(
-            child: const Row(
+          const AppCard(
+            child: Row(
               children: [
                 AppLogoMark(size: 56),
                 SizedBox(width: 14),

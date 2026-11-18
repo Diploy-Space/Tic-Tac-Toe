@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/moderation_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../l10n/app_localizations.dart';
 
 class AppealSubmissionScreen extends StatefulWidget {
   const AppealSubmissionScreen({super.key});
@@ -31,8 +32,8 @@ class _AppealSubmissionScreenState extends State<AppealSubmissionScreen> {
     if (!mounted) return;
     setState(() => _sending = false);
     if (id == null) {
-      setState(() =>
-          _error = ModerationService.error.value ?? 'Could not submit appeal');
+      setState(() => _error =
+          ModerationService.error.value ?? context.l10n.couldNotSubmitAppeal);
       return;
     }
     Navigator.pushNamedAndRemoveUntil(
@@ -49,12 +50,11 @@ class _AppealSubmissionScreenState extends State<AppealSubmissionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const TopBar('Appeal suspension'),
+          TopBar(context.l10n.appealSuspension),
           const SizedBox(height: 16),
-          const Text(
-            'Explain why your account should be reinstated. '
-            'A moderator will review your message.',
-            style: TextStyle(color: C.muted, height: 1.4),
+          Text(
+            context.l10n.appealExplain,
+            style: const TextStyle(color: C.muted, height: 1.4),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -64,7 +64,7 @@ class _AppealSubmissionScreenState extends State<AppealSubmissionScreen> {
             maxLength: 2000,
             style: const TextStyle(color: C.text),
             decoration: InputDecoration(
-              hintText: 'Write your appeal (min 20 characters)…',
+              hintText: context.l10n.appealHint,
               hintStyle: const TextStyle(color: C.muted),
               filled: true,
               fillColor: C.surface,
@@ -81,10 +81,11 @@ class _AppealSubmissionScreenState extends State<AppealSubmissionScreen> {
           const Spacer(),
           FilledButton(
             onPressed: _sending ? null : _submit,
-            child: Text(_sending ? 'Submitting…' : 'Submit appeal'),
+            child: Text(
+                _sending ? context.l10n.submitting : context.l10n.submitAppeal),
           ),
           const SizedBox(height: 8),
-          GhostButton('Back', onTap: () => Navigator.pop(context)),
+          GhostButton(context.l10n.back, onTap: () => Navigator.pop(context)),
         ],
       ),
     );

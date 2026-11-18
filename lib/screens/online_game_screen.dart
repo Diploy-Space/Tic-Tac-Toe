@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../models/game_chat_message.dart';
 import '../models/multiplayer_match.dart';
 import '../models/online_room_state.dart';
@@ -21,6 +22,7 @@ import '../widgets/match_emoji_reaction.dart';
 import '../widgets/match_turn.dart';
 import '../widgets/opponent_peek_card.dart';
 import 'dialogs.dart';
+import '../l10n/app_localizations.dart';
 
 /// C2/C4 online board: PostgreSQL is truth for moves, turns, and results.
 class OnlineGameScreen extends StatefulWidget {
@@ -39,8 +41,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   int _reconnectLeft = 30;
   bool _showingUnstable = false;
 
-  String _myName = 'You';
-  String _oppName = 'Opponent';
+  // Raw usernames; empty → localized "You" / "Opponent".
+  String _myNameRaw = '';
+  String _oppNameRaw = '';
+  String get _myName =>
+      _myNameRaw.trim().isEmpty ? context.l10n.you : _myNameRaw;
+  String get _oppName =>
+      _oppNameRaw.trim().isEmpty ? context.l10n.opponent : _oppNameRaw;
   String? _myAvatar;
   String? _oppAvatar;
   String? _loadedForRoom;
@@ -154,8 +161,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     if (isMatchEmojiOnly(text)) {
       _showBurst(text, fromMe: false);
     } else if (!GameChatService.isSheetOpen) {
-      final preview =
-          text.length > 42 ? '${text.substring(0, 42)}…' : text;
+      final preview = text.length > 42 ? '${text.substring(0, 42)}…' : text;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -182,7 +188,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             ],
           ),
           action: SnackBarAction(
-            label: 'Open',
+            label: context.l10n.open,
             textColor: C.magenta,
             onPressed: () {
               final room = OnlineRealtimeService.state.value;
@@ -298,11 +304,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       final me = map[myId];
       final opp = map[oppId];
       setState(() {
-        _myName = me?.username ?? authDisplayName.value;
-        if (_myName.trim().isEmpty) _myName = 'You';
-        _oppName = (opp?.username ?? '').trim().isEmpty
-            ? 'Opponent'
-            : opp!.username;
+        _myNameRaw = me?.username ?? authDisplayName.value;
+        _oppNameRaw = opp?.username ?? '';
         _myAvatar = me?.avatarUrl ?? authAvatarUrl.value;
         _oppAvatar = opp?.avatarUrl;
       });
@@ -367,8 +370,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     if (active) {
       final ok = await showConfirmDialog(
         context,
-        title: 'Leave match?',
-        body: 'Leaving now counts as a forfeit. Your opponent wins.',
+        title: context.l10n.leaveMatchQuestion,
+        body: context.l10n.leaveForfeitBody,
       );
       if (ok != true || !mounted) return;
       await OnlineRealtimeService.forfeit();
@@ -410,7 +413,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   }) =>
       TurnPlayerCard(
         mark: mark,
-        tag: isYou ? 'You · $mark' : mark,
+        tag: isYou ? context.l10n.youMark(mark) : mark,
         name: name,
         active: active,
         isYou: isYou,
@@ -448,7 +451,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
               builder: (_, pending, _____) {
                 if (room == null) {
                   return Column(children: [
-                    const TopBar('Online'),
+                    TopBar(context.l10n.online),
                     const Spacer(),
                     if (err != null)
                       Padding(
@@ -460,7 +463,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                     else
                       const CircularProgressIndicator(),
                     const Spacer(),
-                    GhostButton('Leave', onTap: _leave),
+                    GhostButton(context.l10n.leave, onTap: _leave),
                   ]);
                 }
 
@@ -468,25 +471,25 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                 final n = room.boardSize;
                 final mover = room.winner != null
                     ? (room.winner == 'draw'
-                        ? 'Draw'
+                        ? context.l10n.draw
                         : (room.winner == room.myMark
-                            ? 'You win'
-                            : 'Opponent wins'))
+                            ? context.l10n.youWin
+                            : context.l10n.opponentWins))
                     : (room.isMyTurn
-                        ? 'Your move'
-                        : "Opponent's move");
+                        ? context.l10n.yourMove
+                        : context.l10n.opponentsMove(_oppName));
 
                 if (_showingUnstable && !live && !room.isFinished) {
                   return Column(children: [
-                    const TopBar('Online'),
+                    TopBar(context.l10n.online),
                     const Spacer(),
                     const Icon(Icons.wifi_off_rounded,
                         size: 56, color: C.danger),
                     const SizedBox(height: 16),
-                    const Heading('Connection unstable', size: 22),
+                    Heading(context.l10n.connectionUnstable, size: 22),
                     const SizedBox(height: 8),
-                    const Text('Attempting to reconnect…',
-                        style: TextStyle(color: C.muted)),
+                    Text(context.l10n.attemptingReconnect,
+                        style: const TextStyle(color: C.muted)),
                     const SizedBox(height: 20),
                     Text(
                       '${_reconnectLeft}s',
@@ -496,24 +499,20 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                           color: C.teal),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'The board is hidden until you are back.',
+                    Text(
+                      context.l10n.boardHiddenUntilBack,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: C.muted),
+                      style: const TextStyle(color: C.muted),
                     ),
                     const Spacer(),
-                    GhostButton('Leave game', onTap: _leave),
+                    GhostButton(context.l10n.leaveGame, onTap: _leave),
                   ]);
                 }
 
-                final oName =
-                    room.myMark == 'O' ? _myName : _oppName;
-                final xName =
-                    room.myMark == 'X' ? _myName : _oppName;
-                final oAvatar =
-                    room.myMark == 'O' ? _myAvatar : _oppAvatar;
-                final xAvatar =
-                    room.myMark == 'X' ? _myAvatar : _oppAvatar;
+                final oName = room.myMark == 'O' ? _myName : _oppName;
+                final xName = room.myMark == 'X' ? _myName : _oppName;
+                final oAvatar = room.myMark == 'O' ? _myAvatar : _oppAvatar;
+                final xAvatar = room.myMark == 'X' ? _myAvatar : _oppAvatar;
 
                 return Stack(
                   children: [
@@ -522,7 +521,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                         Expanded(
                           child: TurnStatusPill(
                             text:
-                                '$mover · ${live ? 'Live' : 'Reconnecting…'}',
+                                '$mover · ${live ? context.l10n.live : context.l10n.reconnecting}',
                             color: room.isFinished
                                 ? C.border2
                                 : markColor(room.currentTurn),
@@ -539,10 +538,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                               clipBehavior: Clip.none,
                               children: [
                                 IconButton(
-                                  tooltip: 'Chat',
+                                  tooltip: context.l10n.chat,
                                   onPressed: () => _openChat(room),
-                                  icon: const Icon(
-                                      Icons.chat_bubble_outline,
+                                  icon: const Icon(Icons.chat_bubble_outline,
                                       color: C.teal),
                                 ),
                                 if (unread > 0)
@@ -554,8 +552,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                                           horizontal: 5, vertical: 1),
                                       decoration: BoxDecoration(
                                         color: C.magenta,
-                                        borderRadius:
-                                            BorderRadius.circular(99),
+                                        borderRadius: BorderRadius.circular(99),
                                       ),
                                       child: Text(
                                         unread > 9 ? '9+' : '$unread',
@@ -573,11 +570,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                         ],
                         const SizedBox(width: 4),
                         IconButton(
-                            tooltip: 'Refresh',
-                            onPressed: () =>
-                                OnlineRealtimeService.refresh(),
-                            icon: const Icon(Icons.refresh,
-                                color: C.muted)),
+                            tooltip: context.l10n.refresh,
+                            onPressed: () => OnlineRealtimeService.refresh(),
+                            icon: const Icon(Icons.refresh, color: C.muted)),
                       ]),
                       if (err != null)
                         Padding(
@@ -590,7 +585,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                       Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(child: _player(
+                            Expanded(
+                                child: _player(
                               mark: 'O',
                               name: oName,
                               avatarUrl: oAvatar,
@@ -600,18 +596,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                               room: room,
                             )),
                             Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(6, 22, 6, 0),
+                              padding: const EdgeInsets.fromLTRB(6, 22, 6, 0),
                               child: Text('VS',
                                   style: TextStyle(
                                       color: markColor(
-                                          room.currentTurn == 'O'
-                                              ? 'X'
-                                              : 'O'),
+                                          room.currentTurn == 'O' ? 'X' : 'O'),
                                       fontSize: 18,
                                       fontWeight: FontWeight.w800)),
                             ),
-                            Expanded(child: _player(
+                            Expanded(
+                                child: _player(
                               mark: 'X',
                               name: xName,
                               avatarUrl: xAvatar,
@@ -623,9 +617,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                           ]),
                       const SizedBox(height: 8),
                       Text(
-                          'Stake ${room.stake} · ${args?.roomId.substring(0, 8) ?? ''}…',
-                          style: const TextStyle(
-                              color: C.muted, fontSize: 12)),
+                          context.l10n.stakeRoom(AppLocaleService.formatCoinAmount(room.stake),
+                              args?.roomId.substring(0, 8) ?? ''),
+                          style: const TextStyle(color: C.muted, fontSize: 12)),
                       Expanded(
                           child: Center(
                               child: AspectRatio(
@@ -636,8 +630,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                                           child: Row(children: [
                                         for (var c = 0; c < n; c++)
                                           Expanded(
-                                              child: _cell(
-                                                  room, r * n + c,
+                                              child: _cell(room, r * n + c,
                                                   pending: pending)),
                                       ])),
                                   ])))),
@@ -650,7 +643,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                                   myTurn: room.isMyTurn,
                                   opponentName: _oppName,
                                   color: markColor(room.currentTurn),
-                                  message: pending ? 'Sending move…' : null,
+                                  message:
+                                      pending ? context.l10n.sendingMove : null,
                                 ),
                         ),
                       ),
@@ -659,17 +653,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                           width: double.infinity,
                           child: GhostButton(
                               room.isFinished
-                                  ? 'Back to home'
-                                  : 'Leave game',
+                                  ? context.l10n.backToHome
+                                  : context.l10n.leaveGame,
                               onTap: _leave)),
                     ]),
                     // Ludo-style bursts near the sender's seat.
                     for (final b in _bursts)
                       MatchEmojiBurstOverlay(
                         burst: b,
-                        onLeft: b.fromMe
-                            ? room.myMark == 'O'
-                            : room.myMark != 'O',
+                        onLeft:
+                            b.fromMe ? room.myMark == 'O' : room.myMark != 'O',
                       ),
                     if (showChat && !room.isFinished)
                       Positioned(

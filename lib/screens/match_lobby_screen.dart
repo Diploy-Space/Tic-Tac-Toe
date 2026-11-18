@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../models/multiplayer_match.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
+import '../l10n/app_localizations.dart';
 
 /// PDF page 7 — Match lobby READY / VS / countdown.
 class MatchLobbyScreen extends StatefulWidget {
@@ -33,7 +36,25 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
       if (!mounted) return;
       if (_count <= 1) {
         _t?.cancel();
-        final name = '${_args['opponentName'] ?? 'Rival'}';
+        final args = _args;
+        final roomId = args['roomId'] as String?;
+        if (roomId != null) {
+          // Accepted challenge: both players open the same online room.
+          SfxService.play(Sfx.matchFound);
+          Navigator.pushReplacementNamed(
+            context,
+            '/online-room',
+            arguments: OnlineRoomArgs(
+              roomId: roomId,
+              myMark: '${args['myMark'] ?? 'O'}',
+              opponentId: '${args['opponentId'] ?? ''}',
+              boardSize: 3,
+              stake: (args['stake'] as int?) ?? 0,
+            ),
+          );
+          return;
+        }
+        final name = '${args['opponentName'] ?? 'Rival'}';
         Navigator.pushReplacementNamed(
           context,
           '/game',
@@ -66,12 +87,12 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
           children: [
             PdfGradientAvatar(you ? 'Y' : name, size: 64),
             const SizedBox(height: 10),
-            Text(you ? 'You' : name,
+            Text(you ? context.l10n.you : name,
                 style:
                     const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 8),
             Text(
-              ready ? 'READY' : 'WAITING',
+              ready ? context.l10n.readyCaps : context.l10n.waitingCaps,
               style: TextStyle(
                 color: ready ? C.teal : C.muted,
                 fontWeight: FontWeight.w800,
@@ -91,7 +112,7 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
     return AppScaffold(
       child: Column(
         children: [
-          const TopBar('Match lobby'),
+          TopBar(context.l10n.matchLobby),
           const Spacer(),
           Row(
             children: [
@@ -111,7 +132,7 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
             ],
           ),
           const SizedBox(height: 28),
-          const PdfSectionLabel('Match starts in'),
+          PdfSectionLabel(context.l10n.matchStartsIn),
           const SizedBox(height: 8),
           Text(
             '$_count',

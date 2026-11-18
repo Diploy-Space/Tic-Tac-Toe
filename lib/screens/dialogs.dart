@@ -1,13 +1,16 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/admob_config.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../models/moderation_models.dart';
 import '../services/auth_service.dart';
 import '../services/connectivity_service.dart';
 import '../services/moderation_service.dart';
 import '../services/private_room_service.dart';
+import '../services/ad_reward_service.dart';
 import '../services/rewarded_ad_service.dart';
 import '../services/sfx_service.dart';
 import '../services/wallet_service.dart';
@@ -15,6 +18,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
 import 'offline_ai_picker_screen.dart';
+import '../l10n/app_localizations.dart';
 
 /// Recheck reachability before an online-only action.
 /// When [openOfflineScreen] is true, opens `/offline` instead of a snackbar.
@@ -29,11 +33,7 @@ Future<bool> requireInternet(
     await Navigator.pushNamed(context, '/offline');
   } else {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Internet connection required. You can still play vs The Doll offline.',
-        ),
-      ),
+      SnackBar(content: Text(context.l10n.internetRequired)),
     );
   }
   return false;
@@ -43,7 +43,7 @@ Future<bool> requireInternet(
 Future<bool> requireActiveAccount(BuildContext context) async {
   if (!AuthService.isSignedIn) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sign in required')),
+      SnackBar(content: Text(context.l10n.signInRequired)),
     );
     return false;
   }
@@ -54,8 +54,7 @@ Future<bool> requireActiveAccount(BuildContext context) async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ModerationService.error.value ??
-              'Could not verify account status. Try again.',
+          ModerationService.error.value ?? context.l10n.couldNotVerifyAccount,
         ),
       ),
     );
@@ -93,7 +92,8 @@ class _ChoiceDialog<T> extends StatefulWidget {
 class _ChoiceDialogState<T> extends State<_ChoiceDialog<T>> {
   late int sel = widget.initial;
   @override
-  Widget build(BuildContext context) => Column(mainAxisSize: MainAxisSize.min, children: [
+  Widget build(BuildContext context) =>
+      Column(mainAxisSize: MainAxisSize.min, children: [
         const DialogClose(),
         Heading(widget.title, size: 20),
         const SizedBox(height: 16),
@@ -111,33 +111,34 @@ class _ChoiceDialogState<T> extends State<_ChoiceDialog<T>> {
             child: PrimaryButton(widget.action,
                 color: C.teal,
                 fg: _tealFg,
-                onTap: () => Navigator.pop(context, widget.options[sel].value))),
+                onTap: () =>
+                    Navigator.pop(context, widget.options[sel].value))),
       ]);
 }
 
 Future<String?> showDifficultyDialog(BuildContext c) => showAppDialog<String>(
     c,
-    (_) => const _ChoiceDialog<String>(
-        title: 'Select difficulty',
+    (ctx) => _ChoiceDialog<String>(
+        title: ctx.l10n.selectDifficulty,
         options: [
-          MapEntry('Easy', 'Easy'),
-          MapEntry('Medium', 'Medium'),
-          MapEntry('Hard', 'Hard'),
+          MapEntry(ctx.l10n.difficultyEasy, 'Easy'),
+          MapEntry(ctx.l10n.difficultyMedium, 'Medium'),
+          MapEntry(ctx.l10n.difficultyHard, 'Hard'),
         ],
         initial: 1,
-        action: 'Next'));
+        action: ctx.l10n.next));
 
 Future<int?> showGameModeDialog(BuildContext c) => showAppDialog<int>(
     c,
-    (_) => const _ChoiceDialog<int>(
-        title: 'Choose your game mode',
+    (ctx) => _ChoiceDialog<int>(
+        title: ctx.l10n.chooseGameMode,
         options: [
-          MapEntry('Classic mode (3×3)', 3),
-          MapEntry('Advanced mode (4×4)', 4),
-          MapEntry('Expert mode (5×5)', 5),
+          MapEntry(ctx.l10n.classicMode, 3),
+          MapEntry(ctx.l10n.advancedMode, 4),
+          MapEntry(ctx.l10n.expertMode, 5),
         ],
         initial: 0,
-        action: 'Start'));
+        action: ctx.l10n.start));
 
 class _RandomDialog extends StatefulWidget {
   const _RandomDialog();
@@ -161,29 +162,33 @@ class _RandomDialogState extends State<_RandomDialog> {
                       color: i == sel ? C.teal : C.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: i == sel ? C.teal : C.border2)),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.monetization_on_outlined,
-                        size: 18, color: i == sel ? _tealFg : C.coin),
-                    const SizedBox(width: 6),
-                    Text('${stakes[i]}',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: i == sel ? _tealFg : C.text)),
-                  ])))));
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CurrencyMark(
+                            size: 18, color: i == sel ? _tealFg : C.coin),
+                        const SizedBox(width: 6),
+                        Text('${stakes[i]}',
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: i == sel ? _tealFg : C.text)),
+                      ])))));
   @override
-  Widget build(BuildContext context) => Column(mainAxisSize: MainAxisSize.min, children: [
+  Widget build(BuildContext context) =>
+      Column(mainAxisSize: MainAxisSize.min, children: [
         const DialogClose(),
-        const Heading('Random match', size: 20),
+        Heading(context.l10n.randomMatch, size: 20),
         const SizedBox(height: 6),
-        const Text('Choose your entry stake', style: TextStyle(color: C.muted)),
+        Text(context.l10n.chooseEntryStake,
+            style: const TextStyle(color: C.muted)),
         const SizedBox(height: 12),
         Row(children: [_stake(0), _stake(1)]),
         Row(children: [_stake(2), _stake(3)]),
         const SizedBox(height: 14),
         SizedBox(
             width: double.infinity,
-            child: PrimaryButton('Find opponent',
+            child: PrimaryButton(context.l10n.findOpponent,
                 onTap: () => Navigator.pop(context, stakes[sel]))),
       ]);
 }
@@ -196,17 +201,17 @@ Future<void> showHowToDialog(BuildContext c) => showAppDialog<void>(
     (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [
           const DollFace(size: 84),
           const SizedBox(height: 10),
-          const Heading('How to play', size: 22),
+          Heading(ctx.l10n.howToPlay, size: 22),
           const SizedBox(height: 10),
-          const Text(
-              'Place three of your marks in a row, horizontal, vertical or diagonal, before your rival does. '
-              'On bigger boards you need four in a row.',
+          Text(ctx.l10n.howToPlayRules,
               textAlign: TextAlign.center,
-              style: TextStyle(color: C.muted, fontSize: 15, height: 1.5)),
+              style:
+                  const TextStyle(color: C.muted, fontSize: 15, height: 1.5)),
           const SizedBox(height: 18),
           SizedBox(
               width: double.infinity,
-              child: PrimaryButton('Got it', onTap: () => Navigator.pop(ctx))),
+              child: PrimaryButton(ctx.l10n.gotIt,
+                  onTap: () => Navigator.pop(ctx))),
         ]));
 
 /// Generic confirm — returns true if the user confirmed.
@@ -214,28 +219,28 @@ Future<bool?> showConfirmDialog(
   BuildContext c, {
   required String title,
   required String body,
-  String confirmLabel = 'Confirm',
-  String cancelLabel = 'Cancel',
+  String? confirmLabel,
+  String? cancelLabel,
 }) =>
     showAppDialog<bool>(
       c,
       (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [
-            Heading(title, size: 22),
-            const SizedBox(height: 8),
-            Text(body,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: C.muted)),
-            const SizedBox(height: 18),
-            Row(children: [
-              Expanded(
-                  child: GhostButton(cancelLabel,
-                      onTap: () => Navigator.pop(ctx, false))),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: PrimaryButton(confirmLabel,
-                      onTap: () => Navigator.pop(ctx, true))),
-            ]),
-          ]),
+        Heading(title, size: 22),
+        const SizedBox(height: 8),
+        Text(body,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: C.muted)),
+        const SizedBox(height: 18),
+        Row(children: [
+          Expanded(
+              child: GhostButton(cancelLabel ?? ctx.l10n.cancel,
+                  onTap: () => Navigator.pop(ctx, false))),
+          const SizedBox(width: 10),
+          Expanded(
+              child: PrimaryButton(confirmLabel ?? ctx.l10n.confirm,
+                  onTap: () => Navigator.pop(ctx, true))),
+        ]),
+      ]),
     );
 
 /// Returns true if the user confirmed.
@@ -246,24 +251,30 @@ Future<bool?> showDeleteDialog(BuildContext c) => showAppDialog<bool>(
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: C.danger)),
-              child: const Icon(Icons.delete_outline, color: C.danger, size: 26)),
+                  shape: BoxShape.circle, border: Border.all(color: C.danger)),
+              child:
+                  const Icon(Icons.delete_outline, color: C.danger, size: 26)),
           const SizedBox(height: 12),
-          const Heading('Delete account?', size: 22),
+          Heading(ctx.l10n.deleteAccountQuestion, size: 22),
           const SizedBox(height: 8),
-          const Text('This removes your coins, score and history for good.',
-              textAlign: TextAlign.center, style: TextStyle(color: C.muted)),
+          Text(ctx.l10n.deleteAccountBody,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: C.muted)),
           const SizedBox(height: 18),
           Row(children: [
-            Expanded(child: GhostButton('No', onTap: () => Navigator.pop(ctx, false))),
+            Expanded(
+                child: GhostButton(ctx.l10n.no,
+                    onTap: () => Navigator.pop(ctx, false))),
             const SizedBox(width: 10),
             Expanded(
-                child: PrimaryButton('Yes, delete',
+                child: PrimaryButton(ctx.l10n.yesDelete,
                     color: const Color(0xFFB3123E),
                     onTap: () => Navigator.pop(ctx, true))),
           ]),
         ]));
+
+/// Look of the game-over dialog.
+enum ResultTone { win, lose, draw }
 
 /// Returns true for "Play again", false for "Back to home".
 /// Game-over dialog. When [bonusReward] > 0 a "Claim N Bonus Coins" card
@@ -273,6 +284,7 @@ Future<bool?> showResultDialog(BuildContext c,
         {required Widget art,
         required String title,
         required String subtitle,
+        ResultTone tone = ResultTone.win,
         String? coinText,
         int baseCoins = 0,
         int bonusReward = 0,
@@ -284,6 +296,7 @@ Future<bool?> showResultDialog(BuildContext c,
               art: art,
               title: title,
               subtitle: subtitle,
+              tone: tone,
               coinText: coinText,
               baseCoins: baseCoins,
               bonusReward: bonusReward,
@@ -296,6 +309,7 @@ class _ResultDialog extends StatefulWidget {
   final Widget art;
   final String title;
   final String subtitle;
+  final ResultTone tone;
   final String? coinText;
   final int baseCoins;
   final int bonusReward;
@@ -305,6 +319,7 @@ class _ResultDialog extends StatefulWidget {
     required this.art,
     required this.title,
     required this.subtitle,
+    required this.tone,
     required this.coinText,
     required this.baseCoins,
     required this.bonusReward,
@@ -328,39 +343,46 @@ class _ResultDialogState extends State<_ResultDialog> {
     }
   }
 
+  /// Completed ad whose credit failed — retried without a new ad.
+  AdReceipt? _pendingReceipt;
+
   Future<void> _watch() async {
     if (_ad == 'loading' || _ad == 'done') return;
     setState(() => _ad = 'loading');
-    final r = await RewardedAdService.instance.show();
-    if (!mounted) return;
-    if (r != RewardedAdResult.earned) {
-      SfxService.play(Sfx.error);
-      setState(() => _ad = 'failed');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(r == RewardedAdResult.failed
-              ? 'No video available right now. Try again later.'
-              : 'Watch the full video to claim your bonus coins.')));
-      return;
+    final AdRewardStatus status;
+    final pending = _pendingReceipt;
+    if (pending != null) {
+      status = await AdRewardService.credit(pending,
+          amount: widget.bonusReward,
+          reason: 'ad_reward',
+          refType: 'rewarded_ad',
+          refId: widget.refId ?? AdMobConfig.rewardedUnitId);
+    } else {
+      final (s, receipt) = await AdRewardService.watchAndCredit(
+          amount: widget.bonusReward,
+          reason: 'ad_reward',
+          refType: 'rewarded_ad',
+          refId: widget.refId ?? AdMobConfig.rewardedUnitId);
+      status = s;
+      if (s == AdRewardStatus.creditFailed) _pendingReceipt = receipt;
     }
-    final ok = await WalletService.credit(
-      amount: widget.bonusReward,
-      reason: 'ad_reward',
-      idempotencyKey:
-          'match_bonus_${DateTime.now().toUtc().millisecondsSinceEpoch}',
-      refType: 'rewarded_ad',
-      refId: widget.refId ?? AdMobConfig.rewardedUnitId,
-    );
     if (!mounted) return;
+    final ok = status == AdRewardStatus.credited ||
+        status == AdRewardStatus.alreadyCredited;
+    if (ok) _pendingReceipt = null;
     setState(() => _ad = ok ? 'done' : 'failed');
     SfxService.play(ok ? Sfx.rewardClaim : Sfx.error);
-    if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('+${widget.bonusReward} bonus coins added')));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:
-              Text(WalletService.error.value ?? 'Could not add coins')));
-    }
+    final msg = switch (status) {
+      AdRewardStatus.credited || AdRewardStatus.alreadyCredited =>
+        context.l10n.bonusCoinsAdded(
+            AppLocaleService.formatCoinAmount(widget.bonusReward)),
+      AdRewardStatus.notCompleted => context.l10n.watchFullVideo,
+      AdRewardStatus.noAd => context.l10n.noVideoNow,
+      AdRewardStatus.creditFailed =>
+        WalletService.error.value ?? context.l10n.couldNotAddCoins,
+    };
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Widget _coinPill(String text) => Container(
@@ -374,8 +396,7 @@ class _ResultDialogState extends State<_ResultDialog> {
 
   Future<void> _shareWhatsApp() async {
     final text = widget.shareText!;
-    final wa = Uri.parse(
-        'https://wa.me/?text=${Uri.encodeComponent(text)}');
+    final wa = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
     var opened = false;
     try {
       opened = await launchUrl(wa, mode: LaunchMode.externalApplication);
@@ -395,22 +416,37 @@ class _ResultDialogState extends State<_ResultDialog> {
             foregroundColor: _waGreen,
             backgroundColor: _waGreen.withValues(alpha: .08),
             side: BorderSide(color: _waGreen.withValues(alpha: .8)),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
-          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.chat_rounded, size: 20, color: _waGreen),
-            SizedBox(width: 10),
-            Text('Share on WhatsApp',
-                style: TextStyle(
-                    color: _waGreen,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15)),
-          ]),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.chat_rounded, size: 20, color: _waGreen),
+              const SizedBox(width: 10),
+              Text(context.l10n.shareOnWhatsApp,
+                  style: const TextStyle(
+                      color: _waGreen,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15)),
+            ]),
+          ),
         ),
       );
 
   static const _waGreen = Color(0xFF25D366);
+
+  /// Splits [text] so every [token] is drawn in teal.
+  static List<InlineSpan> _tealToken(String text, String token) {
+    final parts = text.split(token);
+    return [
+      for (var i = 0; i < parts.length; i++) ...[
+        if (parts[i].isNotEmpty) TextSpan(text: parts[i]),
+        if (i < parts.length - 1)
+          TextSpan(text: token, style: const TextStyle(color: C.teal)),
+      ],
+    ];
+  }
 
   Widget _bonusCard() {
     final done = _ad == 'done';
@@ -446,35 +482,30 @@ class _ResultDialogState extends State<_ResultDialog> {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                    done
-                        ? 'Bonus claimed!'
-                        : 'Claim ${widget.bonusReward} Bonus Coins',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 15)),
-                const SizedBox(height: 2),
-                Text.rich(
-                  TextSpan(
-                    style: const TextStyle(color: C.muted, fontSize: 12.5),
-                    children: done
-                        ? [
-                            TextSpan(
-                                text: '+${widget.bonusReward} coins',
-                                style: const TextStyle(color: C.teal)),
-                            const TextSpan(text: ' added to your wallet'),
-                          ]
-                        : [
-                            const TextSpan(text: 'Watch a short video to get '),
-                            TextSpan(
-                                text: '+${widget.bonusReward}',
-                                style: const TextStyle(color: C.teal)),
-                          ],
-                  ),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+                done
+                    ? context.l10n.bonusClaimed
+                    : context.l10n.claimBonusCoins(
+                        AppLocaleService.formatCoinAmount(widget.bonusReward)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            const SizedBox(height: 2),
+            Text.rich(
+              TextSpan(
+                style: const TextStyle(color: C.muted, fontSize: 12.5),
+                // Translated sentence; the "+N" part stays teal.
+                children: _tealToken(
+                  done
+                      ? context.l10n.bonusAddedToWallet('${widget.bonusReward}')
+                      : context.l10n
+                          .watchShortVideoToGet('${widget.bonusReward}'),
+                  '+${widget.bonusReward}',
                 ),
-              ]),
+              ),
+            ),
+          ]),
         ),
         const SizedBox(width: 8),
         SizedBox(
@@ -497,8 +528,8 @@ class _ResultDialogState extends State<_ResultDialog> {
                         strokeWidth: 2, color: Color(0xFF04201F)))
                 : done
                     ? const Icon(Icons.check_rounded, size: 20)
-                    : const Text('CLAIM',
-                        style: TextStyle(
+                    : Text(context.l10n.claim,
+                        style: const TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 13,
                             letterSpacing: .5)),
@@ -512,23 +543,22 @@ class _ResultDialogState extends State<_ResultDialog> {
   Widget build(BuildContext context) {
     final showBonus = widget.bonusReward > 0;
     final coinText = _ad == 'done'
-        ? '+${widget.baseCoins + widget.bonusReward} coins'
+        ? context.l10n.plusCoins(AppLocaleService.formatCoinAmount(
+            widget.baseCoins + widget.bonusReward))
         : widget.coinText;
     return SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Tag('Game over'),
+      _ResultBadge(tone: widget.tone),
+      const SizedBox(height: 14),
+      _ResultArt(tone: widget.tone, child: widget.art),
       const SizedBox(height: 12),
-      widget.art,
-      const SizedBox(height: 10),
-      Heading(widget.title, size: 30, align: TextAlign.center),
+      _ResultTitle(text: widget.title, color: _toneColor(widget.tone)),
+      const SizedBox(height: 6),
+      Text(widget.subtitle,
+          textAlign: TextAlign.center, style: const TextStyle(color: C.muted)),
       if (coinText != null) ...[
         const SizedBox(height: 12),
         _coinPill(coinText),
-      ] else ...[
-        const SizedBox(height: 8),
-        Text(widget.subtitle,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: C.muted)),
       ],
       const SizedBox(height: 18),
       if (showBonus) ...[
@@ -541,19 +571,151 @@ class _ResultDialogState extends State<_ResultDialog> {
       ],
       SizedBox(
           width: double.infinity,
-          child: PrimaryButton('Play again',
+          child: PrimaryButton(context.l10n.playAgain,
               onTap: _ad == 'loading'
                   ? null
                   : () => Navigator.pop(context, true))),
       const SizedBox(height: 12),
       SizedBox(
           width: double.infinity,
-          child: GhostButton('Back to home',
+          child: GhostButton(context.l10n.backToHome,
               onTap: _ad == 'loading'
                   ? null
                   : () => Navigator.pop(context, false))),
     ]));
   }
+}
+
+Color _toneColor(ResultTone t) => switch (t) {
+      ResultTone.win => C.teal,
+      ResultTone.lose => C.danger,
+      ResultTone.draw => C.coin,
+    };
+
+/// "VICTORY" / "DEFEAT" / "DRAW" chip that drops in.
+class _ResultBadge extends StatelessWidget {
+  final ResultTone tone;
+  const _ResultBadge({required this.tone});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _toneColor(tone);
+    final (label, icon) = switch (tone) {
+      ResultTone.win => (context.l10n.victory, Icons.emoji_events_rounded),
+      ResultTone.lose => (context.l10n.defeat, Icons.close_rounded),
+      ResultTone.draw => (context.l10n.drawBadge, Icons.drag_handle_rounded),
+    };
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutBack,
+      builder: (_, v, child) => Opacity(
+          opacity: v.clamp(0.0, 1.0),
+          child: Transform.translate(
+              offset: Offset(0, -12 * (1 - v)), child: child)),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .12),
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: color.withValues(alpha: .8)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(label,
+              style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12.5,
+                  letterSpacing: 2.2)),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Art with a tone-coloured glow: pops in on a win, shakes on a loss,
+/// settles gently on a draw.
+class _ResultArt extends StatelessWidget {
+  final ResultTone tone;
+  final Widget child;
+  const _ResultArt({required this.tone, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _toneColor(tone);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: tone == ResultTone.lose ? 650 : 700),
+      curve: tone == ResultTone.win ? Curves.elasticOut : Curves.easeOut,
+      builder: (_, v, child) {
+        final double scale, dx;
+        switch (tone) {
+          case ResultTone.win:
+            scale = .4 + .6 * v;
+            dx = 0;
+          case ResultTone.lose:
+            scale = 1;
+            dx = sin(v * pi * 6) * 10 * (1 - v);
+          case ResultTone.draw:
+            scale = .85 + .15 * v;
+            dx = 0;
+        }
+        return Opacity(
+          opacity: (v * 2).clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(dx, 0),
+            child: Transform.scale(
+              scale: scale,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                        color: color.withValues(alpha: .28 * v),
+                        blurRadius: 36,
+                        spreadRadius: 4),
+                  ],
+                ),
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+/// Big result title in the tone colour.
+class _ResultTitle extends StatelessWidget {
+  final String text;
+  final Color color;
+  const _ResultTitle({required this.text, required this.color});
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+        builder: (_, v, child) => Opacity(
+            opacity: v,
+            child: Transform.translate(
+                offset: Offset(0, 10 * (1 - v)), child: child)),
+        child: Text(text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                color: color,
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                letterSpacing: .5,
+                shadows: [
+                  Shadow(color: color.withValues(alpha: .45), blurRadius: 16)
+                ])),
+      );
 }
 
 // ---- flows -----------------------------------------------------------
@@ -573,8 +735,8 @@ Future<void> startRandom(BuildContext c) async {
   if (stake == null || !c.mounted) return;
   if (coins.value < stake) {
     SfxService.play(Sfx.error);
-    ScaffoldMessenger.of(c).showSnackBar(
-        const SnackBar(content: Text('Not enough coins for this stake.')));
+    ScaffoldMessenger.of(c)
+        .showSnackBar(SnackBar(content: Text(c.l10n.notEnoughCoinsStake)));
     return;
   }
   final s = await showGameModeDialog(c);
@@ -586,8 +748,8 @@ Future<void> startRandom(BuildContext c) async {
   if (online) {
     if (!AuthService.isSignedIn) {
       ScaffoldMessenger.of(c).showSnackBar(
-        const SnackBar(
-          content: Text('Sign in to play Random Match against real players'),
+        SnackBar(
+          content: Text(c.l10n.signInRandomMatch),
         ),
       );
       return;
@@ -614,7 +776,7 @@ Future<void> startPassAndPlay(BuildContext c) async {
   final s = await showGameModeDialog(c);
   if (s == null || !c.mounted) return;
   Navigator.pushNamed(c, '/game',
-      arguments: GameArgs(size: s, vsAi: false, opponentName: 'Player 2'));
+      arguments: GameArgs(size: s, vsAi: false, opponentName: c.l10n.player2));
 }
 
 /// Online hub: find match (C1), create private room, or join by code (C3).
@@ -624,23 +786,23 @@ Future<void> startOnlineMatch(BuildContext c) async {
   if (!c.mounted) return;
 
   if (!AuthService.isSignedIn) {
-    ScaffoldMessenger.of(c).showSnackBar(
-        const SnackBar(content: Text('Sign in to play online multiplayer')));
+    ScaffoldMessenger.of(c)
+        .showSnackBar(SnackBar(content: Text(c.l10n.signInOnline)));
     return;
   }
   if (!await requireActiveAccount(c)) return;
   if (!c.mounted) return;
   final mode = await showAppDialog<String>(
     c,
-    (_) => const _ChoiceDialog<String>(
-      title: 'Online multiplayer',
+    (ctx) => _ChoiceDialog<String>(
+      title: ctx.l10n.onlineMultiplayer,
       options: [
-        MapEntry('Find a match', 'find'),
-        MapEntry('Create private room', 'create'),
-        MapEntry('Join with code', 'join'),
+        MapEntry(ctx.l10n.findAMatch, 'find'),
+        MapEntry(ctx.l10n.createPrivateRoom, 'create'),
+        MapEntry(ctx.l10n.joinWithCode, 'join'),
       ],
       initial: 0,
-      action: 'Continue',
+      action: ctx.l10n.continueLabel,
     ),
   );
   if (mode == null || !c.mounted) return;
@@ -655,8 +817,8 @@ Future<void> startOnlineMatch(BuildContext c) async {
   final stake = await showRandomDialog(c);
   if (stake == null || !c.mounted) return;
   if (coins.value < stake) {
-    ScaffoldMessenger.of(c).showSnackBar(
-        const SnackBar(content: Text('Not enough coins for this stake.')));
+    ScaffoldMessenger.of(c)
+        .showSnackBar(SnackBar(content: Text(c.l10n.notEnoughCoinsStake)));
     return;
   }
   final s = await showGameModeDialog(c);
@@ -687,8 +849,8 @@ Future<void> startOnlineMatch(BuildContext c) async {
     });
   } catch (e) {
     if (!c.mounted) return;
-    ScaffoldMessenger.of(c).showSnackBar(
-        SnackBar(content: Text(AuthService.messageFromError(e))));
+    ScaffoldMessenger.of(c)
+        .showSnackBar(SnackBar(content: Text(AuthService.messageFromError(e))));
   }
 }
 
@@ -696,21 +858,24 @@ Future<void> startOnlineMatch(BuildContext c) async {
 Future<String?> showPauseDialog(BuildContext c) => showAppDialog<String>(
     c,
     (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [
-          const Tag('Game paused'),
+          Tag(ctx.l10n.gamePaused),
           const SizedBox(height: 8),
-          const Heading('Paused', size: 30),
+          Heading(ctx.l10n.paused, size: 30),
           const SizedBox(height: 18),
           SizedBox(
               width: double.infinity,
-              child: PrimaryButton('Resume', onTap: () => Navigator.pop(ctx, 'resume'))),
+              child: PrimaryButton(ctx.l10n.resume,
+                  onTap: () => Navigator.pop(ctx, 'resume'))),
           const SizedBox(height: 10),
           SizedBox(
               width: double.infinity,
-              child: GhostButton('Restart', onTap: () => Navigator.pop(ctx, 'restart'))),
+              child: GhostButton(ctx.l10n.restart,
+                  onTap: () => Navigator.pop(ctx, 'restart'))),
           const SizedBox(height: 10),
           SizedBox(
               width: double.infinity,
-              child: GhostButton('Settings', onTap: () => Navigator.pop(ctx, 'settings'))),
+              child: GhostButton(ctx.l10n.settings,
+                  onTap: () => Navigator.pop(ctx, 'settings'))),
           const SizedBox(height: 10),
           SizedBox(
               width: double.infinity,
@@ -722,7 +887,7 @@ Future<String?> showPauseDialog(BuildContext c) => showAppDialog<String>(
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14))),
                   onPressed: () => Navigator.pop(ctx, 'quit'),
-                  child: const Text('Quit match',
-                      style: TextStyle(fontWeight: FontWeight.w600)))),
+                  child: Text(ctx.l10n.quitMatch,
+                      style: const TextStyle(fontWeight: FontWeight.w600)))),
         ]),
     dismissible: false);

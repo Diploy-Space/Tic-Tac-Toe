@@ -11,4 +11,23 @@ void main() {
       '100 coins',
     );
   });
+
+  test('detected country → currency (IN = INR, US = USD, unknown = USD)', () {
+    expect(CountryCurrencyService.forDetectedIso2('in').currencyCode, 'INR');
+    expect(CountryCurrencyService.forDetectedIso2('IN').currencySymbol, '₹');
+    expect(CountryCurrencyService.forDetectedIso2('US').currencyCode, 'USD');
+    expect(CountryCurrencyService.forDetectedIso2('JP').currencyCode, 'JPY');
+    final unknown = CountryCurrencyService.forDetectedIso2('ZZ');
+    expect(unknown.iso2, 'ZZ');
+    expect(unknown.currencyCode, 'USD');
+    expect(unknown.callingCode, isEmpty);
+  });
+
+  test('every mapped currency has an INR rate', () {
+    for (final c in CountryCurrencyService.countries) {
+      expect(CountryCurrencyService.inrToCurrency.containsKey(c.currencyCode),
+          isTrue,
+          reason: '${c.iso2} ${c.currencyCode}');
+    }
+  });
 }

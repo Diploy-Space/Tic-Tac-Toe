@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
+import '../l10n/app_localizations.dart';
 
 class MoreGamesScreen extends StatelessWidget {
   const MoreGamesScreen({super.key});
@@ -15,7 +16,7 @@ class MoreGamesScreen extends StatelessWidget {
     return AppScaffold(
       child: SingleChildScrollView(
         child: staggered([
-          const TopBar('More games'),
+          TopBar(context.l10n.moreGames),
           for (final g in games)
             AppCard(
                 child: Row(children: [
@@ -30,7 +31,8 @@ class MoreGamesScreen extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                   child: Text(g[0] as String,
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 17))),
               SizedBox(
                   width: 100,
                   height: 42,
@@ -40,11 +42,15 @@ class MoreGamesScreen extends StatelessWidget {
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12))),
-                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                          // TODO: open the real store link with url_launcher.
-                          SnackBar(content: Text('${g[0]}: add your store link here'))),
-                      child: const Text('PLAY',
-                          style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)))),
+                      onPressed: () => ScaffoldMessenger.of(context)
+                          .showSnackBar(
+                              // TODO: open the real store link with url_launcher.
+                              SnackBar(
+                                  content: Text(
+                                      context.l10n.gameComingSoon('${g[0]}')))),
+                      child: Text(context.l10n.playCaps,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800, letterSpacing: 1)))),
             ])),
         ]),
       ),

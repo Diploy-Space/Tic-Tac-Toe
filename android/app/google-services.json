@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "949073315837",
+    "project_id": "playdrotix-d34bf",
+    "storage_bucket": "playdrotix-d34bf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:949073315837:android:f8c2277a5b7e9e5412bb94",
+        "android_client_info": {
+          "package_name": "com.drodify.drotix"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAj6x3PakkGvPIeAgAv3CKFv8G495rpSl0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

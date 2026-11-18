@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import '../models.dart';
 import '../models/cloud_match.dart';
@@ -5,6 +6,7 @@ import '../services/auth_service.dart';
 import '../services/match_sync_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../l10n/app_localizations.dart';
 
 enum _ModeFilter { all, computer, online, challenge }
 
@@ -63,13 +65,12 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
             final wins = items.where((e) => e.kind == _ResultKind.win).length;
             final losses =
                 items.where((e) => e.kind == _ResultKind.loss).length;
-            final draws =
-                items.where((e) => e.kind == _ResultKind.draw).length;
+            final draws = items.where((e) => e.kind == _ResultKind.draw).length;
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const TopBar('MATCH HISTORY'),
+                TopBar(context.l10n.matchHistoryCaps),
                 const SizedBox(height: 16),
                 _ModeChips(
                   selected: _filter,
@@ -77,7 +78,8 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  '${items.length} matches · $wins wins · $losses losses · $draws draw${draws == 1 ? '' : 's'}',
+                  context.l10n.historySummary(
+                      '${items.length}', '$wins', '$losses', '$draws'),
                   style: const TextStyle(
                     color: C.muted,
                     fontSize: 13,
@@ -142,7 +144,7 @@ class _HistItem {
     };
     final name = (m.opponentName ?? '').trim();
     return _HistItem(
-      title: name.isEmpty ? 'vs $modeLabel' : 'vs $name',
+      title: l10nNow.vsName(name.isEmpty ? modeLabel : name),
       subtitle: parts.join(' · '),
       kind: kind,
       at: m.playedAt.toLocal(),
@@ -152,8 +154,8 @@ class _HistItem {
 
   factory _HistItem.fromLocal(MatchRecord m) {
     final modeLabel = m.vsAi
-        ? 'Computer'
-        : (m.quickMatch ? 'Online' : 'Pass & Play');
+        ? l10nNow.computer
+        : (m.quickMatch ? l10nNow.online : l10nNow.passAndPlay);
     final bucket = m.vsAi
         ? _ModeFilter.computer
         : (m.quickMatch ? _ModeFilter.online : _ModeFilter.all);
@@ -162,7 +164,7 @@ class _HistItem {
         : (m.result == 'Draw' ? _ResultKind.draw : _ResultKind.loss);
     final name = m.opponent.trim();
     return _HistItem(
-      title: name.isEmpty ? 'vs $modeLabel' : 'vs $name',
+      title: l10nNow.vsName(name.isEmpty ? modeLabel : name),
       subtitle: '$modeLabel · ${m.size}×${m.size}',
       kind: kind,
       at: m.at,
@@ -173,14 +175,14 @@ class _HistItem {
 
 String _cloudModeLabel(CloudMatch m) {
   if (m.stake > 0 && (m.mode == 'online' || m.mode == 'quick_match')) {
-    return 'Challenge';
+    return l10nNow.challenge;
   }
   switch (m.mode) {
     case 'ai':
-      return 'Computer';
+      return l10nNow.computer;
     case 'quick_match':
     case 'online':
-      return 'Online';
+      return l10nNow.online;
     default:
       return m.mode;
   }
@@ -242,13 +244,13 @@ class _ModeChips extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       child: Row(
         children: [
-          chip('All', _ModeFilter.all),
+          chip(context.l10n.all, _ModeFilter.all),
           const SizedBox(width: 8),
-          chip('Computer', _ModeFilter.computer),
+          chip(context.l10n.computer, _ModeFilter.computer),
           const SizedBox(width: 8),
-          chip('Online', _ModeFilter.online),
+          chip(context.l10n.online, _ModeFilter.online),
           const SizedBox(width: 8),
-          chip('Challenge', _ModeFilter.challenge),
+          chip(context.l10n.challenge, _ModeFilter.challenge),
         ],
       ),
     );
@@ -354,23 +356,9 @@ String _relativeDay(DateTime at) {
   final today = DateTime(now.year, now.month, now.day);
   final day = DateTime(at.year, at.month, at.day);
   final diff = today.difference(day).inDays;
-  if (diff == 0) return 'Today';
-  if (diff == 1) return 'Yesterday';
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${at.day} ${months[at.month - 1]}';
+  if (diff == 0) return l10nNow.today;
+  if (diff == 1) return l10nNow.yesterday;
+  return DateFormat.MMMd(l10nNow.localeName).format(at);
 }
 
 class _Empty extends StatelessWidget {
@@ -386,9 +374,9 @@ class _Empty extends StatelessWidget {
         color: C.surface,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Text(
-        'No matches yet',
-        style: TextStyle(color: C.muted, fontWeight: FontWeight.w600),
+      child: Text(
+        context.l10n.noMatchesYet,
+        style: const TextStyle(color: C.muted, fontWeight: FontWeight.w600),
       ),
     );
   }

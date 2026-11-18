@@ -6,6 +6,7 @@ import '../services/sfx_service.dart';
 import '../theme.dart';
 import 'painters.dart';
 import 'extras.dart';
+import '../l10n/app_localizations.dart';
 
 /// Slides + fades its child in, with a delay of [index] * 80 ms.
 class FadeUp extends StatefulWidget {
@@ -140,8 +141,7 @@ class AppScaffold extends StatelessWidget {
                     child: Opacity(
                         opacity: .16,
                         child: Center(
-                            child: _Floating(
-                                child: DollFace(size: 420)))))),
+                            child: _Floating(child: DollFace(size: 420)))))),
           SafeArea(child: Padding(padding: padding, child: child)),
         ]),
       ),
@@ -227,7 +227,10 @@ class PrimaryButton extends StatelessWidget {
   final Color color;
   final Color fg;
   const PrimaryButton(this.label,
-      {super.key, this.onTap, this.color = const Color(0xFFD4156B), this.fg = Colors.white});
+      {super.key,
+      this.onTap,
+      this.color = const Color(0xFFD4156B),
+      this.fg = Colors.white});
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -271,8 +274,8 @@ class GhostButton extends StatelessWidget {
               backgroundColor: filledMagenta ? C.btn : C.surface,
               foregroundColor: C.text,
               side: BorderSide(color: filledMagenta ? C.btn : C.border2),
-              shape:
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14))),
           child: Text(label,
               style:
                   const TextStyle(fontWeight: FontWeight.w600, fontSize: 15))));
@@ -290,8 +293,7 @@ class CoinChip extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(99),
-                  onTap: onTap ??
-                      () => Navigator.pushNamed(context, '/wallet'),
+                  onTap: onTap ?? () => Navigator.pushNamed(context, '/wallet'),
                   child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 8),
@@ -300,24 +302,41 @@ class CoinChip extends StatelessWidget {
                           borderRadius: BorderRadius.circular(99),
                           border: Border.all(color: C.border2)),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.monetization_on_outlined,
-                            size: 18, color: C.coin),
+                        Text(
+                          AppLocaleService.currencySymbol,
+                          style: const TextStyle(
+                            color: C.coin,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                         const SizedBox(width: 6),
                         Text('$v',
                             style:
                                 const TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(width: 6),
-                        Text(
-                          AppLocaleService.currencyCode,
-                          style: const TextStyle(
-                            color: C.muted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
                       ])),
                 ),
               )));
+}
+
+/// Displays the region's currency mark and refreshes when the detected region changes.
+class CurrencyMark extends StatelessWidget {
+  final double size;
+  final Color color;
+  const CurrencyMark({super.key, this.size = 18, this.color = C.coin});
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+        valueListenable: AppLocaleService.revision,
+        builder: (_, __, ___) => Text(
+          AppLocaleService.currencySymbol,
+          style: TextStyle(
+            color: color,
+            fontSize: size,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      );
 }
 
 class RoundIconBox extends StatelessWidget {
@@ -349,7 +368,7 @@ class TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(children: [
         RoundIconBox(Icons.arrow_back_ios_new_rounded,
-            label: 'Back', onTap: () => Navigator.maybePop(context)),
+            label: context.l10n.back, onTap: () => Navigator.maybePop(context)),
         const SizedBox(width: 12),
         Expanded(child: Heading(title, size: 20)),
         if (trailing != null) trailing!,
@@ -406,7 +425,7 @@ class _AppFieldState extends State<AppField> {
                     hintStyle: const TextStyle(color: C.muted)))),
         if (widget.obscure && widget.obscureToggle)
           IconButton(
-              tooltip: 'Show or hide password',
+              tooltip: context.l10n.showHidePassword,
               onPressed: () => setState(() => _hide = !_hide),
               icon: Icon(
                   _hide
@@ -484,7 +503,9 @@ class MenuTile extends StatelessWidget {
               Expanded(
                   child: Text(label,
                       style: TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 15, color: c))),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: c))),
               Icon(Icons.chevron_right, size: 20, color: c),
             ])));
   }
@@ -514,7 +535,7 @@ class UserCard extends StatelessWidget {
           Expanded(
               child: ValueListenableBuilder<String>(
                   valueListenable: authDisplayName,
-                  builder: (_, name, __) => Text(name,
+                  builder: (_, name, __) => Text(context.nameOrGuest(name),
                       style: const TextStyle(
                           fontWeight: FontWeight.w700, fontSize: 16)))),
           if (showCoins) const CoinChip(),
@@ -528,7 +549,8 @@ class UserCard extends StatelessWidget {
               for (final s in stats)
                 Expanded(
                     child: Column(children: [
-                  Text(s.key, style: const TextStyle(fontSize: 13, color: C.muted)),
+                  Text(s.key,
+                      style: const TextStyle(fontSize: 13, color: C.muted)),
                   Text(s.value,
                       style: const TextStyle(
                           fontSize: 20, fontWeight: FontWeight.w800)),
@@ -543,10 +565,10 @@ class AppBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      [Icons.home_outlined, 'Play', '/home'],
-      [Icons.leaderboard_outlined, 'Ranks', '/ranks'],
-      [Icons.shopping_bag_outlined, 'Shop', '/shop'],
-      [Icons.person_outline, 'Profile', '/profile'],
+      [Icons.home_outlined, context.l10n.navPlay, '/home'],
+      [Icons.leaderboard_outlined, context.l10n.ranks, '/ranks'],
+      [Icons.shopping_bag_outlined, context.l10n.shop, '/shop'],
+      [Icons.person_outline, context.l10n.profile, '/profile'],
     ];
     return Container(
         padding: const EdgeInsets.all(10),
@@ -578,12 +600,13 @@ class AppBottomNav extends StatelessWidget {
 }
 
 /// Shared dialog shell used for every popup.
-Future<T?> showAppDialog<T>(BuildContext context, Widget Function(BuildContext) builder,
+Future<T?> showAppDialog<T>(
+    BuildContext context, Widget Function(BuildContext) builder,
     {bool dismissible = true}) {
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: dismissible,
-    barrierLabel: 'Close',
+    barrierLabel: context.l10n.close,
     barrierColor: const Color(0xC7050507),
     transitionDuration: const Duration(milliseconds: 280),
     transitionBuilder: (c, a, _, child) => FadeTransition(
@@ -613,7 +636,7 @@ class DialogClose extends StatelessWidget {
   Widget build(BuildContext context) => Align(
       alignment: Alignment.centerRight,
       child: IconButton(
-          tooltip: 'Close',
+          tooltip: context.l10n.close,
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.close, color: C.muted)));
 }

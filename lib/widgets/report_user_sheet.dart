@@ -9,6 +9,7 @@ import '../services/online_realtime_service.dart';
 import '../services/storage.dart';
 import '../services/sfx_service.dart';
 import '../theme.dart';
+import '../l10n/app_localizations.dart';
 
 /// Opens PDF-matching report flow: reason sheet → details → sent modal.
 Future<void> openReportUserSheet(
@@ -72,7 +73,7 @@ class _ReportReasonSheetState extends State<_ReportReasonSheet> {
   @override
   Widget build(BuildContext context) {
     final name = widget.opponentName.trim().isEmpty
-        ? 'Opponent'
+        ? context.l10n.opponent
         : widget.opponentName.trim();
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
@@ -105,16 +106,16 @@ class _ReportReasonSheetState extends State<_ReportReasonSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Report $name',
+                      context.l10n.reportName(name),
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 20,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'What is happening? Pick the closest reason.',
-                      style: TextStyle(color: C.muted, fontSize: 13),
+                    Text(
+                      context.l10n.pickClosestReason,
+                      style: const TextStyle(color: C.muted, fontSize: 13),
                     ),
                   ],
                 ),
@@ -153,9 +154,9 @@ class _ReportReasonSheetState extends State<_ReportReasonSheet> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: const Text(
-                          'NEXT',
-                          style: TextStyle(
+                        child: Text(
+                          context.l10n.nextCaps,
+                          style: const TextStyle(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.2,
                           ),
@@ -164,9 +165,9 @@ class _ReportReasonSheetState extends State<_ReportReasonSheet> {
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(color: C.muted),
+                      child: Text(
+                        context.l10n.cancel,
+                        style: const TextStyle(color: C.muted),
                       ),
                     ),
                   ],
@@ -317,8 +318,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   Future<void> _submit() async {
     if (_busy) return;
     if (_desc.text.trim().length < 10) {
-      setState(() =>
-          _error = 'Please tell us what happened (at least 10 characters)');
+      setState(() => _error = context.l10n.tellUsMin10);
       return;
     }
     setState(() {
@@ -336,7 +336,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     if (id == null) {
       SfxService.play(Sfx.error);
       setState(() =>
-          _error = ModerationService.error.value ?? 'Report failed');
+          _error = ModerationService.error.value ?? context.l10n.reportFailed);
       return;
     }
     SfxService.play(Sfx.chatReportSent);
@@ -368,11 +368,11 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
               child: Row(
                 children: [
                   _BackBox(onTap: () => Navigator.pop(context)),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'REPORT',
+                      context.l10n.reportCaps,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 18,
                         letterSpacing: 1.2,
@@ -416,17 +416,17 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
-                          'Change',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        child: Text(
+                          context.l10n.change,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 18),
-                  const Text(
-                    'WHAT HAPPENED',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.whatHappenedCaps,
+                    style: const TextStyle(
                       color: C.magenta,
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
@@ -448,29 +448,28 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                           maxLength: 500,
                           style: const TextStyle(color: C.text, height: 1.35),
                           onChanged: (_) => setState(() {}),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             border: InputBorder.none,
                             counterText: '',
-                            hintText:
-                                'Tell us what happened and why you are reporting this player',
-                            hintStyle: TextStyle(color: C.muted, fontSize: 14),
+                            hintText: context.l10n.whatHappenedHint,
+                            hintStyle: const TextStyle(color: C.muted, fontSize: 14),
                           ),
                         ),
                         Align(
                           alignment: Alignment.centerRight,
                           child: Text(
                             '${_desc.text.length} / 500',
-                            style: const TextStyle(
-                                color: C.muted, fontSize: 11),
+                            style:
+                                const TextStyle(color: C.muted, fontSize: 11),
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const Text(
-                    'SCREENSHOTS (OPTIONAL)',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.screenshotsOptionalCaps,
+                    style: const TextStyle(
                       color: C.magenta,
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
@@ -483,31 +482,28 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                       for (var i = 0; i < _shots.length; i++) ...[
                         _ShotThumb(
                           bytes: _shots[i],
-                          onRemove: () =>
-                              setState(() => _shots.removeAt(i)),
+                          onRemove: () => setState(() => _shots.removeAt(i)),
                         ),
                         const SizedBox(width: 10),
                       ],
-                      if (_shots.length < 3)
-                        _AddShotSlot(onTap: _addShot),
+                      if (_shots.length < 3) _AddShotSlot(onTap: _addShot),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Up to 3 images. Only our team can see them.',
-                    style: TextStyle(color: C.muted, fontSize: 12),
+                  Text(
+                    context.l10n.upTo3Images,
+                    style: const TextStyle(color: C.muted, fontSize: 12),
                   ),
                   const SizedBox(height: 16),
                   _ToggleRow(
-                    title: 'Attach recent chat messages',
-                    subtitle:
-                        'The last 20 messages are sent with your report.',
+                    title: context.l10n.attachRecentChat,
+                    subtitle: context.l10n.last20Sent,
                     value: _attachChat,
                     onChanged: (v) => setState(() => _attachChat = v),
                   ),
                   const SizedBox(height: 10),
                   _ToggleRow(
-                    title: 'Also block this player',
+                    title: context.l10n.alsoBlock,
                     value: _blockPlayer,
                     onChanged: (v) => setState(() => _blockPlayer = v),
                   ),
@@ -534,7 +530,9 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                     ),
                   ),
                   child: Text(
-                    _busy ? 'SUBMITTING…' : 'SUBMIT REPORT',
+                    _busy
+                        ? context.l10n.submittingCaps
+                        : context.l10n.submitReportCaps,
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.1,
@@ -620,7 +618,7 @@ class _ShotThumb extends StatelessWidget {
 
 class _AddShotSlot extends StatelessWidget {
   final VoidCallback onTap;
-  const _AddShotSlot({required this.onTap});
+  _AddShotSlot({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -636,11 +634,11 @@ class _AddShotSlot extends StatelessWidget {
             height: 72,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.add, color: C.text, size: 22),
-                SizedBox(height: 2),
-                Text('Add',
-                    style: TextStyle(color: C.muted, fontSize: 11)),
+              children: [
+                const Icon(Icons.add, color: C.text, size: 22),
+                const SizedBox(height: 2),
+                Text(context.l10n.add,
+                    style: const TextStyle(color: C.muted, fontSize: 11)),
               ],
             ),
           ),

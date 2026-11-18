@@ -5,6 +5,13 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// FCM push: apply Google Services only once android/app/google-services.json
+// (Firebase console → Project settings → Android app com.drodify.drotix) is
+// added. Without it the app still builds; in-app notifications keep working.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.drodify.drotix"
     compileSdk = flutter.compileSdkVersion
@@ -13,6 +20,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Required by flutter_local_notifications.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -41,4 +50,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // FileProvider for installing downloaded update APKs.
+    implementation("androidx.core:core-ktx:1.13.1")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

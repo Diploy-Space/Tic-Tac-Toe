@@ -5,6 +5,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
 import '../widgets/pdf_ui.dart';
+import '../l10n/app_localizations.dart';
 
 /// PDF page 12 — Challenge privacy (synced to Supabase when signed in).
 class ChallengePrivacyScreen extends StatefulWidget {
@@ -85,7 +86,7 @@ class _ChallengePrivacyScreenState extends State<ChallengePrivacyScreen> {
     return AppScaffold(
       child: SingleChildScrollView(
         child: staggered([
-          const TopBar('Privacy'),
+          TopBar(context.l10n.privacy),
           ValueListenableBuilder<String?>(
             valueListenable: PrivacyPrefsService.error,
             builder: (_, err, __) => err == null
@@ -98,34 +99,34 @@ class _ChallengePrivacyScreenState extends State<ChallengePrivacyScreen> {
                     ),
                   ),
           ),
-          const PdfSectionLabel('Who can challenge you'),
+          PdfSectionLabel(context.l10n.whoCanChallenge),
           ValueListenableBuilder<int>(
             valueListenable: PrivacyPrefsService.challengeWho,
             builder: (_, who, __) => Column(
               children: [
-                _whoTile('Everyone', 0, who),
-                _whoTile('Friends only', 1, who),
-                _whoTile('Nobody', 2, who),
+                _whoTile(context.l10n.everyone, 0, who),
+                _whoTile(context.l10n.friendsOnly, 1, who),
+                _whoTile(context.l10n.nobody, 2, who),
               ],
             ),
           ),
-          const PdfSectionLabel('Notifications'),
+          PdfSectionLabel(context.l10n.notifications),
           AppCard(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Column(children: [
               ToggleRow(
                 Icons.sports_esports,
-                'Challenge requests',
+                context.l10n.challengeRequests,
                 notifyChallengeRequests,
               ),
               ToggleRow(
                 Icons.mail_outline,
-                'Match invitations',
+                context.l10n.matchInvitations,
                 notifyMatchInvites,
               ),
               ToggleRow(
                 Icons.emoji_events_outlined,
-                'Match results',
+                context.l10n.matchResults,
                 notifyMatchResults,
                 last: true,
               ),
@@ -137,8 +138,8 @@ class _ChallengePrivacyScreenState extends State<ChallengePrivacyScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
               child: Text(
                 saving
-                    ? 'Saving to cloud…'
-                    : 'Your match history and activity are never shown on your public profile.',
+                    ? context.l10n.savingToCloud
+                    : context.l10n.historyNeverPublic,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: C.muted,

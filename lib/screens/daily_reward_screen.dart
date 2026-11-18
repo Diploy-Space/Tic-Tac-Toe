@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../services/wallet_service.dart';
 import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../l10n/app_localizations.dart';
+import '../services/rewarded_ad_service.dart';
 
 class DailyRewardScreen extends StatefulWidget {
   const DailyRewardScreen({super.key});
@@ -36,7 +39,11 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
   Widget _tile(int i) {
     final done = i < today || (i == today && claimed);
     final now = i == today && !claimed;
-    final color = done ? C.teal : now ? C.magenta : C.border;
+    final color = done
+        ? C.teal
+        : now
+            ? C.magenta
+            : C.border;
     return Expanded(
         flex: i == 6 ? 2 : 1,
         child: Padding(
@@ -60,18 +67,43 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
                                 : null),
                         child: child)),
                 child: Column(children: [
-                  Text('Day ${i + 1}',
+                  Text(context.l10n.dayN('${i + 1}'),
                       style: const TextStyle(color: C.muted, fontSize: 13)),
                   const SizedBox(height: 8),
-                  Icon(done ? Icons.check : Icons.monetization_on_outlined,
-                      color: done ? C.teal : C.coin),
+                  done
+                      ? const Icon(Icons.check, color: C.teal)
+                      : const CurrencyMark(size: 24),
                   const SizedBox(height: 8),
                   Text('${amounts[i]}',
                       style: const TextStyle(fontWeight: FontWeight.w800)),
                 ]))));
   }
 
+  bool _claiming = false;
+
   Future<void> _claim() async {
+    if (claimed || _claiming) return;
+    setState(() => _claiming = true);
+    try {
+      await _claimWithAd();
+    } finally {
+      if (mounted) setState(() => _claiming = false);
+    }
+  }
+
+  /// Daily coins only after a rewarded ad is watched to the end. The wallet
+  /// key is fixed per day, so the reward can be paid once a day at most.
+  Future<void> _claimWithAd() async {
+    final ad = await RewardedAdService.instance.show();
+    if (!mounted) return;
+    if (!ad.earned) {
+      SfxService.play(Sfx.error);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(ad.result == RewardedAdResult.dismissed
+              ? context.l10n.watchFullVideo
+              : context.l10n.noVideoNow)));
+      return;
+    }
     if (claimed) return;
     final amount = amounts[today];
     final ok = await WalletService.credit(
@@ -96,7 +128,7 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
   Widget build(BuildContext context) {
     return AppScaffold(
       child: Column(children: [
-        const TopBar('Daily reward'),
+        TopBar(context.l10n.txDailyReward),
         const SizedBox(height: 14),
         AppCard(
             borderColor: C.magenta,
@@ -108,12 +140,13 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    Text('${claimed ? today : today + 1}-day streak',
+                    Text(
+                        context.l10n
+                            .dayStreak('${claimed ? today : today + 1}'),
                         style: const TextStyle(
                             fontWeight: FontWeight.w800, fontSize: 18)),
-                    const Text(
-                        'Miss a day and it resets. Come back tomorrow for the next reward.',
-                        style: TextStyle(color: C.muted, fontSize: 13)),
+                    Text(context.l10n.missResets,
+                        style: const TextStyle(color: C.muted, fontSize: 13)),
                   ])),
             ])),
         const SizedBox(height: 14),
@@ -124,9 +157,10 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
             width: double.infinity,
             child: PrimaryButton(
                 claimed
-                    ? 'Come back tomorrow'
-                    : 'Claim +${amounts[today]} coins',
-                onTap: claimed ? null : _claim)),
+                    ? context.l10n.comeBackTomorrow
+                    : context.l10n.claimPlusCoins(
+                        AppLocaleService.formatCoinAmount(amounts[today])),
+                onTap: claimed || _claiming ? null : _claim)),
       ]),
     );
   }

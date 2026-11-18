@@ -6,7 +6,7 @@ final ValueNotifier<bool> soundOn = ValueNotifier<bool>(true);
 final ValueNotifier<String> language = ValueNotifier<String>('English');
 final ValueNotifier<bool> musicOn = ValueNotifier<bool>(true);
 final ValueNotifier<bool> vibrationOn = ValueNotifier<bool>(true);
-final ValueNotifier<bool> notificationsOn = ValueNotifier<bool>(false);
+final ValueNotifier<bool> notificationsOn = ValueNotifier<bool>(true);
 /// Challenge privacy → Notifications toggles (Settings → Challenge privacy).
 final ValueNotifier<bool> notifyChallengeRequests = ValueNotifier<bool>(true);
 final ValueNotifier<bool> notifyMatchInvites = ValueNotifier<bool>(true);
@@ -15,6 +15,12 @@ final ValueNotifier<bool> introSeen = ValueNotifier<bool>(false);
 final ValueNotifier<bool> authSignedIn = ValueNotifier<bool>(false);
 final ValueNotifier<String> authDisplayName = ValueNotifier<String>('Guest');
 final ValueNotifier<String> authEmail = ValueNotifier<String>('');
+/// Signed-in player's permanent number (profiles.player_no); null = unknown.
+final ValueNotifier<int?> authPlayerNo = ValueNotifier<int?>(null);
+
+/// Player ID as shown in the app: at least 3 digits, zero-padded.
+/// 12 → "012", 1300 → "1300".
+String formatPlayerId(int n) => n.toString().padLeft(3, '0');
 /// Supabase Storage public URL for the signed-in user's avatar (null = cosmetic face).
 final ValueNotifier<String?> authAvatarUrl = ValueNotifier<String?>(null);
 

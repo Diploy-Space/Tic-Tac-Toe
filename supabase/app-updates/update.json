@@ -1,0 +1,16 @@
+{
+  "update_available": true,
+  "latest_version_name": "1.0.2",
+  "latest_version_code": 3,
+  "min_supported_version_code": 1,
+  "apk_url": "https://gaiyalhrcozftudbmzgb.supabase.co/storage/v1/object/public/app-updates/drotix-1.0.2-3.apk",
+  "apk_sha256": "05a3042c5f732803940a1badf3311b5d224257e403907ff5e2efa5ee8aad472e",
+  "apk_size_bytes": 40457102,
+  "release_notes": [
+    "Offline win, loss and draw screens",
+    "Player ID on the home screen",
+    "Check for updates in About"
+  ],
+  "ios_app_store_url": "",
+  "published_at": "2026-11-17"
+}

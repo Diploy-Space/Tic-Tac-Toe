@@ -7,6 +7,7 @@ import '../services/match_sync_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
+import '../l10n/app_localizations.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -43,11 +44,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             final cloud = MatchSyncService.myStats.value;
             final rankNum = MatchSyncService.myRank.value;
             final useCloudStats = AuthService.isSignedIn && cloud != null;
-            final rank = useCloudStats
-                ? (rankNum == null ? '–' : '#$rankNum')
-                : '–';
-            final score =
-                useCloudStats ? '${cloud.score}' : '${local.score}';
+            final rank =
+                useCloudStats ? (rankNum == null ? '–' : '#$rankNum') : '–';
+            final score = useCloudStats ? '${cloud.score}' : '${local.score}';
             final played =
                 useCloudStats ? '${cloud.played}' : '${local.played}';
             final wins = useCloudStats ? '${cloud.wins}' : '${local.wins}';
@@ -55,12 +54,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
             return SingleChildScrollView(
               child: staggered([
-                const TopBar('Leaderboard'),
+                TopBar(context.l10n.leaderboard),
                 UserCard(showCoins: false, stats: [
-                  MapEntry('Rank', rank),
-                  MapEntry('Score', score),
-                  MapEntry('Played', played),
-                  MapEntry('Wins', wins),
+                  MapEntry(context.l10n.rank, rank),
+                  MapEntry(context.l10n.score, score),
+                  MapEntry(context.l10n.played, played),
+                  MapEntry(context.l10n.wins, wins),
                 ]),
                 if (_loading)
                   const Padding(
@@ -73,8 +72,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   AppCard(
                       child: Text(
                     AuthService.isSignedIn
-                        ? 'No cloud matches yet. Play vs The Doll while signed in to appear here.'
-                        : 'No ranked players yet. Sign in and play to join the board.',
+                        ? context.l10n.noCloudMatches
+                        : context.l10n.noRankedPlayers,
                     style: const TextStyle(color: C.muted),
                   )),
               ], gap: 10),

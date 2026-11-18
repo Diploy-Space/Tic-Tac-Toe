@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../services/app_locale_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../l10n/app_localizations.dart';
 
 /// Shown after a valid referral code credits +50 welcome bonus.
 class ReferralSuccessScreen extends StatelessWidget {
@@ -56,10 +56,10 @@ class ReferralSuccessScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          const Text(
-            'WELCOME BONUS',
+          Text(
+            context.l10n.welcomeBonusCaps,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: C.teal,
               fontWeight: FontWeight.w800,
               fontSize: 12,
@@ -93,10 +93,10 @@ class ReferralSuccessScreen extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Your referral code worked. The coins are in your wallet and ready to use.',
+          Text(
+            context.l10n.referralWorked,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Color(0xFFD0D0D8),
               fontSize: 14,
               height: 1.45,
@@ -114,9 +114,9 @@ class ReferralSuccessScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Text(
-                      'Referral code',
-                      style: TextStyle(color: C.muted, fontSize: 13),
+                    Text(
+                      context.l10n.referralCode,
+                      style: const TextStyle(color: C.muted, fontSize: 13),
                     ),
                     const Spacer(),
                     Text(
@@ -133,16 +133,12 @@ class ReferralSuccessScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Text(
-                      'Wallet balance',
-                      style: TextStyle(color: C.muted, fontSize: 13),
+                    Text(
+                      context.l10n.walletBalance,
+                      style: const TextStyle(color: C.muted, fontSize: 13),
                     ),
                     const Spacer(),
-                    const Icon(
-                      Icons.monetization_on,
-                      color: C.coin,
-                      size: 18,
-                    ),
+                    const CurrencyMark(size: 18),
                     const SizedBox(width: 6),
                     Text(
                       '$balance',
@@ -172,9 +168,9 @@ class ReferralSuccessScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                'START PLAYING',
-                style: TextStyle(
+              child: Text(
+                context.l10n.startPlayingCaps,
+                style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1,
                   fontSize: 15,
@@ -231,14 +227,9 @@ class _HeroCoin extends StatelessWidget {
           ),
         ],
       ),
-      child: Text(
-        AppLocaleService.currencySymbol,
-        style: const TextStyle(
-          color: Color(0xFF4E342E),
-          fontWeight: FontWeight.w900,
-          fontSize: 48,
-          height: 1,
-        ),
+      child: const CurrencyMark(
+        size: 48,
+        color: Color(0xFF4E342E),
       ),
     );
   }
@@ -262,14 +253,9 @@ class _MiniCoin extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
       ),
-      child: Text(
-        AppLocaleService.currencySymbol,
-        style: TextStyle(
-          color: const Color(0xFF5D4037),
-          fontWeight: FontWeight.w900,
-          fontSize: math.max(8, size * 0.45),
-          height: 1,
-        ),
+      child: CurrencyMark(
+        size: math.max(8, size * 0.45),
+        color: const Color(0xFF5D4037),
       ),
     );
   }

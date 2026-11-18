@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import '../models.dart';
 import '../services/app_locale_service.dart';
@@ -6,6 +7,7 @@ import '../services/wallet_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'shop_reward_flow_screens.dart';
+import '../l10n/app_localizations.dart';
 
 enum _TxFilter { all, earned, spent }
 
@@ -42,7 +44,7 @@ class _WalletScreenState extends State<WalletScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const TopBar('WALLET'),
+              TopBar(context.l10n.walletCaps),
               const SizedBox(height: 18),
               _BalanceCard(
                 onBuy: () => Navigator.pushNamed(context, '/shop'),
@@ -72,12 +74,12 @@ class _WalletScreenState extends State<WalletScreen> {
                         t,
                   ];
                   if (!AuthService.isSignedIn) {
-                    return const _EmptyHint(
-                      'Sign in to see your wallet history.',
+                    return _EmptyHint(
+                      context.l10n.signInWalletHistory,
                     );
                   }
                   if (filtered.isEmpty) {
-                    return const _EmptyHint('No transactions yet.');
+                    return _EmptyHint(context.l10n.noTransactions);
                   }
                   final groups = _groupByDay(filtered);
                   return Column(
@@ -134,9 +136,9 @@ List<_DayGroup> _groupByDay(List<WalletTx> txs) {
     for (final d in days)
       _DayGroup(
         d == today
-            ? 'TODAY'
+            ? l10nNow.todayCaps
             : (d == yesterday
-                ? 'YESTERDAY'
+                ? l10nNow.yesterdayCaps
                 : '${d.day}/${d.month}/${d.year}'),
         map[d]!,
       ),
@@ -168,9 +170,9 @@ class _BalanceCard extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Text(
-                    'TOTAL COINS',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.totalCoinsCaps,
+                    style: const TextStyle(
                       color: C.muted,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -195,7 +197,11 @@ class _BalanceCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        _CoinBadge(symbol: AppLocaleService.currencySymbol),
+                        ValueListenableBuilder<int>(
+                          valueListenable: AppLocaleService.revision,
+                          builder: (_, __, ___) =>
+                              _CoinBadge(symbol: AppLocaleService.currencySymbol),
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           '$amount',
@@ -224,9 +230,9 @@ class _BalanceCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(28),
                               ),
                             ),
-                            child: const Text(
-                              'BUY COINS',
-                              style: TextStyle(
+                            child: Text(
+                              context.l10n.buyCoinsCaps,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                                 letterSpacing: 0.6,
@@ -251,9 +257,9 @@ class _BalanceCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(28),
                               ),
                             ),
-                            child: const Text(
-                              'FREE COINS',
-                              style: TextStyle(
+                            child: Text(
+                              context.l10n.freeCoins,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13,
                                 letterSpacing: 0.5,
@@ -367,9 +373,9 @@ class _WeekSourceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Earned this week, by source',
-            style: TextStyle(
+          Text(
+            context.l10n.earnedThisWeek,
+            style: const TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 13.5,
               color: C.text,
@@ -377,21 +383,21 @@ class _WeekSourceCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _SourceBar(
-            label: 'Matches',
+            label: context.l10n.matches,
             value: matches,
             color: const Color(0xFF47BBA7),
             max: maxV,
           ),
           const SizedBox(height: 12),
           _SourceBar(
-            label: 'Videos',
+            label: context.l10n.videos,
             value: videos,
             color: const Color(0xFFC73974),
             max: maxV,
           ),
           const SizedBox(height: 12),
           _SourceBar(
-            label: 'Purchases',
+            label: context.l10n.purchases,
             value: purchases,
             color: const Color(0xFFF7C252),
             max: maxV,
@@ -509,9 +515,9 @@ class _FilterTabs extends StatelessWidget {
       ),
       child: Row(
         children: [
-          chip('All', _TxFilter.all),
-          chip('Earned', _TxFilter.earned),
-          chip('Spent', _TxFilter.spent),
+          chip(context.l10n.all, _TxFilter.all),
+          chip(context.l10n.earned, _TxFilter.earned),
+          chip(context.l10n.spent, _TxFilter.spent),
         ],
       ),
     );
@@ -565,60 +571,59 @@ _TxMeta _metaFor(WalletTx t) {
 
   if (r == 'ad_reward' || r.contains('video') || r.contains('ad')) {
     return _TxMeta(
-      'Free video reward',
+      l10nNow.txFreeVideo,
       'V',
       const Color(0xFF2FB8B4),
-      'Watching ads · $time',
+      l10nNow.txWatchingAds(time),
     );
   }
   if (r == 'iap_grant' || r.contains('purchase') || r.contains('buy')) {
     return _TxMeta(
-      'Coin purchase',
+      l10nNow.txCoinPurchase,
       'P',
       const Color(0xFFF7C252),
-      'Purchasing coins · $time',
+      l10nNow.txPurchasing(time),
     );
   }
   if (r == 'match_reward' ||
-      ((r.contains('match') || r.contains('win')) &&
-          t.direction == 'credit')) {
+      ((r.contains('match') || r.contains('win')) && t.direction == 'credit')) {
     return _TxMeta(
-      'Match win',
+      l10nNow.txMatchWin,
       'M',
       const Color(0xFF2FB8B4),
-      'Winning matches · $time',
+      l10nNow.txWinning(time),
     );
   }
   if (r == 'daily_reward') {
     return _TxMeta(
-      'Daily reward',
+      l10nNow.txDailyReward,
       'D',
       const Color(0xFF2FB8B4),
-      'Daily bonus · $time',
+      l10nNow.txDailyBonus(time),
     );
   }
   if (r == 'referral_bonus') {
     return _TxMeta(
-      'Welcome bonus',
+      l10nNow.txWelcomeBonus,
       'R',
       const Color(0xFFFFC24D),
-      'Referral code · $time',
+      l10nNow.txReferral(time),
     );
   }
   if (r == 'tournament_prize') {
     return _TxMeta(
-      'Tournament prize',
+      l10nNow.txTournamentPrize,
       'T',
       const Color(0xFFF7C252),
-      'Tournament · $time',
+      l10nNow.txTournament(time),
     );
   }
   if (r.contains('challenge') && t.direction == 'debit') {
     return _TxMeta(
-      'Challenge entry',
+      l10nNow.txChallengeEntry,
       'C',
       C.magenta,
-      '${ref.isEmpty ? 'Match' : _titleCase(ref)} · $time',
+      '${ref.isEmpty ? l10nNow.match : _titleCase(ref)} · $time',
     );
   }
   if (t.direction == 'debit') {
@@ -626,28 +631,25 @@ _TxMeta _metaFor(WalletTx t) {
       _titleCase(t.reason),
       'C',
       C.magenta,
-      '${ref.isEmpty ? 'Spent' : _titleCase(ref)} · $time',
+      '${ref.isEmpty ? l10nNow.spent : _titleCase(ref)} · $time',
     );
   }
   return _TxMeta(
     _titleCase(t.reason),
     'W',
     const Color(0xFF2FB8B4),
-    '${ref.isEmpty ? 'Wallet' : _titleCase(ref)} · $time',
+    '${ref.isEmpty ? l10nNow.wallet : _titleCase(ref)} · $time',
   );
 }
 
 String _titleCase(String s) {
   final t = s.replaceAll('_', ' ').trim();
-  if (t.isEmpty) return 'Wallet';
+  if (t.isEmpty) return l10nNow.wallet;
   return t[0].toUpperCase() + t.substring(1);
 }
 
 String _fmtTime(DateTime d) {
-  final h = d.hour > 12 ? d.hour - 12 : (d.hour == 0 ? 12 : d.hour);
-  final m = d.minute.toString().padLeft(2, '0');
-  final ap = d.hour >= 12 ? 'PM' : 'AM';
-  return '$h:$m $ap';
+  return DateFormat.jm(l10nNow.localeName).format(d);
 }
 
 class _TxTile extends StatelessWidget {
@@ -714,7 +716,7 @@ class _TxTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '${credit ? '+' : '-'}${tx.amountMinor}',
+            '${credit ? '+' : '-'}${AppLocaleService.formatCoinAmount(tx.amountMinor)}',
             style: TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 15,

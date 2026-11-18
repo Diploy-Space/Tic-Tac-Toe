@@ -5,13 +5,13 @@ import '../models/moderation_models.dart';
 import '../services/app_locale_service.dart';
 import '../services/auth_service.dart';
 import '../services/moderation_service.dart';
+import '../services/notification_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
 import '../widgets/extras.dart';
 import '../widgets/offline_banner.dart';
 import 'dialogs.dart';
-import 'how_to_play_flow_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,8 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _enforceModeration() async {
     if (!AuthService.isSignedIn || !mounted) return;
-    final s = ModerationService.status.value ??
-        await ModerationService.refresh();
+    final s =
+        ModerationService.status.value ?? await ModerationService.refresh();
     if (!mounted || s == null) return;
     if (s.accountStatus == AccountStatus.suspended) {
       Navigator.pushNamedAndRemoveUntil(
@@ -66,54 +66,66 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/profile'),
                 behavior: HitTestBehavior.opaque,
-                child: ValueListenableBuilder<String>(
-                    valueListenable: authDisplayName,
-                    builder: (_, name, __) => Text(name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 16))),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const _PlayerIdLine(),
+                      ValueListenableBuilder<String>(
+                          valueListenable: authDisplayName,
+                          builder: (_, name, __) => Text(
+                              context.nameOrGuest(name),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 16))),
+                    ]),
               )),
+              const _NotificationBell(),
               IconButton(
-                  tooltip: 'How to play',
-                  onPressed: () => showHowToPlayDialog(context),
+                  tooltip: context.l10n.howToPlay,
+                  onPressed: () => Navigator.pushNamed(context, '/how-to-play'),
                   icon: const Icon(Icons.help_outline, color: C.muted)),
               const CoinChip(),
             ]),
             const OfflineBanner(),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              _Quick(Icons.card_giftcard, 'Daily', '/daily', dot: true),
-              _Quick(Icons.sports_esports_outlined, context.tr('challenges'),
+              _Quick(Icons.card_giftcard, context.l10n.daily, '/daily',
+                  dot: true),
+              _Quick(Icons.sports_esports_outlined, context.l10n.challenges,
                   '/challenges'),
-              _Quick(Icons.shopping_bag_outlined, context.tr('shop'), '/shop'),
-              _Quick(Icons.emoji_events_outlined, 'Events', '/events'),
+              _Quick(Icons.shopping_bag_outlined, context.l10n.shop, '/shop'),
+              _Quick(
+                  Icons.emoji_events_outlined, context.l10n.events, '/events'),
             ]),
-            Heading(context.tr('pick_your_game')),
+            Heading(context.l10n.pickYourGame),
             // Accent hex sampled 1:1 from design icon sheet.
             _ModeCard(
                 shape: ShapeKind.circle,
                 accent: const Color(0xFFDA3575),
-                title: context.tr('play_vs_doll'),
-                subtitle: context.tr('offline_smart'),
+                title: context.l10n.playVsDoll,
+                subtitle: context.l10n.offlineSmart,
                 number: '01',
                 onTap: () => startVsDoll(context)),
             _ModeCard(
                 shape: ShapeKind.triangle,
                 accent: const Color(0xFF31D3B6),
-                title: context.tr('random_match'),
-                subtitle: context.tr('online_offline_ai'),
+                title: context.l10n.randomMatch,
+                subtitle: context.l10n.onlineOfflineAi,
                 number: '02',
                 onTap: () => startRandom(context)),
             _ModeCard(
                 shape: ShapeKind.square,
                 accent: const Color(0xFFDC3275),
-                title: context.tr('online_match'),
-                subtitle: context.tr('find_private_join'),
+                title: context.l10n.onlineMatch,
+                subtitle: context.l10n.findPrivateJoin,
                 number: '03',
                 onTap: () => startOnlineMatch(context)),
             _ModeCard(
                 shape: ShapeKind.bullseye,
                 accent: const Color(0xFFFBC34C),
-                title: context.tr('pass_and_play'),
-                subtitle: context.tr('two_players'),
+                title: context.l10n.passAndPlay,
+                subtitle: context.l10n.twoPlayers,
                 number: '04',
                 onTap: () => startPassAndPlay(context)),
             const Spacer(),
@@ -137,6 +149,8 @@ class _ModeCard extends StatelessWidget {
       required this.subtitle,
       required this.number,
       required this.onTap});
+  static const _iconDisc = Color(0xFF2A1520);
+
   @override
   Widget build(BuildContext context) => Semantics(
       button: true,
@@ -147,35 +161,29 @@ class _ModeCard extends StatelessWidget {
           child: AppCard(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
               child: Row(children: [
+                // Same dark maroon disc for every mode; only the shape
+                // carries the mode colour.
                 Container(
                     width: 52,
                     height: 52,
-                    decoration: BoxDecoration(
-                        color: C.bg,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: accent.withValues(alpha: 0.55)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: accent.withValues(alpha: 0.22),
-                            blurRadius: 10,
-                            spreadRadius: 0.5,
-                          ),
-                        ]),
+                    decoration: const BoxDecoration(
+                        color: _iconDisc, shape: BoxShape.circle),
                     child: Center(
                         child: ShapeIcon(shape,
-                            color: accent, stroke: 2.4))),
+                            size: 26, color: accent, stroke: 2.2))),
                 const SizedBox(width: 14),
                 Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Tag(context.tr('mode', {'n': number}), color: accent),
-                  const SizedBox(height: 2),
-                  Text(title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 18)),
-                  Text(subtitle,
-                      style: const TextStyle(color: C.muted, fontSize: 13)),
-                ])),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Tag(context.l10n.mode(number), color: C.magenta),
+                      const SizedBox(height: 2),
+                      Text(title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 18)),
+                      Text(subtitle,
+                          style: const TextStyle(color: C.muted, fontSize: 13)),
+                    ])),
                 const Icon(Icons.chevron_right, color: C.muted),
               ]))));
 }
@@ -202,7 +210,8 @@ class _Quick extends StatelessWidget {
                       decoration: BoxDecoration(
                           color: C.bg,
                           shape: BoxShape.circle,
-                          border: Border.all(color: dot ? C.magenta : C.border2)),
+                          border:
+                              Border.all(color: dot ? C.magenta : C.border2)),
                       child: Icon(icon, size: 22)),
                   if (dot)
                     Positioned(
@@ -215,6 +224,50 @@ class _Quick extends StatelessWidget {
                                 color: C.magenta, shape: BoxShape.circle))),
                 ]),
                 const SizedBox(height: 6),
-                Text(label, style: const TextStyle(color: C.muted, fontSize: 13)),
+                Text(label,
+                    style: const TextStyle(color: C.muted, fontSize: 13)),
               ]))));
+}
+
+/// "PLAYER 042" above the username, in teal. Hidden for guests.
+class _PlayerIdLine extends StatelessWidget {
+  const _PlayerIdLine();
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<int?>(
+        valueListenable: authPlayerNo,
+        builder: (context, no, _) {
+          if (no == null) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Text(context.l10n.playerIdLabel(formatPlayerId(no)),
+                style: const TextStyle(
+                    color: C.teal,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 2.4,
+                    fontFeatures: [FontFeature.tabularFigures()])),
+          );
+        },
+      );
+}
+
+/// Bell with unread count → notification history.
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell();
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+        valueListenable: NotificationService.unread,
+        builder: (_, n, __) => IconButton(
+          tooltip: context.l10n.notifications,
+          onPressed: () => Navigator.pushNamed(context, '/notifications'),
+          icon: Badge(
+            isLabelVisible: n > 0,
+            backgroundColor: C.magenta,
+            label: Text(n > 99 ? '99+' : '$n'),
+            child: const Icon(Icons.notifications_none, color: C.muted),
+          ),
+        ),
+      );
 }

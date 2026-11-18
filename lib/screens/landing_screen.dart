@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
+import '../l10n/app_localizations.dart';
 
 /// Animated splash / landing screen.
 class LandingScreen extends StatefulWidget {
@@ -32,7 +33,7 @@ class _LandingScreenState extends State<LandingScreen>
       child: ScrollFill(
         child: Column(children: [
           const SizedBox(height: 70),
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
+          const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             PopIn(delayMs: 200, child: ShapeIcon(ShapeKind.circle, size: 48)),
             SizedBox(width: 14),
             PopIn(delayMs: 500, child: ShapeIcon(ShapeKind.triangle, size: 48)),
@@ -54,22 +55,25 @@ class _LandingScreenState extends State<LandingScreen>
                         letterSpacing: 1 + 4 * _glow.value,
                         shadows: [
                           Shadow(
-                              color: C.magenta.withAlpha((60 + 150 * _glow.value).round()),
+                              color: C.magenta
+                                  .withAlpha((60 + 150 * _glow.value).round()),
                               blurRadius: 14 + 12 * _glow.value)
                         ]))),
           ),
           const SizedBox(height: 8),
-          const Tag('The deadliest little game'),
+          Tag(context.l10n.tagline),
           const SizedBox(height: 22),
-          FadeUp(
+          const FadeUp(
               index: 4,
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
-                GuardFace(size: 84),
-                SizedBox(width: 4),
-                DollFace(size: 96),
-                SizedBox(width: 4),
-                PlayerFace(size: 84),
-              ])),
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GuardFace(size: 84),
+                    SizedBox(width: 4),
+                    DollFace(size: 96),
+                    SizedBox(width: 4),
+                    PlayerFace(size: 84),
+                  ])),
           const Spacer(),
           AnimatedBuilder(
               animation: _bar,
@@ -87,35 +91,31 @@ class _LandingScreenState extends State<LandingScreen>
                   width: double.infinity,
                   child: PrimaryButton(
                       AuthService.isSignedIn
-                          ? 'Continue playing'
-                          : 'Sign in with email',
-                      onTap: () {
-                        if (AuthService.isSignedIn) {
-                          Navigator.pushNamedAndRemoveUntil(
-                              context, '/home', (r) => false);
-                        } else {
-                          Navigator.pushNamed(context, '/signin');
-                        }
-                      }))),
+                          ? context.l10n.continuePlaying
+                          : context.l10n.signInWithEmail, onTap: () {
+                    if (AuthService.isSignedIn) {
+                      Navigator.pushNamedAndRemoveUntil(
+                          context, '/home', (r) => false);
+                    } else {
+                      Navigator.pushNamed(context, '/signin');
+                    }
+                  }))),
           const SizedBox(height: 12),
           FadeUp(
               index: 7,
               child: SizedBox(
                   width: double.infinity,
-                  child: GhostButton('Continue with Google', onTap: () async {
+                  child: GhostButton(context.l10n.continueWithGoogle,
+                      onTap: () async {
                     try {
                       final ok = await AuthService.signInWithGoogle();
                       if (!context.mounted) return;
                       if (!ok) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Could not open Google sign-in')));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(context.l10n.couldNotOpenGoogle)));
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Complete Google sign-in, then return')));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(context.l10n.completeGoogleSignIn)));
                       }
                     } catch (e) {
                       if (!context.mounted) return;
@@ -127,8 +127,8 @@ class _LandingScreenState extends State<LandingScreen>
           TextButton(
               onPressed: () => Navigator.pushNamedAndRemoveUntil(
                   context, '/home', (r) => false),
-              child: const Text('Play as guest',
-                  style: TextStyle(color: C.muted))),
+              child: Text(context.l10n.playAsGuest,
+                  style: const TextStyle(color: C.muted))),
         ]),
       ),
     );

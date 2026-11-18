@@ -6,6 +6,7 @@ import '../services/challenge_flow_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
+import '../l10n/app_localizations.dart';
 
 /// Waiting modal — reacts in realtime when opponent accepts / declines.
 class ChallengeWaitingScreen extends StatefulWidget {
@@ -55,22 +56,17 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen> {
     _timer?.cancel();
     if (!mounted) return;
     if (c.status == ChallengeItemStatus.accepted) {
-      Navigator.pushReplacementNamed(
-        context,
-        '/match-lobby',
-        arguments: {
-          'opponentName': c.opponentName,
-          'opponentId': c.opponentId,
-          'stakeLabel': c.stakeLabel,
-        },
-      );
+      Navigator.pushReplacementNamed(context, '/match-lobby',
+          arguments: c.lobbyArgs());
       return;
     }
     final msg = switch (c.status) {
-      ChallengeItemStatus.declined => 'Challenge declined',
-      ChallengeItemStatus.cancelled => 'Challenge cancelled',
-      ChallengeItemStatus.expired => 'Challenge expired',
-      _ => 'Challenge closed',
+      ChallengeItemStatus.declined when c.declinedBusy =>
+        context.l10n.notifChallengeBusyBody(c.opponentName),
+      ChallengeItemStatus.declined => context.l10n.challengeDeclined,
+      ChallengeItemStatus.cancelled => context.l10n.challengeCancelled,
+      ChallengeItemStatus.expired => context.l10n.challengeExpired,
+      _ => context.l10n.challengeClosed,
     };
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     Navigator.pop(context);
@@ -86,14 +82,14 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen> {
   @override
   Widget build(BuildContext context) {
     final c = _item;
-    final name = c?.opponentName ?? 'Opponent';
+    final name = c?.opponentName ?? context.l10n.opponent;
     final left = c?.secondsLeft ?? 0;
     final free = c?.stake == ChallengeStakeKind.free;
 
     return AppScaffold(
       child: Column(
         children: [
-          const TopBar('Challenge'),
+          TopBar(context.l10n.challenge),
           const Spacer(),
           PdfModalCard(
             child: Column(
@@ -101,7 +97,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen> {
                 PdfCircularTimer(value: left, total: 60, size: 128),
                 const SizedBox(height: 20),
                 Text(
-                  'Waiting for $name to accept…',
+                  context.l10n.waitingForAccept(name),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontWeight: FontWeight.w800,
@@ -109,15 +105,22 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  free
-                      ? 'Challenge sent · Free match'
-                      : 'Challenge sent · 5 coins',
-                  style: const TextStyle(color: C.muted, fontSize: 13),
-                ),
+                if (free)
+                  Text(context.l10n.challengeSentFree,
+                      style: const TextStyle(color: C.muted, fontSize: 13))
+                else
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CurrencyMark(size: 13),
+                      const SizedBox(width: 4),
+                      Text(context.l10n.challengeSentCoins,
+                          style: const TextStyle(color: C.muted, fontSize: 13)),
+                    ],
+                  ),
                 const SizedBox(height: 20),
                 PdfGhostButton(
-                  'Cancel challenge',
+                  context.l10n.cancelChallenge,
                   onTap: () async {
                     final nav = Navigator.of(context);
                     if (c != null) await ChallengeFlowService.cancel(c.id);
@@ -135,16 +138,10 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen> {
               onPressed: () async {
                 if (c == null) return;
                 final nav = Navigator.of(context);
-                await ChallengeFlowService.accept(c.id);
+                final acc = await ChallengeFlowService.accept(c.id);
                 if (!mounted) return;
-                nav.pushReplacementNamed(
-                  '/match-lobby',
-                  arguments: {
-                    'opponentName': c.opponentName,
-                    'opponentId': c.opponentId,
-                    'stakeLabel': c.stakeLabel,
-                  },
-                );
+                nav.pushReplacementNamed('/match-lobby',
+                    arguments: (acc ?? c).lobbyArgs());
               },
               child: const Text(
                 'Simulate accept (single device)',

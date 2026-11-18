@@ -7,6 +7,7 @@ import '../services/progress_sync_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
+import '../l10n/app_localizations.dart';
 
 enum _IconTone { magenta, teal }
 
@@ -17,6 +18,7 @@ class _Badge {
   final String name;
   final int Function() progress;
   final int total;
+
   /// When true and not unlocked with 0 progress, subtitle shows "Locked".
   final bool lockedLabel;
   const _Badge({
@@ -57,8 +59,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     final wins = useCloud ? cloud.wins : playerStats.wins;
     final played = useCloud ? cloud.played : playerStats.played;
     final score = useCloud ? cloud.score : playerStats.score;
-    final streak =
-        MatchSyncService.derivedBestStreak ?? playerStats.bestStreak;
+    final streak = MatchSyncService.derivedBestStreak ?? playerStats.bestStreak;
     final rank = MatchSyncService.myRank.value;
     final friends = AuthService.isSignedIn
         ? FriendService.friends.value.length
@@ -70,7 +71,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'first_win',
         shape: ShapeKind.circle,
         tone: _IconTone.magenta,
-        name: 'First win',
+        name: context.l10n.achFirstWin,
         progress: () => wins.clamp(0, 1),
         total: 1,
       ),
@@ -78,7 +79,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'streak_3',
         shape: ShapeKind.triangle,
         tone: _IconTone.teal,
-        name: 'Win streak 3',
+        name: context.l10n.achStreak3,
         progress: () => streak.clamp(0, 3),
         total: 3,
       ),
@@ -86,7 +87,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'matches_10',
         shape: ShapeKind.square,
         tone: _IconTone.magenta,
-        name: '10 matches',
+        name: context.l10n.ach10Matches,
         progress: () => played.clamp(0, 10),
         total: 10,
       ),
@@ -94,7 +95,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'challenger',
         shape: ShapeKind.circle,
         tone: _IconTone.magenta,
-        name: 'Challenger',
+        name: context.l10n.achChallenger,
         progress: () => friends.clamp(0, 1),
         total: 1,
       ),
@@ -102,7 +103,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'survivor_10',
         shape: ShapeKind.triangle,
         tone: _IconTone.teal,
-        name: 'Survivor',
+        name: context.l10n.achSurvivor,
         progress: () => wins.clamp(0, 10),
         total: 10,
       ),
@@ -110,7 +111,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'champion',
         shape: ShapeKind.square,
         tone: _IconTone.magenta,
-        name: 'Champion',
+        name: context.l10n.achChampion,
         progress: () => tournaments.clamp(0, 1),
         total: 1,
       ),
@@ -118,7 +119,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'streak_5',
         shape: ShapeKind.circle,
         tone: _IconTone.magenta,
-        name: 'Win streak 5',
+        name: context.l10n.achStreak5,
         progress: () => streak.clamp(0, 5),
         total: 5,
       ),
@@ -126,7 +127,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'matches_50',
         shape: ShapeKind.triangle,
         tone: _IconTone.teal,
-        name: '50 matches',
+        name: context.l10n.ach50Matches,
         progress: () => played.clamp(0, 50),
         total: 50,
       ),
@@ -134,7 +135,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'top_3',
         shape: ShapeKind.square,
         tone: _IconTone.magenta,
-        name: 'Top 3',
+        name: context.l10n.achTop3,
         progress: () => (rank != null && rank <= 3) ? 1 : 0,
         total: 1,
         lockedLabel: true,
@@ -143,7 +144,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'score_100',
         shape: ShapeKind.circle,
         tone: _IconTone.magenta,
-        name: 'Score 100',
+        name: context.l10n.achScore100,
         progress: () => score >= 100 ? 1 : 0,
         total: 1,
         lockedLabel: true,
@@ -152,7 +153,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'pass_play_10',
         shape: ShapeKind.triangle,
         tone: _IconTone.teal,
-        name: 'Pass & Play',
+        name: context.l10n.passAndPlay,
         progress: () => playerStats.passPlayGames.clamp(0, 10),
         total: 10,
       ),
@@ -160,7 +161,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'wins_100',
         shape: ShapeKind.square,
         tone: _IconTone.magenta,
-        name: '100 wins',
+        name: context.l10n.ach100Wins,
         progress: () => wins.clamp(0, 100),
         total: 100,
       ),
@@ -172,13 +173,12 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         b.progress() >= b.total;
   }
 
-  Color _activeColor(_Badge b) =>
-      b.tone == _IconTone.teal ? C.teal : C.magenta;
+  Color _activeColor(_Badge b) => b.tone == _IconTone.teal ? C.teal : C.magenta;
 
   String _subtitle(_Badge b, bool unlocked, int progress) {
-    if (unlocked) return 'Unlocked';
-    if (b.lockedLabel && progress <= 0) return 'Locked';
-    return '$progress of ${b.total}';
+    if (unlocked) return context.l10n.unlocked;
+    if (b.lockedLabel && progress <= 0) return context.l10n.locked;
+    return context.l10n.progressOf('$progress', '${b.total}');
   }
 
   Widget _tile(_Badge b) {
@@ -245,7 +245,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             children: [
               Expanded(
                 child: Text(
-                  '$unlocked of $total unlocked',
+                  context.l10n.unlockedCount('$unlocked', '$total'),
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
@@ -292,7 +292,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const TopBar('Achievements'),
+                  TopBar(context.l10n.achievements),
                   const SizedBox(height: 14),
                   _progressHeader(unlocked, badges.length),
                   const SizedBox(height: 14),

@@ -4,6 +4,7 @@ import '../services/profile_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
+import '../l10n/app_localizations.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -39,7 +40,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final password = _password.text;
     final confirm = _confirm.text;
     if (email.isEmpty || username.isEmpty || password.isEmpty) {
-      _toast('Fill in all fields');
+      _toast(context.l10n.fillAllFields);
       return;
     }
     final usernameErr = ProfileService.validateUsername(username);
@@ -48,11 +49,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
     if (password.length < 6) {
-      _toast('Password must be at least 6 characters');
+      _toast(context.l10n.passwordMin6);
       return;
     }
     if (password != confirm) {
-      _toast('Passwords do not match');
+      _toast(context.l10n.passwordsNoMatch);
       return;
     }
     setState(() => _loading = true);
@@ -64,7 +65,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
       if (!mounted) return;
       if (needsConfirm) {
-        _toast('Check your email and open the confirmation link');
+        _toast(context.l10n.checkEmailConfirm);
         Navigator.pushNamed(context, '/verify', arguments: email);
       } else {
         Navigator.pushNamedAndRemoveUntil(
@@ -82,50 +83,50 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return AppScaffold(
       child: ScrollFill(
         child: staggered([
-          const TopBar('Sign up'),
+          TopBar(context.l10n.signUp),
           const Align(
               alignment: Alignment.centerLeft, child: GuardFace(size: 80)),
-          const Heading('Join the game'),
+          Heading(context.l10n.joinTheGame),
           AppField(
               icon: Icons.mail_outline,
-              hint: 'Email',
+              hint: context.l10n.email,
               type: TextInputType.emailAddress,
               controller: _email,
               textInputAction: TextInputAction.next),
           AppField(
               icon: Icons.person_outline,
-              hint: 'Username (a-z, 0-9, _)',
+              hint: context.l10n.usernameHint,
               controller: _username,
               textInputAction: TextInputAction.next),
           AppField(
               icon: Icons.lock_outline,
-              hint: 'Password',
+              hint: context.l10n.password,
               obscure: true,
               controller: _password,
               textInputAction: TextInputAction.next),
           AppField(
               icon: Icons.lock_outline,
-              hint: 'Confirm password',
+              hint: context.l10n.confirmPassword,
               obscure: true,
               controller: _confirm,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _signUp()),
-          PrimaryButton(_loading ? 'Please wait…' : 'Create account',
+          PrimaryButton(
+              _loading ? context.l10n.pleaseWait : context.l10n.createAccount,
               onTap: _loading ? null : _signUp),
           const Spacer(),
           Center(
               child: GestureDetector(
                   onTap: () =>
                       Navigator.pushReplacementNamed(context, '/signin'),
-                  child: const Text.rich(TextSpan(
-                      text: 'Already a player? ',
-                      style: TextStyle(color: C.muted, fontSize: 13),
+                  child: Text.rich(TextSpan(
+                      text: '${context.l10n.alreadyPlayer} ',
+                      style: const TextStyle(color: C.muted, fontSize: 13),
                       children: [
                         TextSpan(
-                            text: 'Sign in',
-                            style: TextStyle(
-                                color: C.pinkText,
-                                fontWeight: FontWeight.w700))
+                            text: context.l10n.signIn,
+                            style: const TextStyle(
+                                color: C.pinkText, fontWeight: FontWeight.w700))
                       ])))),
         ]),
       ),

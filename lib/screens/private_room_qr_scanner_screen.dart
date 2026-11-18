@@ -7,6 +7,7 @@ import '../services/qr_code_service.dart';
 import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../l10n/app_localizations.dart';
 
 /// Scan a private-room QR and join via existing [PrivateRoomService.join].
 class PrivateRoomQrScannerScreen extends StatefulWidget {
@@ -45,7 +46,7 @@ class _PrivateRoomQrScannerScreenState
     if (raw == null) return;
     final code = QrCodeService.parseRoomCode(raw);
     if (code == null) {
-      setState(() => _error = 'Invalid room QR');
+      setState(() => _error = context.l10n.invalidRoomQr);
       return;
     }
     setState(() {
@@ -59,7 +60,7 @@ class _PrivateRoomQrScannerScreenState
       if (!res.isMatched || res.roomId == null) {
         setState(() {
           _busy = false;
-          _error = res.message ?? 'Could not join room';
+          _error = res.message ?? context.l10n.couldNotJoinRoom;
         });
         await _controller.start();
         return;
@@ -82,15 +83,15 @@ class _PrivateRoomQrScannerScreenState
 
   Widget _deniedUi() => AppScaffold(
         child: staggered([
-          const TopBar('Scan QR'),
-          const AppCard(
+          TopBar(context.l10n.scanQr),
+          AppCard(
             child: Text(
-              'Camera permission is required to scan a room QR code. Enable Camera for this app in system settings, then try again.',
-              style: TextStyle(color: C.muted, height: 1.4),
+              context.l10n.cameraPermissionRequired,
+              style: const TextStyle(color: C.muted, height: 1.4),
             ),
           ),
           GhostButton(
-            'Enter code instead',
+            context.l10n.enterCodeInstead,
             onTap: () =>
                 Navigator.pushReplacementNamed(context, '/join-private-room'),
           ),
@@ -105,9 +106,9 @@ class _PrivateRoomQrScannerScreenState
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TopBar('Scan QR'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: TopBar(context.l10n.scanQr),
           ),
           Expanded(
             child: Stack(
@@ -131,8 +132,8 @@ class _PrivateRoomQrScannerScreenState
                     return const ColoredBox(
                       color: Colors.black,
                       child: Center(
-                        child: Icon(Icons.videocam_off,
-                            color: C.muted, size: 48),
+                        child:
+                            Icon(Icons.videocam_off, color: C.muted, size: 48),
                       ),
                     );
                   },
@@ -141,13 +142,13 @@ class _PrivateRoomQrScannerScreenState
                   Container(
                     color: Colors.black54,
                     alignment: Alignment.center,
-                    child: const Column(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CircularProgressIndicator(color: C.magenta),
-                        SizedBox(height: 12),
-                        Text('Joining room…',
-                            style: TextStyle(fontWeight: FontWeight.w700)),
+                        const CircularProgressIndicator(color: C.magenta),
+                        const SizedBox(height: 12),
+                        Text(context.l10n.joiningRoom,
+                            style: const TextStyle(fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ),
@@ -165,14 +166,14 @@ class _PrivateRoomQrScannerScreenState
                         style: const TextStyle(color: C.danger),
                         textAlign: TextAlign.center),
                   ),
-                const Text(
-                  'Point at the host’s QR. Same code as the lobby.',
+                Text(
+                  context.l10n.pointAtHostQr,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: C.muted),
+                  style: const TextStyle(color: C.muted),
                 ),
                 const SizedBox(height: 10),
                 GhostButton(
-                  'Enter code instead',
+                  context.l10n.enterCodeInstead,
                   onTap: _busy
                       ? null
                       : () => Navigator.pushReplacementNamed(

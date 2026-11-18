@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'profile_repository.dart';
+import '../l10n/app_localizations.dart';
 
 class AvatarService {
   AvatarService._();
@@ -27,7 +28,7 @@ class AvatarService {
     if (file == null) return null;
     final bytes = await file.readAsBytes();
     if (bytes.length > maxBytes) {
-      throw Exception('Image must be under 2 MB');
+      throw Exception(l10nNow.imageTooBig);
     }
     return bytes;
   }
@@ -59,9 +60,9 @@ class AvatarService {
   /// Upload/replace avatar at `avatars/{uid}/profile.jpg` and update profile row.
   static Future<String> uploadAndSet(Uint8List bytes) async {
     final uid = _client.auth.currentUser?.id;
-    if (uid == null) throw Exception('Not signed in');
+    if (uid == null) throw Exception(l10nNow.notSignedIn);
     if (bytes.length > maxBytes) {
-      throw Exception('Image must be under 2 MB');
+      throw Exception(l10nNow.imageTooBig);
     }
 
     final path = _objectPath(uid);
@@ -86,7 +87,7 @@ class AvatarService {
 
   static Future<void> deleteAvatar() async {
     final uid = _client.auth.currentUser?.id;
-    if (uid == null) throw Exception('Not signed in');
+    if (uid == null) throw Exception(l10nNow.notSignedIn);
     final path = _objectPath(uid);
     try {
       await _client.storage.from(bucket).remove([path]);

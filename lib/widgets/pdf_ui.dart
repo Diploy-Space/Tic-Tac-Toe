@@ -97,11 +97,13 @@ class PdfSearchField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
   final ValueChanged<String>? onSubmitted;
+  final ValueChanged<String>? onChanged;
   const PdfSearchField({
     super.key,
     required this.controller,
     this.hint = 'Search by username or ID',
     this.onSubmitted,
+    this.onChanged,
   });
 
   @override
@@ -119,6 +121,7 @@ class PdfSearchField extends StatelessWidget {
         controller: controller,
         textInputAction: TextInputAction.search,
         onSubmitted: onSubmitted,
+        onChanged: onChanged,
         style: const TextStyle(color: C.text, fontSize: 15),
         decoration: InputDecoration(
           border: InputBorder.none,

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models.dart';
 import 'auth_service.dart';
 import 'wallet_service.dart';
+import '../l10n/app_localizations.dart';
 
 class ReferralApplyResult {
   final String code;
@@ -54,12 +55,12 @@ class ReferralService {
   static Future<ReferralApplyResult> applyCode(String rawCode) async {
     final code = rawCode.trim().toUpperCase();
     if (code.length < 3) {
-      throw Exception('Enter a valid referral code');
+      throw Exception(l10nNow.enterValidReferral);
     }
     final raw = await _db.rpc('apply_referral_code', params: {'p_code': code});
     final map = _asMap(raw);
     if (map == null || '${map['status']}' != 'ok') {
-      throw Exception('${map?['message'] ?? 'Could not apply referral code'}');
+      throw Exception('${map?['message'] ?? l10nNow.couldNotApplyReferral}');
     }
     final balance = (map['balance_minor'] as num?)?.toInt() ?? coins.value;
     final bonus = (map['bonus'] as num?)?.toInt() ?? 50;

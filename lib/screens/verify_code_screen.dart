@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/referral_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../l10n/app_localizations.dart';
 
 /// Holding / OTP screen.
 /// - [mode] `signup`: magic-link confirmation (open email link).
@@ -70,7 +71,7 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
 
   Future<void> _resend() async {
     if (email.isEmpty) {
-      _toast('Missing email — go back and try again');
+      _toast(context.l10n.missingEmail);
       return;
     }
     try {
@@ -79,9 +80,8 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
       } else {
         await AuthService.resendSignupConfirmation(email);
       }
-      _toast(_isRecovery
-          ? 'New code sent — check your inbox'
-          : 'Email sent again — check your inbox');
+      _toast(
+          _isRecovery ? context.l10n.newCodeSent : context.l10n.emailSentAgain);
     } catch (e) {
       _toast(AuthService.messageFromError(e));
     }
@@ -90,11 +90,11 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
   Future<void> _verifyOtp() async {
     final token = _otp.text.trim();
     if (email.isEmpty) {
-      _toast('Missing email — go back and try again');
+      _toast(context.l10n.missingEmail);
       return;
     }
     if (token.length < 6 || token.length > 10) {
-      _toast('Enter the code from your email');
+      _toast(context.l10n.enterCodeFromEmail);
       return;
     }
     setState(() => _loading = true);
@@ -112,39 +112,42 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final target = email.isEmpty ? 'your email' : email;
+    final target = email.isEmpty ? context.l10n.yourEmail : email;
     return AppScaffold(
       child: SingleChildScrollView(
         child: staggered([
-          TopBar(_isRecovery ? 'Enter code' : 'Check email'),
+          TopBar(
+              _isRecovery ? context.l10n.enterCode : context.l10n.checkEmail),
           const SizedBox(height: 8),
-          Heading(_isRecovery ? 'Enter reset code' : 'Check your inbox'),
+          Heading(_isRecovery
+              ? context.l10n.enterResetCode
+              : context.l10n.checkInbox),
           Text(
               _isRecovery
-                  ? 'We sent a reset code to $target.\n'
-                      'Type it below — you don’t need to open the email link.'
-                  : 'We sent a confirmation link to $target.\n'
-                      'Open the link on this device, then return here — you’ll be signed in automatically.',
-              style: const TextStyle(color: C.muted, fontSize: 14, height: 1.5)),
+                  ? context.l10n.resetCodeSentTo(target)
+                  : context.l10n.confirmLinkSentTo(target),
+              style:
+                  const TextStyle(color: C.muted, fontSize: 14, height: 1.5)),
           if (_isRecovery) ...[
             AppField(
                 icon: Icons.pin_outlined,
-                hint: 'Reset code',
+                hint: context.l10n.resetCode,
                 type: TextInputType.number,
                 controller: _otp,
                 obscure: false,
                 obscureToggle: false,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _verifyOtp()),
-            PrimaryButton(_loading ? 'Verifying…' : 'Verify code',
+            PrimaryButton(
+                _loading ? context.l10n.verifying : context.l10n.verifyCode,
                 onTap: _loading ? null : _verifyOtp),
           ] else
             ValueListenableBuilder<bool>(
                 valueListenable: authSignedIn,
                 builder: (_, signedIn, __) => signedIn
-                    ? PrimaryButton('Continue', onTap: () async {
-                        final show =
-                            await ReferralService.shouldShowPrompt();
+                    ? PrimaryButton(context.l10n.continueLabel,
+                        onTap: () async {
+                        final show = await ReferralService.shouldShowPrompt();
                         if (!context.mounted) return;
                         Navigator.pushNamedAndRemoveUntil(
                           context,
@@ -152,33 +155,34 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                           (r) => false,
                         );
                       })
-                    : PrimaryButton('I’ve opened the link',
+                    : PrimaryButton(context.l10n.openedTheLink,
                         onTap: () async {
-                          if (AuthService.isSignedIn) {
-                            final show =
-                                await ReferralService.shouldShowPrompt();
-                            if (!context.mounted) return;
-                            Navigator.pushNamedAndRemoveUntil(
-                              context,
-                              show ? '/referral-code' : '/home',
-                              (r) => false,
-                            );
-                          } else {
-                            _toast(
-                                'Not signed in yet — open the email link first');
-                          }
-                        })),
+                        if (AuthService.isSignedIn) {
+                          final show = await ReferralService.shouldShowPrompt();
+                          if (!context.mounted) return;
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            show ? '/referral-code' : '/home',
+                            (r) => false,
+                          );
+                        } else {
+                          _toast(context.l10n.notSignedInYet);
+                        }
+                      })),
           Center(
               child: TextButton(
                   onPressed: _resend,
-                  child: Text(_isRecovery ? 'Resend code' : 'Resend email',
+                  child: Text(
+                      _isRecovery
+                          ? context.l10n.resendCode
+                          : context.l10n.resendEmail,
                       style: const TextStyle(color: C.muted)))),
           Center(
               child: TextButton(
                   onPressed: () => Navigator.pushNamedAndRemoveUntil(
                       context, '/signin', (r) => false),
-                  child: const Text('Back to Sign in',
-                      style: TextStyle(color: C.pinkText)))),
+                  child: Text(context.l10n.backToSignIn,
+                      style: const TextStyle(color: C.pinkText)))),
         ], gap: 18),
       ),
     );

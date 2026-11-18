@@ -1,3 +1,5 @@
+import '../l10n/app_localizations.dart';
+
 /// Account / report / appeal statuses for chat moderation.
 enum AccountStatus {
   active,
@@ -24,8 +26,19 @@ enum AccountStatus {
 
 class ReportReason {
   final String code;
-  final String label;
-  const ReportReason(this.code, this.label);
+  final String _label;
+  const ReportReason(this.code, this._label);
+
+  /// Reason in the current app language (English if unknown).
+  String get label => switch (code) {
+        'harassment' => l10nNow.reasonHarassment,
+        'offensive' => l10nNow.reasonOffensive,
+        'threatening' => l10nNow.reasonThreatening,
+        'inappropriate' => l10nNow.reasonInappropriate,
+        'spam' => l10nNow.reasonSpam,
+        'other' => l10nNow.reasonOther,
+        _ => _label,
+      };
 
   static const all = [
     ReportReason('harassment', 'Harassment or bullying'),

@@ -5,7 +5,7 @@ class QrCodeService {
   QrCodeService._();
 
   static const prefix = 'TICTAC_ROOM:';
-  static const shareHost = 'playdrotix.com';
+  static const shareHost = 'playdrotix.in';
 
   /// Display / share link (UI). Join still uses [parseRoomCode].
   static String shareLinkForCode(String code) {

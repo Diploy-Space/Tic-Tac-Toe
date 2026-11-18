@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/app_locale_service.dart';
-import '../services/country_currency_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -20,50 +19,42 @@ class LanguageScreen extends StatelessWidget {
           final india = AppLocaleService.isIndia;
           return SingleChildScrollView(
             child: staggered([
-              TopBar(context.tr('language')),
+              TopBar(context.l10n.language),
               AppCard(
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'Region',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.region,
+                      style: const TextStyle(
                         color: C.muted,
                         fontWeight: FontWeight.w700,
                         fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _RegionChip(
-                            label: 'India',
-                            subtitle: '₹ INR',
-                            selected: india,
-                            onTap: () =>
-                                AppLocaleService.applyCountryIso2('IN'),
-                          ),
+                    Row(children: [
+                      const Icon(Icons.public, color: C.teal, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${country.name} · ${country.currencySymbol} ${country.currencyCode}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _RegionChip(
-                            label: 'Other countries',
-                            subtitle: india
-                                ? 'USD / local'
-                                : '${country.currencySymbol} ${country.currencyCode}',
-                            selected: !india,
-                            onTap: () => _pickOtherCountry(context),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      Text(context.l10n.auto,
+                          style: const TextStyle(
+                              color: C.teal,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
+                    ]),
                     const SizedBox(height: 10),
                     Text(
                       india
-                          ? 'India shows Indian languages only. Other countries show English + 10 international languages.'
-                          : 'International languages for ${country.name}. Currency: ${country.currencySymbol} ${country.currencyCode}.',
+                          ? context.l10n.regionIndiaNote
+                          : context.l10n.regionIntlNote(
+                              '${country.currencySymbol} ${country.currencyCode}'),
                       style: const TextStyle(
                         color: C.muted,
                         fontSize: 12,
@@ -80,7 +71,7 @@ class LanguageScreen extends StatelessWidget {
                     await AppLocaleService.setLanguageCode(l.code);
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(context.tr('language_updated'))),
+                      SnackBar(content: Text(context.l10n.languageUpdated)),
                     );
                   },
                   child: AppCard(
@@ -98,8 +89,7 @@ class LanguageScreen extends StatelessWidget {
                                 ? C.magenta
                                 : Colors.transparent,
                             border: Border.all(
-                              color:
-                                  l.code == current ? C.magenta : C.muted,
+                              color: l.code == current ? C.magenta : C.muted,
                               width: 2,
                             ),
                           ),
@@ -132,107 +122,6 @@ class LanguageScreen extends StatelessWidget {
             ], gap: 10),
           );
         },
-      ),
-    );
-  }
-
-  Future<void> _pickOtherCountry(BuildContext context) async {
-    final others = CountryCurrencyService.countries
-        .where((c) => c.iso2 != 'IN')
-        .toList();
-    final selected = await showModalBottomSheet<CountryInfo>(
-      context: context,
-      backgroundColor: C.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: C.border2,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Choose country',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: others.length,
-                itemBuilder: (_, i) {
-                  final c = others[i];
-                  return ListTile(
-                    title: Text(c.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text('${c.currencySymbol} ${c.currencyCode}'),
-                    onTap: () => Navigator.pop(ctx, c),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (selected == null) return;
-    await AppLocaleService.applyCountryIso2(selected.iso2);
-  }
-}
-
-class _RegionChip extends StatelessWidget {
-  final String label;
-  final String subtitle;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _RegionChip({
-    required this.label,
-    required this.subtitle,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: selected ? C.magenta.withValues(alpha: 0.15) : C.bg,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: selected ? C.magenta : C.border2),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                color: selected ? C.magenta : C.text,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: const TextStyle(color: C.muted, fontSize: 12),
-            ),
-          ],
-        ),
       ),
     );
   }

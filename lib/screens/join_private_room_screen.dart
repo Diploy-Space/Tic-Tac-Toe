@@ -10,6 +10,7 @@ import '../services/qr_code_service.dart';
 import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../l10n/app_localizations.dart';
 
 /// Join via camera QR and/or 6-character room code (design: JOIN ROOM).
 class JoinPrivateRoomScreen extends StatefulWidget {
@@ -24,8 +25,8 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
 
   final _chars = List<String>.filled(_len, '');
   final _focus = List<FocusNode>.generate(_len, (_) => FocusNode());
-  final _inputs =
-      List<TextEditingController>.generate(_len, (_) => TextEditingController());
+  final _inputs = List<TextEditingController>.generate(
+      _len, (_) => TextEditingController());
 
   late final MobileScannerController _camera;
   late final AnimationController _scanAnim;
@@ -73,8 +74,7 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   void _setCodeDigits(String raw) {
-    final cleaned =
-        raw.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    final cleaned = raw.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
     for (var i = 0; i < _len; i++) {
       _chars[i] = i < cleaned.length ? cleaned[i] : '';
       _inputs[i].text = _chars[i];
@@ -94,7 +94,7 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
     final parsed = QrCodeService.parseRoomCode(raw) ??
         raw.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
     if (parsed.isEmpty) {
-      _toast('Clipboard has no room code');
+      _toast(context.l10n.clipboardNoCode);
       return;
     }
     _setCodeDigits(parsed);
@@ -105,20 +105,19 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
       await _camera.toggleTorch();
       setState(() => _torch = !_torch);
     } catch (_) {
-      _toast('Flash not available');
+      _toast(context.l10n.flashUnavailable);
     }
   }
 
   Future<void> _fromPhoto() async {
     if (_busy) return;
     try {
-      final file =
-          await ImagePicker().pickImage(source: ImageSource.gallery);
+      final file = await ImagePicker().pickImage(source: ImageSource.gallery);
       if (file == null) return;
       final result = await _camera.analyzeImage(file.path);
       if (!mounted) return;
       if (result == null || result.barcodes.isEmpty) {
-        _toast('No QR found in photo');
+        _toast(context.l10n.noQrInPhoto);
         return;
       }
       String? raw;
@@ -130,7 +129,7 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
       }
       final code = raw == null ? null : QrCodeService.parseRoomCode(raw);
       if (code == null) {
-        _toast('Invalid room QR');
+        _toast(context.l10n.invalidRoomQr);
         return;
       }
       _setCodeDigits(code);
@@ -153,7 +152,7 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
     if (raw == null) return;
     final code = QrCodeService.parseRoomCode(raw);
     if (code == null) {
-      setState(() => _error = 'Invalid room QR');
+      setState(() => _error = context.l10n.invalidRoomQr);
       return;
     }
     _setCodeDigits(code);
@@ -163,7 +162,7 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
   Future<void> _join([String? override]) async {
     final code = (override ?? _code).trim().toUpperCase();
     if (code.length < 4) {
-      _toast('Enter the full room code');
+      _toast(context.l10n.enterFullCode);
       return;
     }
     if (_busy) return;
@@ -178,7 +177,7 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
       final res = await PrivateRoomService.join(code);
       if (!mounted) return;
       if (!res.isMatched || res.roomId == null) {
-        _toast(res.message ?? 'Could not join room');
+        _toast(res.message ?? context.l10n.couldNotJoinRoom);
         setState(() => _busy = false);
         try {
           await _camera.start();
@@ -270,15 +269,15 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
           fit: StackFit.expand,
           children: [
             if (_denied)
-              const ColoredBox(
-                color: Color(0xFF121218),
+              ColoredBox(
+                color: const Color(0xFF121218),
                 child: Center(
                   child: Padding(
-                    padding: EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(24),
                     child: Text(
-                      'Camera permission needed to scan. You can still enter the code below.',
+                      context.l10n.cameraPermissionNeeded,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: C.muted, height: 1.4),
+                      style: const TextStyle(color: C.muted, height: 1.4),
                     ),
                   ),
                 ),
@@ -299,8 +298,7 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
                   return const ColoredBox(
                     color: Colors.black,
                     child: Center(
-                      child: Icon(Icons.videocam_off,
-                          color: C.muted, size: 48),
+                      child: Icon(Icons.videocam_off, color: C.muted, size: 48),
                     ),
                   );
                 },
@@ -311,14 +309,14 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
                 child: const SizedBox.expand(),
               ),
             ),
-            const Positioned(
+            Positioned(
               left: 16,
               right: 16,
               bottom: 16,
               child: Text(
-                'Point your camera at the room QR code',
+                context.l10n.pointCameraAtQr,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                   fontSize: 12.5,
@@ -332,13 +330,13 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
               Container(
                 color: Colors.black54,
                 alignment: Alignment.center,
-                child: const Column(
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: C.magenta),
-                    SizedBox(height: 12),
-                    Text('Joining room…',
-                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    const CircularProgressIndicator(color: C.magenta),
+                    const SizedBox(height: 12),
+                    Text(context.l10n.joiningRoom,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
                   ],
                 ),
               ),
@@ -388,7 +386,7 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const TopBar('JOIN ROOM'),
+          TopBar(context.l10n.joinRoomCaps),
           const SizedBox(height: 14),
           Expanded(
             child: SingleChildScrollView(
@@ -403,13 +401,13 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
                         icon: _torch
                             ? Icons.flash_on_rounded
                             : Icons.flash_off_rounded,
-                        label: 'Flash',
+                        label: context.l10n.flash,
                         onTap: _busy || _denied ? null : _toggleFlash,
                       ),
                       const SizedBox(width: 10),
                       _toolBtn(
                         icon: Icons.image_outlined,
-                        label: 'From photo',
+                        label: context.l10n.fromPhoto,
                         onTap: _busy ? null : _fromPhoto,
                       ),
                     ],
@@ -418,11 +416,11 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
                   Row(
                     children: [
                       const Expanded(child: Divider(color: C.border2)),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          'OR ENTER THE CODE',
-                          style: TextStyle(
+                          context.l10n.orEnterCodeCaps,
+                          style: const TextStyle(
                             color: C.muted,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -439,9 +437,9 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
                   Center(
                     child: GestureDetector(
                       onTap: _busy ? null : _paste,
-                      child: const Text(
-                        'Paste code',
-                        style: TextStyle(
+                      child: Text(
+                        context.l10n.pasteCode,
+                        style: const TextStyle(
                           color: C.teal,
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
@@ -464,10 +462,10 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
               ),
             ),
           ),
-          const Text(
-            'The camera is only used to scan the code.',
+          Text(
+            context.l10n.cameraOnlyForScan,
             textAlign: TextAlign.center,
-            style: TextStyle(color: C.muted, fontSize: 12),
+            style: const TextStyle(color: C.muted, fontSize: 12),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -482,7 +480,7 @@ class _JoinPrivateRoomScreenState extends State<JoinPrivateRoomScreen>
                 ),
               ),
               child: Text(
-                _busy ? 'JOINING…' : 'JOIN ROOM',
+                _busy ? context.l10n.joiningCaps : context.l10n.joinRoomCaps,
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.8,

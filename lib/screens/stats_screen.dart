@@ -6,6 +6,7 @@ import '../services/match_sync_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
+import '../l10n/app_localizations.dart';
 
 class _RingPainter extends CustomPainter {
   final double value;
@@ -59,8 +60,7 @@ class _StatsScreenState extends State<StatsScreen> {
 
   Widget _bar(String l, double p) => Row(children: [
         SizedBox(
-            width: 36,
-            child: Text(l, style: const TextStyle(color: C.muted))),
+            width: 36, child: Text(l, style: const TextStyle(color: C.muted))),
         Expanded(child: AppProgress(p, color: C.teal)),
         SizedBox(
             width: 44,
@@ -102,10 +102,10 @@ class _StatsScreenState extends State<StatsScreen> {
                 : local.recentForm;
             return SingleChildScrollView(
               child: staggered([
-                const TopBar('Stats'),
+                TopBar(context.l10n.stats),
                 AppCard(
                     child: Column(children: [
-                  const Tag('Win rate'),
+                  Tag(context.l10n.winRate),
                   const SizedBox(height: 12),
                   SizedBox(
                       width: 150,
@@ -120,22 +120,22 @@ class _StatsScreenState extends State<StatsScreen> {
                       ])),
                 ])),
                 Row(children: [
-                  _stat('$played', 'Played'),
-                  _stat('$wins', 'Wins'),
-                  _stat('$losses', 'Losses'),
+                  _stat('$played', context.l10n.played),
+                  _stat('$wins', context.l10n.wins),
+                  _stat('$losses', context.l10n.losses),
                 ]),
                 Row(children: [
-                  _stat('$draws', 'Draws'),
-                  _stat('$bestStreak', 'Best streak'),
-                  _stat(
-                      '${useCloud ? cloud.score : local.score}', 'Score'),
+                  _stat('$draws', context.l10n.draws),
+                  _stat('$bestStreak', context.l10n.bestStreak),
+                  _stat('${useCloud ? cloud.score : local.score}',
+                      context.l10n.score),
                 ]),
                 AppCard(
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                      const Text('By board',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
+                      Text(context.l10n.byBoard,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 12),
                       _bar('3×3', rate3),
                       const SizedBox(height: 12),
@@ -147,12 +147,12 @@ class _StatsScreenState extends State<StatsScreen> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                      const Text('Last 7 games',
-                          style: TextStyle(color: C.muted, fontSize: 13)),
+                      Text(context.l10n.last7Games,
+                          style: const TextStyle(color: C.muted, fontSize: 13)),
                       const SizedBox(height: 10),
                       if (form.isEmpty)
-                        const Text('Play a match to build your form.',
-                            style: TextStyle(color: C.muted))
+                        Text(context.l10n.playToBuildForm,
+                            style: const TextStyle(color: C.muted))
                       else
                         Row(children: [
                           for (final w in form)
@@ -168,8 +168,7 @@ class _StatsScreenState extends State<StatsScreen> {
                                     style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w800,
-                                        color:
-                                            w ? Colors.white : C.muted))),
+                                        color: w ? Colors.white : C.muted))),
                         ]),
                     ])),
               ]),

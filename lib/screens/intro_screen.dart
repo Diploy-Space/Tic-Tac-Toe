@@ -3,6 +3,7 @@ import '../models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
+import '../l10n/app_localizations.dart';
 
 /// First-run onboarding: three swipeable slides.
 class IntroScreen extends StatefulWidget {
@@ -26,20 +27,19 @@ class _IntroScreenState extends State<IntroScreen> {
     Navigator.pushReplacementNamed(context, '/');
   }
 
-  Widget _slide(Widget art, String title, String text) => Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            art,
-            const SizedBox(height: 22),
-            Heading(title, size: 30, align: TextAlign.center),
-            const SizedBox(height: 14),
-            Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(text,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: C.muted, fontSize: 15, height: 1.5))),
-          ]);
+  Widget _slide(Widget art, String title, String text) =>
+      Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        art,
+        const SizedBox(height: 22),
+        Heading(title, size: 30, align: TextAlign.center),
+        const SizedBox(height: 14),
+        Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(text,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: C.muted, fontSize: 15, height: 1.5))),
+      ]);
 
   @override
   Widget build(BuildContext context) {
@@ -49,27 +49,30 @@ class _IntroScreenState extends State<IntroScreen> {
           Tag('${_page + 1} / 3'),
           TextButton(
               onPressed: _done,
-              child: const Text('Skip', style: TextStyle(color: C.muted))),
+              child: Text(context.l10n.skip,
+                  style: const TextStyle(color: C.muted))),
         ]),
         Expanded(
             child: PageView(
                 controller: _pc,
                 onPageChanged: (i) => setState(() => _page = i),
                 children: [
-              _slide(const DollFace(size: 150), 'Outsmart the Doll',
-                  'Beat the AI on 3×3, 4×4 or 5×5 boards.'),
+              _slide(const DollFace(size: 150), context.l10n.introTitle1,
+                  context.l10n.introBody1),
               _slide(
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
-                    ShapeIcon(ShapeKind.circle, size: 52),
-                    SizedBox(width: 14),
-                    ShapeIcon(ShapeKind.triangle, size: 52),
-                    SizedBox(width: 14),
-                    ShapeIcon(ShapeKind.square, size: 52),
-                  ]),
-                  'Duel the world',
-                  'Random matches with real players. Stake coins, win coins.'),
-              _slide(const PlayerFace(size: 150), 'Climb the ranks',
-                  'Daily rewards, missions and tournaments keep you moving up.'),
+                  const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ShapeIcon(ShapeKind.circle, size: 52),
+                        SizedBox(width: 14),
+                        ShapeIcon(ShapeKind.triangle, size: 52),
+                        SizedBox(width: 14),
+                        ShapeIcon(ShapeKind.square, size: 52),
+                      ]),
+                  context.l10n.introTitle2,
+                  context.l10n.introBody2),
+              _slide(const PlayerFace(size: 150), context.l10n.introTitle3,
+                  context.l10n.introBody3),
             ])),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           for (var i = 0; i < 3; i++)
@@ -85,7 +88,8 @@ class _IntroScreenState extends State<IntroScreen> {
         const SizedBox(height: 18),
         SizedBox(
             width: double.infinity,
-            child: PrimaryButton(_page == 2 ? 'Get started' : 'Next',
+            child: PrimaryButton(
+                _page == 2 ? context.l10n.getStarted : context.l10n.next,
                 onTap: () => _page == 2
                     ? _done()
                     : _pc.nextPage(

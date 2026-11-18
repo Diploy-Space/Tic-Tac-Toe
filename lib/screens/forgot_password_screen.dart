@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
+import '../l10n/app_localizations.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -30,7 +31,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _send() async {
     final email = _email.text.trim();
     if (email.isEmpty) {
-      _toast('Enter your email');
+      _toast(context.l10n.enterYourEmail);
       return;
     }
     setState(() => _loading = true);
@@ -54,43 +55,41 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return AppScaffold(
       child: ScrollFill(
         child: staggered([
-          const TopBar('Forgot password'),
+          TopBar(context.l10n.forgotPasswordTitle),
           const SizedBox(height: 8),
           const Align(
               alignment: Alignment.centerLeft,
               child: IconCircle(Icons.lock_outline, size: 84)),
-          const Heading('Reset password'),
-          const Text(
-              'Enter your email and we’ll send a reset code. Type that code in the app — no need to open the email link.',
-              style: TextStyle(color: C.muted, fontSize: 14, height: 1.5)),
+          Heading(context.l10n.resetPassword),
+          Text(context.l10n.resetPasswordBody,
+              style: const TextStyle(color: C.muted, fontSize: 14, height: 1.5)),
           AppField(
               icon: Icons.mail_outline,
-              hint: 'Email',
+              hint: context.l10n.email,
               type: TextInputType.emailAddress,
               controller: _email,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _send()),
           PrimaryButton(
               _loading
-                  ? 'Sending…'
+                  ? context.l10n.sending
                   : _sent
-                      ? 'Code sent'
-                      : 'Send reset code',
+                      ? context.l10n.codeSent
+                      : context.l10n.sendResetCode,
               onTap: _loading ? null : _send),
           const Spacer(),
           Center(
               child: GestureDetector(
                   onTap: () =>
                       Navigator.pushReplacementNamed(context, '/signin'),
-                  child: const Text.rich(TextSpan(
-                      text: 'Back to ',
-                      style: TextStyle(color: C.muted, fontSize: 13),
+                  child: Text.rich(TextSpan(
+                      text: '',
+                      style: const TextStyle(color: C.muted, fontSize: 13),
                       children: [
                         TextSpan(
-                            text: 'Sign in',
-                            style: TextStyle(
-                                color: C.pinkText,
-                                fontWeight: FontWeight.w700))
+                            text: context.l10n.backToSignIn,
+                            style: const TextStyle(
+                                color: C.pinkText, fontWeight: FontWeight.w700))
                       ])))),
         ]),
       ),

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models.dart';
 import 'auth_service.dart';
 import 'storage.dart';
+import '../l10n/app_localizations.dart';
 
 class WalletTx {
   final String id;
@@ -36,8 +37,7 @@ class WalletTx {
         refId: j['ref_id']?.toString(),
         currencyCode: '${j['currency_code'] ?? 'COIN'}',
         balanceAfter: (j['balance_after'] as num?)?.toInt() ?? 0,
-        createdAt:
-            DateTime.tryParse('${j['created_at']}') ?? DateTime.now(),
+        createdAt: DateTime.tryParse('${j['created_at']}') ?? DateTime.now(),
       );
 }
 
@@ -46,7 +46,8 @@ class WalletService {
   WalletService._();
 
   static final ValueNotifier<int?> serverBalance = ValueNotifier<int?>(null);
-  static final ValueNotifier<String> currencyCode = ValueNotifier<String>('COIN');
+  static final ValueNotifier<String> currencyCode =
+      ValueNotifier<String>('COIN');
   static final ValueNotifier<bool> loading = ValueNotifier<bool>(false);
   static final ValueNotifier<String?> error = ValueNotifier<String?>(null);
   static final ValueNotifier<List<WalletTx>> transactions =
@@ -96,7 +97,7 @@ class WalletService {
       final raw = await _db.rpc('get_my_wallet');
       final map = _asMap(raw);
       if (map == null || '${map['status']}' != 'ok') {
-        error.value = '${map?['message'] ?? 'Wallet unavailable'}';
+        error.value = '${map?['message'] ?? l10nNow.walletUnavailable}';
         return;
       }
       _applyBalance(
@@ -167,7 +168,7 @@ class WalletService {
     });
     final map = _asMap(raw);
     if (map == null || '${map['status']}' != 'ok') {
-      error.value = '${map?['message'] ?? 'Debit failed'}';
+      error.value = '${map?['message'] ?? l10nNow.debitFailed}';
       return false;
     }
     _applyBalance(
@@ -207,7 +208,7 @@ class WalletService {
     });
     final map = _asMap(raw);
     if (map == null || '${map['status']}' != 'ok') {
-      error.value = '${map?['message'] ?? 'Credit failed'}';
+      error.value = '${map?['message'] ?? l10nNow.couldNotAddCoins}';
       return false;
     }
     _applyBalance(

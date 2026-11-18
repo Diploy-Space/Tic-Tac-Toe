@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/multiplayer_match.dart';
+import '../services/app_locale_service.dart';
 import '../services/auth_service.dart';
 import '../services/multiplayer_matchmaking_service.dart';
 import '../services/online_realtime_service.dart';
@@ -8,6 +9,7 @@ import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
+import '../l10n/app_localizations.dart';
 
 /// Real online matchmaking UI (separate from AI [MatchingScreen]).
 class OnlineMatchingScreen extends StatefulWidget {
@@ -59,7 +61,7 @@ class _OnlineMatchingScreenState extends State<OnlineMatchingScreen>
       if (!mounted) return;
       setState(() {
         _phase = 'error';
-        _error = 'Sign in required for online matchmaking';
+        _error = context.l10n.signInMatchmaking;
       });
       return;
     }
@@ -69,8 +71,7 @@ class _OnlineMatchingScreenState extends State<OnlineMatchingScreen>
       _error = null;
       _sec = 0;
     });
-    debugPrint(
-        'OnlineMatching: join start size=$_boardSize stake=$_stake');
+    debugPrint('OnlineMatching: join start size=$_boardSize stake=$_stake');
 
     final joined = await MultiplayerMatchmakingService.join(
       boardSize: _boardSize,
@@ -97,8 +98,7 @@ class _OnlineMatchingScreenState extends State<OnlineMatchingScreen>
       if (_staleRetries >= 3) {
         setState(() {
           _phase = 'error';
-          _error =
-              'Previous match expired. Apply SQL 009 / try again in a moment.';
+          _error = context.l10n.previousMatchExpired;
         });
         return;
       }
@@ -108,7 +108,7 @@ class _OnlineMatchingScreenState extends State<OnlineMatchingScreen>
     if (joined.isError) {
       setState(() {
         _phase = 'error';
-        _error = joined.message ?? 'Matchmaking failed';
+        _error = joined.message ?? context.l10n.matchmakingFailed;
       });
       return;
     }
@@ -160,7 +160,7 @@ class _OnlineMatchingScreenState extends State<OnlineMatchingScreen>
       _poll?.cancel();
       setState(() {
         _phase = 'error';
-        _error = 'No opponent found — try again';
+        _error = context.l10n.noOpponentFound;
       });
       return;
     }
@@ -168,7 +168,7 @@ class _OnlineMatchingScreenState extends State<OnlineMatchingScreen>
       _poll?.cancel();
       setState(() {
         _phase = 'error';
-        _error = status.message ?? 'Matchmaking error';
+        _error = status.message ?? context.l10n.matchmakingError;
       });
     }
   }
@@ -227,10 +227,10 @@ class _OnlineMatchingScreenState extends State<OnlineMatchingScreen>
   @override
   Widget build(BuildContext context) {
     final subtitle = switch (_phase) {
-      'joining' => 'Joining queue…',
-      'searching' =>
-        'Online · ${_boardSize}x$_boardSize · stake $_stake · 0:${_sec.toString().padLeft(2, '0')}',
-      'error' => _error ?? 'Something went wrong',
+      'joining' => context.l10n.joiningQueue,
+      'searching' => context.l10n.searchingSubtitle('${_boardSize}x$_boardSize',
+          '$_stake', '0:${_sec.toString().padLeft(2, '0')}'),
+      'error' => _error ?? context.l10n.somethingWentWrong,
       _ => '',
     };
 
@@ -256,7 +256,8 @@ class _OnlineMatchingScreenState extends State<OnlineMatchingScreen>
                     color: C.surface,
                     borderRadius: BorderRadius.circular(99),
                     border: Border.all(color: C.border2)),
-                child: Text('Online · Stake $_stake',
+                child: Text(context.l10n.onlineStake(
+                    AppLocaleService.formatCoinAmount(_stake)),
                     style: const TextStyle(fontWeight: FontWeight.w600))),
             const CoinChip(),
           ]),
@@ -288,8 +289,8 @@ class _OnlineMatchingScreenState extends State<OnlineMatchingScreen>
                 const SizedBox(height: 22),
                 Heading(
                   _phase == 'error'
-                      ? 'Matchmaking stopped'
-                      : 'Finding a player',
+                      ? context.l10n.matchmakingStopped
+                      : context.l10n.findingPlayer,
                   size: 24,
                 ),
                 const SizedBox(height: 8),
@@ -298,7 +299,7 @@ class _OnlineMatchingScreenState extends State<OnlineMatchingScreen>
                     style: const TextStyle(color: C.muted)),
                 if (_phase == 'error') ...[
                   const SizedBox(height: 18),
-                  PrimaryButton('Try again', onTap: () {
+                  PrimaryButton(context.l10n.tryAgain, onTap: () {
                     _leaving = false;
                     _navigated = false;
                     _sec = 0;

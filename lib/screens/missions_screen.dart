@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../services/auth_service.dart';
 import '../services/connectivity_service.dart';
 import '../services/progress_sync_service.dart';
@@ -7,6 +8,8 @@ import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
+import '../l10n/app_localizations.dart';
+import '../services/rewarded_ad_service.dart';
 
 class _Mission {
   final String id;
@@ -36,33 +39,52 @@ class _MissionsScreenState extends State<MissionsScreen> {
   }
 
   List<_Mission> get daily => [
-        _Mission('d_win3', 'Win 3 games', () => playerStats.dailyWins, 3, 20),
-        _Mission('d_play5', 'Play 5 matches', () => playerStats.dailyPlays, 5, 15),
-        _Mission('d_win4', 'Win on a 4×4 board', () => playerStats.dailyWin4, 1, 30),
-        _Mission('d_quick', 'Play a random match', () => playerStats.dailyQuick, 1, 25),
+        _Mission(
+            'd_win3', context.l10n.misWin3, () => playerStats.dailyWins, 3, 20),
+        _Mission('d_play5', context.l10n.misPlay5, () => playerStats.dailyPlays,
+            5, 15),
+        _Mission('d_win4', context.l10n.misWin4x4, () => playerStats.dailyWin4,
+            1, 30),
+        _Mission('d_quick', context.l10n.misQuick, () => playerStats.dailyQuick,
+            1, 25),
       ];
 
   List<_Mission> get weekly => [
-        _Mission('w_win15', 'Win 15 games', () => playerStats.weeklyWins, 15, 100),
-        _Mission('w_play30', 'Play 30 matches', () => playerStats.weeklyPlays, 30, 80),
-        _Mission(
-            'w_tourney', 'Join a tournament', () => playerStats.tournamentsJoined, 1, 60),
+        _Mission('w_win15', context.l10n.misWin15, () => playerStats.weeklyWins,
+            15, 100),
+        _Mission('w_play30', context.l10n.misPlay30,
+            () => playerStats.weeklyPlays, 30, 80),
+        _Mission('w_tourney', context.l10n.misTourney,
+            () => playerStats.tournamentsJoined, 1, 60),
       ];
 
   Future<void> _claim(_Mission m) async {
     if (_claiming || m.claimed || !m.ready) return;
     setState(() => _claiming = true);
     try {
-      await ProgressSyncService.claimMission(
-          missionId: m.id, reward: m.reward);
+      // Mission coins only after a rewarded ad is watched to the end.
+      final ad = await RewardedAdService.instance.show();
+      if (!mounted) return;
+      if (!ad.earned) {
+        SfxService.play(Sfx.error);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(ad.result == RewardedAdResult.dismissed
+                ? context.l10n.watchFullVideo
+                : context.l10n.noVideoNow)));
+        return;
+      }
+      // One claim per mission per period (claimedMissions + server).
+      await ProgressSyncService.claimMission(missionId: m.id, reward: m.reward);
       if (!mounted) return;
       SfxService.play(Sfx.rewardClaim);
-      final cloudSaved = AuthService.isSignedIn &&
-          ConnectivityService.instance.isOnline;
+      final cloudSaved =
+          AuthService.isSignedIn && ConnectivityService.instance.isOnline;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(cloudSaved
-              ? '+${m.reward} coins (saved to cloud)'
-              : '+${m.reward} coins')));
+              ? context.l10n.coinsSavedCloud(
+                  AppLocaleService.formatCoinAmount(m.reward))
+              : context.l10n.plusCoins(
+                  AppLocaleService.formatCoinAmount(m.reward)))));
       setState(() {});
     } catch (e) {
       if (!mounted) return;
@@ -78,9 +100,10 @@ class _MissionsScreenState extends State<MissionsScreen> {
     final cur = m.current().clamp(0, m.total);
     Widget right;
     if (m.claimed) {
-      right = const Tag('Done');
+      right = Tag(context.l10n.done);
     } else if (m.ready) {
-      right = SmallButton('Claim', onTap: _claiming ? null : () => _claim(m));
+      right = SmallButton(context.l10n.claimLabel,
+          onTap: _claiming ? null : () => _claim(m));
     } else {
       right = Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -88,16 +111,18 @@ class _MissionsScreenState extends State<MissionsScreen> {
               borderRadius: BorderRadius.circular(99),
               border: Border.all(color: C.border2)),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.monetization_on_outlined, size: 16, color: C.coin),
+            const CurrencyMark(size: 16),
             const SizedBox(width: 4),
-            Text('${m.reward}', style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text('${m.reward}',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ]));
     }
     return AppCard(
         child: Column(children: [
       Row(children: [
         Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(m.title, style: const TextStyle(fontWeight: FontWeight.w700)),
           Text('$cur/${m.total}',
               style: const TextStyle(color: C.muted, fontSize: 13)),
@@ -122,12 +147,12 @@ class _MissionsScreenState extends State<MissionsScreen> {
             final done = list.where((m) => m.claimed).length;
             return SingleChildScrollView(
               child: staggered([
-                const TopBar('Missions'),
+                TopBar(context.l10n.missions),
                 if (AuthService.isSignedIn)
-                  const Text('Claims sync to your cloud account',
-                      style: TextStyle(color: C.muted, fontSize: 13)),
+                  Text(context.l10n.claimsSync,
+                      style: const TextStyle(color: C.muted, fontSize: 13)),
                 SegRow(
-                    options: const ['Daily', 'Weekly'],
+                    options: [context.l10n.daily, context.l10n.weekly],
                     selected: tab,
                     onChanged: (i) => setState(() => tab = i)),
                 AppCard(
@@ -139,10 +164,15 @@ class _MissionsScreenState extends State<MissionsScreen> {
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                            Text(tab == 0 ? 'Daily chest' : 'Weekly chest',
+                            Text(
+                                tab == 0
+                                    ? context.l10n.dailyChest
+                                    : context.l10n.weeklyChest,
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w700)),
-                            Text('$done of ${list.length} missions done',
+                            Text(
+                                context.l10n
+                                    .missionsDone('$done', '${list.length}'),
                                 style: const TextStyle(
                                     color: C.muted, fontSize: 13)),
                             const SizedBox(height: 8),

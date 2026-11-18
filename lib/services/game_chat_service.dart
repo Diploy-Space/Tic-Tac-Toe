@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/game_chat_message.dart';
 import 'auth_service.dart';
 import 'sfx_service.dart';
+import '../l10n/app_localizations.dart';
 
 /// Realtime in-game chat for a single multiplayer room (ValueNotifier pattern).
 class GameChatService {
@@ -18,6 +19,13 @@ class GameChatService {
   static final ValueNotifier<bool> loading = ValueNotifier<bool>(false);
   static final ValueNotifier<String?> error = ValueNotifier<String?>(null);
   static final ValueNotifier<bool> connected = ValueNotifier<bool>(false);
+
+  /// Why I may not message my opponent right now (their chat privacy):
+  /// null = allowed, 'friends_only', 'nobody'. Re-checked while chatting so
+  /// a mid-match change applies in real time; the server enforces it too.
+  static final ValueNotifier<String?> blockedReason =
+      ValueNotifier<String?>(null);
+  static int _permTick = 0;
 
   /// Unread incoming messages while chat sheet is closed.
   static final ValueNotifier<int> unreadCount = ValueNotifier<int>(0);
@@ -63,6 +71,7 @@ class GameChatService {
     error.value = null;
 
     await refresh();
+    await checkPermission();
     _subscribe(roomId);
     _ensurePoll();
     loading.value = false;
@@ -74,6 +83,8 @@ class GameChatService {
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (_roomId == null) return;
       refresh();
+      // Opponent may change who can message them mid-match.
+      if (++_permTick % 5 == 0) checkPermission();
     });
   }
 
@@ -101,9 +112,7 @@ class GameChatService {
         _seenMessageIds.add(m.id);
         list.add(m);
         // New incoming while polling (not initial empty→full attach).
-        if (prevIds.isNotEmpty &&
-            !prevIds.contains(m.id) &&
-            !m.isMine(uid)) {
+        if (prevIds.isNotEmpty && !prevIds.contains(m.id) && !m.isMine(uid)) {
           _onIncoming(m);
         }
       }
@@ -131,8 +140,7 @@ class GameChatService {
       }
 
       messages.value = List.unmodifiable(list);
-      if (error.value != null &&
-          error.value!.startsWith('Chat realtime')) {
+      if (error.value != null && error.value!.startsWith('Chat realtime')) {
         // keep
       } else if (error.value != null &&
           !error.value!.toLowerCase().contains('send')) {
@@ -201,8 +209,7 @@ class GameChatService {
       callback: (payload) {
         final row = payload.newRecord;
         if (row.isEmpty) return;
-        final m =
-            GameChatMessage.fromJson(Map<String, dynamic>.from(row));
+        final m = GameChatMessage.fromJson(Map<String, dynamic>.from(row));
         _appendLocal(m);
       },
     );
@@ -210,8 +217,7 @@ class GameChatService {
       debugPrint('GameChat channel status=$status err=$err');
       connected.value = status == RealtimeSubscribeStatus.subscribed;
       if (status == RealtimeSubscribeStatus.subscribed) {
-        if (error.value != null &&
-            error.value!.startsWith('Chat realtime')) {
+        if (error.value != null && error.value!.startsWith('Chat realtime')) {
           error.value = null;
         }
       }
@@ -224,9 +230,8 @@ class GameChatService {
 
     _reactChannel = _db.channel('game-chat-react-$roomId');
     void onReactPayload(PostgresChangePayload payload) {
-      final row = payload.newRecord.isNotEmpty
-          ? payload.newRecord
-          : payload.oldRecord;
+      final row =
+          payload.newRecord.isNotEmpty ? payload.newRecord : payload.oldRecord;
       final mid = '${row['message_id'] ?? ''}';
       if (mid.isEmpty || !_seenMessageIds.contains(mid)) return;
       refresh();
@@ -251,7 +256,7 @@ class GameChatService {
   static Future<bool> stopChat() async {
     final roomId = _roomId;
     if (roomId == null) {
-      error.value = 'Chat not attached';
+      error.value = l10nNow.chatNotConnected;
       return false;
     }
     try {
@@ -261,7 +266,7 @@ class GameChatService {
       );
       final map = Map<String, dynamic>.from(res as Map);
       if ('${map['status']}' != 'ok') {
-        error.value = '${map['message'] ?? 'Could not stop chat'}';
+        error.value = '${map['message'] ?? l10nNow.couldNotStopChat}';
         return false;
       }
       await detach();
@@ -273,18 +278,36 @@ class GameChatService {
     }
   }
 
+  /// Asks the server whether I may message my opponent in this room.
+  static Future<void> checkPermission() async {
+    final roomId = _roomId;
+    if (roomId == null) return;
+    try {
+      final raw = await _db.rpc('can_chat_in_room', params: {'p_room_id': roomId});
+      final map = Map<String, dynamic>.from(raw as Map);
+      if (_roomId != roomId) return;
+      blockedReason.value = map['allowed'] == true
+          ? null
+          : (map['reason'] == 'friends_only' ? 'friends_only' : 'nobody');
+    } catch (e) {
+      // Older DB without the RPC: the insert policy still decides.
+      debugPrint('GameChatService.checkPermission: $e');
+    }
+  }
+
   static Future<bool> send(String text) async {
     final roomId = _roomId;
     final uid = AuthService.user?.id;
     final trimmed = text.trim();
     if (roomId == null || uid == null) {
-      error.value = 'Not signed in / chat not attached';
+      error.value = l10nNow.chatNotConnected;
       return false;
     }
     if (trimmed.isEmpty) {
-      error.value = 'Message cannot be empty';
+      error.value = l10nNow.messageEmpty;
       return false;
     }
+    if (blockedReason.value != null) return false;
     if (_sending) return false;
     _sending = true;
     error.value = null;
@@ -299,12 +322,17 @@ class GameChatService {
           .select('id, room_id, sender_id, message, created_at')
           .single();
 
-      final m =
-          GameChatMessage.fromJson(Map<String, dynamic>.from(row as Map));
+      final m = GameChatMessage.fromJson(Map<String, dynamic>.from(row as Map));
       _appendLocal(m);
       return true;
     } catch (e, st) {
       debugPrint('GameChatService.send: $e\n$st');
+      // RLS rejection → the opponent's chat privacy forbids this message.
+      if (e is PostgrestException && e.code == '42501') {
+        await checkPermission();
+        blockedReason.value ??= 'nobody';
+        return false;
+      }
       error.value = AuthService.messageFromError(e);
       return false;
     } finally {
@@ -366,6 +394,7 @@ class GameChatService {
     _msgChannel = null;
     _reactChannel = null;
     _roomId = null;
+    blockedReason.value = null;
     _seenMessageIds.clear();
     messages.value = const [];
     loading.value = false;

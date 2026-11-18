@@ -7,7 +7,9 @@ class AppStorage {
   static const _kSound = 'soundOn';
   static const _kMusic = 'musicOn';
   static const _kVibration = 'vibrationOn';
-  static const _kNotifications = 'notificationsOn';
+  // Push + in-app notifications (new key: the old toggle did nothing and
+  // was saved as off for everyone).
+  static const _kNotifications = 'pushNotificationsOn';
   static const _kLanguage = 'language';
   static const _kIntro = 'introSeen';
   static const _kOwned = 'owned';
@@ -17,6 +19,7 @@ class AppStorage {
   static const _kStats = 'playerStats';
   static const _kBlocked = 'blockedPlayers';
   static const _kChallengeWho = 'challengePrivacyWho';
+  static const _kChatWho = 'chatPrivacyWho';
   static const _kNotifyChallengeReq = 'notifyChallengeRequests';
   static const _kNotifyMatchInvites = 'notifyMatchInvites';
   static const _kNotifyMatchResults = 'notifyMatchResults';
@@ -31,6 +34,13 @@ class AppStorage {
 
   static Future<void> setChallengePrivacyWho(int v) async {
     await _prefs?.setInt(_kChallengeWho, v.clamp(0, 2));
+  }
+
+  /// Who can send me chat messages: 0 everyone, 1 friends, 2 nobody.
+  static int get chatPrivacyWho => _prefs?.getInt(_kChatWho) ?? 0;
+
+  static Future<void> setChatPrivacyWho(int v) async {
+    await _prefs?.setInt(_kChatWho, v.clamp(0, 2));
   }
 
   static String get _todayKey {
@@ -100,7 +110,7 @@ class AppStorage {
     soundOn.value = p.getBool(_kSound) ?? true;
     musicOn.value = p.getBool(_kMusic) ?? true;
     vibrationOn.value = p.getBool(_kVibration) ?? true;
-    notificationsOn.value = p.getBool(_kNotifications) ?? false;
+    notificationsOn.value = p.getBool(_kNotifications) ?? true;
     notifyChallengeRequests.value =
         p.getBool(_kNotifyChallengeReq) ?? true;
     notifyMatchInvites.value = p.getBool(_kNotifyMatchInvites) ?? true;

@@ -3,7 +3,6 @@ import '../l10n/app_localizations.dart';
 import '../models.dart';
 import '../services/app_locale_service.dart';
 import '../services/storage.dart';
-import '../services/wallet_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
@@ -36,7 +35,7 @@ class _ShopScreenState extends State<ShopScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.monetization_on, color: C.coin, size: 28),
+          const CurrencyMark(size: 28),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -51,21 +50,8 @@ class _ShopScreenState extends State<ShopScreen> {
             ),
           ),
           InkWell(
-            onTap: () async {
-              final ok = await WalletService.credit(
-                amount: coinsToAdd,
-                reason: 'iap_grant',
-                idempotencyKey:
-                    'iap_${coinsToAdd}_${DateTime.now().millisecondsSinceEpoch}',
-                refType: 'shop_pack',
-                refId: title,
-              );
-              if (!mounted) return;
-              _msg(ok
-                  ? '+$coinsToAdd coins added'
-                  : (WalletService.error.value ?? 'Purchase failed'));
-              setState(() {});
-            },
+            // No payment integration yet → never hand out coins for free.
+            onTap: () => _msg(context.l10n.purchasesComingSoon),
             borderRadius: BorderRadius.circular(99),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -94,7 +80,7 @@ class _ShopScreenState extends State<ShopScreen> {
           child: SingleChildScrollView(
             child: staggered([
               Row(children: [
-                Expanded(child: TopBar(context.tr('shop'))),
+                Expanded(child: TopBar(context.l10n.shop)),
                 ValueListenableBuilder<int>(
                   valueListenable: coins,
                   builder: (_, c, __) => Container(
@@ -108,8 +94,7 @@ class _ShopScreenState extends State<ShopScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.monetization_on,
-                            color: C.coin, size: 16),
+                        const CurrencyMark(size: 16),
                         const SizedBox(width: 6),
                         Text('$c',
                             style:
@@ -143,8 +128,7 @@ class _ShopScreenState extends State<ShopScreen> {
                             color: C.surface2,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.monetization_on,
-                              color: C.coin, size: 26),
+                          child: const CurrencyMark(size: 26),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -152,7 +136,7 @@ class _ShopScreenState extends State<ShopScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                context.tr('free_coins'),
+                                context.l10n.freeCoins,
                                 style: const TextStyle(
                                   color: C.magenta,
                                   fontWeight: FontWeight.w800,
@@ -161,7 +145,7 @@ class _ShopScreenState extends State<ShopScreen> {
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(context.tr('watch_video_coins'),
+                              Text(context.l10n.watchVideoCoins,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w800,
                                       fontSize: 16)),
@@ -188,40 +172,39 @@ class _ShopScreenState extends State<ShopScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      context.tr(
-                          'free_videos_used', {'used': '$used'}),
+                      context.l10n.freeVideosUsed('$used'),
                       style:
                           const TextStyle(color: C.muted, fontSize: 13),
                     ),
                     const SizedBox(height: 14),
                     PdfPinkButton(
                       used >= 5
-                          ? context.tr('daily_limit')
-                          : context.tr('watch_video'),
+                          ? context.l10n.dailyLimit
+                          : context.l10n.watchVideo,
                       onTap: () => startShopRewardFlow(context),
                     ),
                   ],
                 ),
               ),
-              PdfSectionLabel(context.tr('coin_packs')),
+              PdfSectionLabel(context.l10n.coinPacks),
               for (final p in packs)
                 _pack(
                   coinsLabel:
-                      context.tr('coins_label', {'n': '${p.coins}'}),
-                  title: context.tr(switch (p.title) {
-                    'Starter pack' => 'starter_pack',
-                    'Popular' => 'popular',
-                    'Best value' => 'best_value',
-                    _ => 'starter_pack',
-                  }),
+                      context.l10n.coinsLabel(
+                          AppLocaleService.formatCoinAmount(p.coins)),
+                  title: switch (p.title) {
+                    'Popular' => context.l10n.popular,
+                    'Best value' => context.l10n.bestValue,
+                    _ => context.l10n.starterPack,
+                  },
                   price: AppLocaleService.formatShopPackPriceInr(p.inr),
                   coinsToAdd: p.coins,
                 ),
               TextButton(
                 onPressed: () =>
                     Navigator.pushNamed(context, '/reward-flow'),
-                child: const Text('Reward flow overview',
-                    style: TextStyle(color: C.teal)),
+                child: Text(context.l10n.rewardFlowOverview,
+                    style: const TextStyle(color: C.teal)),
               ),
             ]),
           ),

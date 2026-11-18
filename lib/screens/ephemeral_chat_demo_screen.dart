@@ -22,9 +22,9 @@ class _EphemeralChatDemoScreenState extends State<EphemeralChatDemoScreen> {
   Timer? _t;
   final _input = TextEditingController();
   final List<_Bubble> bubbles = [
-    _Bubble('Nice move', mine: false, faded: true),
-    _Bubble('Good luck!', mine: false),
-    _Bubble('You too!', mine: true),
+    const _Bubble('Nice move', mine: false, faded: true),
+    const _Bubble('Good luck!', mine: false),
+    const _Bubble('You too!', mine: true),
   ];
   bool muteReactions = false;
   String? selectedReaction = '🔥';
@@ -154,12 +154,12 @@ class _EphemeralChatDemoScreenState extends State<EphemeralChatDemoScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AppCard(
+            const AppCard(
               child: Row(
                 children: [
-                  const Icon(Icons.lock_outline, color: C.muted, size: 18),
-                  const SizedBox(width: 10),
-                  const Expanded(
+                  Icon(Icons.lock_outline, color: C.muted, size: 18),
+                  SizedBox(width: 10),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

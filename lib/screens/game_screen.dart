@@ -7,6 +7,7 @@ import '../game/ai.dart';
 import '../game/ai_callback_gate.dart';
 import '../game/board.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../services/match_music_service.dart';
 import '../services/match_sync_service.dart';
 import '../services/progress_sync_service.dart';
@@ -17,6 +18,7 @@ import '../widgets/common.dart';
 import '../widgets/match_turn.dart';
 import '../widgets/painters.dart';
 import 'dialogs.dart';
+import '../l10n/app_localizations.dart';
 
 /// Playable board: 3x3 (3 in a row), 4x4 and 5x5 (4 in a row).
 /// "O" is the first/local player, "X" is the opponent (The Doll, rival or Player 2).
@@ -26,7 +28,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen>
+    with SingleTickerProviderStateMixin {
   static const turnSeconds = 20;
   // Long enough for the "thinking" state to read on screen.
   static const _aiDelay = Duration(milliseconds: 1100);
@@ -49,6 +52,15 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   bool _init = false;
   bool _stakeTaken = false;
 
+  /// Cells of the winning run (empty while playing or on a draw).
+  List<int> _winLine = const [];
+
+  /// Final result once [over]: 'O', 'X' or 'draw'.
+  String? _outcome;
+
+  /// Bumped on every new match so the board pop-in replays.
+  int _round = 0;
+
   int get n => board.size;
 
   @override
@@ -66,8 +78,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       unawaited(WalletService.debit(
         amount: take,
         reason: 'match_stake',
-        idempotencyKey:
-            'match_stake_${DateTime.now().millisecondsSinceEpoch}',
+        idempotencyKey: 'match_stake_${DateTime.now().millisecondsSinceEpoch}',
         refType: 'match',
         refId: args.opponentName,
       ));
@@ -145,7 +156,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   void _flashTimeout(String who) {
     _flashTimer?.cancel();
     setState(() {
-      _timeoutText = "Time's up · $who";
+      _timeoutText = context.l10n.timesUp(who);
       _timeoutColor = markColor(turn);
     });
     _flashTimer = Timer(const Duration(milliseconds: 1400), () {
@@ -182,6 +193,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     setState(() => board.cells[i] = turn);
 
     if (board.winsAt(i, turn)) {
+      _winLine = board.winningLine(i, turn);
       _finish(turn);
       return;
     }
@@ -239,38 +251,103 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     _place(pick);
   }
 
+  /// Wallet call that never blocks or breaks the result screen
+  /// (no internet, slow server, signed-out, …).
+  Future<bool> _safeWallet(Future<bool> Function() call) async {
+    try {
+      return await call().timeout(const Duration(seconds: 8));
+    } catch (e) {
+      debugPrint('GameScreen wallet: $e');
+      return false;
+    }
+  }
+
+  /// Coins, stats and cloud sync after a match. Runs in the background so the
+  /// result is shown right away, even offline.
+  Future<void> _settle(String? winner, int coinDelta) async {
+    final key = DateTime.now().millisecondsSinceEpoch;
+    if (winner == null) {
+      // Draw: give the stake back.
+      if (args.stake > 0) {
+        await _safeWallet(() => WalletService.credit(
+              amount: args.stake,
+              reason: 'match_reward',
+              idempotencyKey: 'draw_return_$key',
+              refType: 'match_draw',
+              refId: args.opponentName,
+            ));
+      }
+    } else if (args.vsAi && winner == 'O') {
+      await _safeWallet(() => WalletService.credit(
+            amount: args.stake > 0 ? args.stake * 2 : 10,
+            reason: 'match_reward',
+            idempotencyKey: 'match_win_$key',
+            refType: 'match',
+            refId: args.opponentName,
+          ));
+    } else if (args.vsAi && args.stake == 0 && coinDelta < 0) {
+      // Stake was already taken at the start of a staked match.
+      await _safeWallet(() => WalletService.debit(
+            amount: -coinDelta,
+            reason: 'match_stake',
+            idempotencyKey: 'match_loss_$key',
+            refType: 'match',
+            refId: args.opponentName,
+          ));
+    }
+
+    playerStats.recordMatch(winner: winner, args: args, coinDelta: coinDelta);
+    try {
+      // Cloud sync for signed-in AI / quick_match only (skipped offline).
+      final sync = await MatchSyncService.syncCompletedMatch(
+        winner: winner,
+        args: args,
+        coinDelta: coinDelta,
+      ).timeout(const Duration(seconds: 10));
+      await ProgressSyncService.onMatchFinished()
+          .timeout(const Duration(seconds: 10));
+      if (mounted && args.vsAi && sync.attempted && !sync.ok) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.l10n.cloudSaveFailed('${sync.message}')),
+          backgroundColor: const Color(0xFFB3123E),
+        ));
+      }
+    } catch (e) {
+      debugPrint('GameScreen sync: $e');
+    }
+  }
+
   Future<void> _finish(String? winner) async {
     _cancelPendingAi();
     _stopTurnTimer();
+    _flashTimer?.cancel();
     if (!mounted) return;
-    setState(() => over = true);
+    final vsAi = args.vsAi;
+    final youWon = winner == 'O';
+    setState(() {
+      over = true;
+      _outcome = winner ?? 'draw';
+      _timeoutText = null;
+    });
+    if (winner != null) _haptic();
     SfxService.play(winner == null
         ? Sfx.draw
-        : (winner == 'O' || !args.vsAi)
+        : (youWon || !vsAi)
             ? Sfx.win
             : Sfx.lose);
 
-    final vsAi = args.vsAi;
+    final ResultTone tone;
+    final l = context.l10n;
     String title, subtitle;
     String? coinText;
     Widget art;
     var coinDelta = 0;
 
     if (winner == null) {
-      // Return stake on draw for quick matches.
-      if (args.stake > 0) {
-        await WalletService.credit(
-          amount: args.stake,
-          reason: 'match_reward',
-          idempotencyKey:
-              'draw_return_${DateTime.now().millisecondsSinceEpoch}',
-          refType: 'match_draw',
-          refId: args.opponentName,
-        );
-        coinDelta = 0;
-      }
-      title = 'Draw';
-      subtitle = 'Nobody blinked.';
+      tone = ResultTone.draw;
+      title = l.draw;
+      subtitle = vsAi ? l.nobodyBlinkedVs(args.opponentName) : l.nobodyBlinked;
+      coinText = args.stake > 0 ? l.stakeReturned : null;
       art = const Row(mainAxisSize: MainAxisSize.min, children: [
         ShapeIcon(ShapeKind.circle, size: 40),
         SizedBox(width: 8),
@@ -279,124 +356,92 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
         ShapeIcon(ShapeKind.square, size: 40),
       ]);
     } else if (!vsAi) {
-      title = winner == 'O' ? 'Player 1 wins' : 'Player 2 wins';
-      subtitle = 'Rematch?';
+      tone = ResultTone.win;
+      title = youWon ? l.player1Wins : l.player2Wins;
+      subtitle = l.rematchQuestion;
       art = const PlayerFace(size: 100);
-    } else if (winner == 'O') {
-      final pot = args.stake > 0 ? args.stake * 2 : 10;
+    } else if (youWon) {
+      tone = ResultTone.win;
       coinDelta = args.stake > 0 ? args.stake : 10;
-      await WalletService.credit(
-        amount: pot,
-        reason: 'match_reward',
-        idempotencyKey:
-            'match_win_${DateTime.now().millisecondsSinceEpoch}',
-        refType: 'match',
-        refId: args.opponentName,
-      );
-      title = 'You survived';
-      subtitle = '${args.opponentName} wants a rematch.';
-      coinText = '+$coinDelta coins';
+      title = l.youWin;
+      subtitle = l.youBeat(args.opponentName);
+      coinText = l.plusCoins(AppLocaleService.formatCoinAmount(coinDelta));
       art = const PlayerFace(size: 100);
     } else {
-      // Stake already deducted at start for quick match.
+      tone = ResultTone.lose;
       final loss = args.stake > 0 ? args.stake : min(10, coins.value);
-      if (args.stake == 0 && loss > 0) {
-        await WalletService.debit(
-          amount: loss,
-          reason: 'match_stake',
-          idempotencyKey:
-              'match_loss_${DateTime.now().millisecondsSinceEpoch}',
-          refType: 'match',
-          refId: args.opponentName,
-        );
-      }
       coinDelta = -loss;
-      title = 'Eliminated';
-      subtitle = '${args.opponentName} wins this round.';
-      coinText = loss > 0 ? '-$loss coins' : null;
+      title = l.youLose;
+      subtitle = l.winsThisRound(args.opponentName);
+      coinText = loss > 0
+          ? l.minusCoins(AppLocaleService.formatCoinAmount(loss))
+          : null;
       art = const DollFace(size: 100);
     }
 
-    playerStats.recordMatch(winner: winner, args: args, coinDelta: coinDelta);
-    // Cloud sync for signed-in AI / quick_match only (pass & play stays local).
-    final sync = await MatchSyncService.syncCompletedMatch(
-      winner: winner,
-      args: args,
-      coinDelta: coinDelta,
-    );
-    await ProgressSyncService.onMatchFinished();
-    if (mounted && args.vsAi && sync.message != null) {
-      final failed = sync.attempted && !sync.ok;
-      final skippedGuest = !sync.attempted;
-      if (failed || skippedGuest || sync.ok && sync.attempted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              failed
-                  ? 'Cloud save failed: ${sync.message}'
-                  : sync.message!,
-            ),
-            backgroundColor: failed ? const Color(0xFFB3123E) : null,
-          ),
-        );
-      }
-    }
+    unawaited(_settle(winner, coinDelta));
 
-    await Future<void>.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
+    // Let the winning line / final board play out before the result.
+    await Future<void>.delayed(
+        Duration(milliseconds: winner == null ? 900 : 1300));
+    if (!mounted || !over) return;
     final again = await showResultDialog(context,
         art: art,
         title: title,
         subtitle: subtitle,
+        tone: tone,
         coinText: coinText,
         baseCoins: coinDelta,
         // Won AI match: rewarded video credits a fixed bonus.
-        bonusReward:
-            vsAi && winner == 'O' ? AdMobConfig.matchBonusReward : 0,
-        shareText: winner != null && (winner == 'O' || !vsAi)
-            ? 'I just won a match of DROTIX'
-                '${vsAi ? ' against ${args.opponentName}' : ''}! '
-                'Think you can beat me? Play now: https://playdrotix.com'
+        bonusReward: vsAi && youWon ? AdMobConfig.matchBonusReward : 0,
+        shareText: winner != null && (youWon || !vsAi)
+            ? (vsAi
+                ? l.shareWinVs(args.opponentName, 'https://playdrotix.in')
+                : l.shareWin('https://playdrotix.in'))
             : null,
         refId: args.opponentName);
     if (!mounted) return;
-    if (again == true) {
-      if (args.stake > 0) {
-        if (coins.value < args.stake) {
-          SfxService.play(Sfx.error);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Not enough coins for another stake.')));
-          _leaveToHome();
-          return;
-        }
-        final ok = await WalletService.debit(
-          amount: args.stake,
-          reason: 'match_stake',
-          idempotencyKey:
-              'match_stake_rematch_${DateTime.now().millisecondsSinceEpoch}',
-          refType: 'match',
-          refId: args.opponentName,
-        );
-        if (!ok) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(
-                  WalletService.error.value ?? 'Not enough coins')));
-          _leaveToHome();
-          return;
-        }
-      }
-      _cancelPendingAi();
-      setState(() {
-        board = Board(args.size);
-        turn = 'O';
-        over = false;
-      });
-      timer.forward(from: 0);
-      SfxService.play(Sfx.countdownGo);
-    } else {
+    if (again != true) {
       _leaveToHome();
+      return;
     }
+    if (args.stake > 0) {
+      if (coins.value < args.stake) {
+        SfxService.play(Sfx.error);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.l10n.notEnoughCoinsAnother)));
+        _leaveToHome();
+        return;
+      }
+      // Same as the first match: don't hold the board on the network.
+      unawaited(_safeWallet(() => WalletService.debit(
+            amount: args.stake,
+            reason: 'match_stake',
+            idempotencyKey:
+                'match_stake_rematch_${DateTime.now().millisecondsSinceEpoch}',
+            refType: 'match',
+            refId: args.opponentName,
+          )));
+    }
+    _newMatch();
+  }
+
+  /// Fresh board, O to move, timers and effects reset.
+  void _newMatch() {
+    _cancelPendingAi();
+    _flashTimer?.cancel();
+    setState(() {
+      board = Board(args.size);
+      turn = 'O';
+      over = false;
+      _outcome = null;
+      _winLine = const [];
+      _timeoutText = null;
+      _lastTickSecond = -1;
+      _round++;
+    });
+    timer.forward(from: 0);
+    SfxService.play(Sfx.countdownGo);
   }
 
   Future<void> _pause() async {
@@ -407,14 +452,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     if (!mounted) return;
     switch (r) {
       case 'restart':
-        _cancelPendingAi();
-        setState(() {
-          board = Board(args.size);
-          turn = 'O';
-          over = false;
-        });
-        timer.forward(from: 0);
-        SfxService.play(Sfx.countdownGo);
+        _newMatch();
         break;
       case 'settings':
         await Navigator.pushNamed(context, '/settings');
@@ -432,14 +470,31 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     }
   }
 
-  String get _leftName => args.vsAi ? 'You' : 'Player 1';
-  String get _rightName => args.opponentName;
+  String get _leftName => args.vsAi ? context.l10n.you : context.l10n.player1;
+
+  String get _resultLabel {
+    final l = context.l10n;
+    return switch (_outcome) {
+      'draw' => l.draw,
+      'O' => args.vsAi ? l.youWin : l.player1Wins,
+      'X' => args.vsAi ? l.youLose : l.player2Wins,
+      _ => l.gameOver,
+    };
+  }
+
+  Color get _resultColor => switch (_outcome) {
+        'O' => markColor('O'),
+        'X' => args.vsAi ? C.danger : markColor('X'),
+        _ => C.muted,
+      };
+  String get _rightName => args.vsAi ? args.opponentName : context.l10n.player2;
 
   Widget _player(String mark, String name, String no) => TurnPlayerCard(
         mark: mark,
         tag: no,
         name: name,
-        active: turn == mark && !over,
+        active: over ? _outcome == mark : turn == mark,
+        label: over ? context.l10n.winner : null,
         // Pass & play: both seats are local humans.
         isYou: !args.vsAi || mark == 'O',
       );
@@ -448,7 +503,9 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   Widget _cell(int i) {
     final human = _humanTurn;
+    final inLine = _winLine.contains(i);
     return PopIn(
+        key: ValueKey('cell-$_round-$i'),
         delayMs: i * 40,
         child: TurnBoardCell(
           index: i,
@@ -458,16 +515,22 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
           dim: !human && !over,
           ghostMark: _ghostCell == i ? turn : null,
           onTap: human && board.cells[i] == null ? () => _place(i) : null,
+          winColor: inLine ? markColor(board.cells[i]!) : null,
+          faded: over && _winLine.isNotEmpty && !inLine,
         ));
   }
 
   @override
   Widget build(BuildContext context) {
     final mover = over
-        ? 'Game over'
+        ? _resultLabel
         : args.vsAi
-            ? (turn == 'O' ? 'Your move' : '${args.opponentName}\u2019s move')
-            : (turn == 'O' ? "Player 1's move" : "Player 2's move");
+            ? (turn == 'O'
+                ? context.l10n.yourMove
+                : context.l10n.opponentsMove(args.opponentName))
+            : (turn == 'O'
+                ? context.l10n.player1Move
+                : context.l10n.player2Move);
     final color = markColor(turn);
     return AppScaffold(
       child: Stack(children: [
@@ -476,7 +539,8 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
               animation: timer,
               builder: (_, __) {
                 final left = (turnSeconds * (1 - timer.value)).ceil();
-                final urgent = !over && timer.isAnimating && left <= _urgentSeconds;
+                final urgent =
+                    !over && timer.isAnimating && left <= _urgentSeconds;
                 return Column(children: [
                   Row(children: [
                     Expanded(
@@ -484,14 +548,15 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                         text: over
                             ? mover
                             : '$mover · 0:${left.toString().padLeft(2, '0')}',
-                        color: over ? C.border2 : color,
+                        color: over ? _resultColor : color,
                         urgent: urgent,
                       ),
                     ),
                     const SizedBox(width: 8),
                     const CoinChip(),
                     const SizedBox(width: 8),
-                    RoundIconBox(Icons.pause, label: 'Pause', onTap: _pause),
+                    RoundIconBox(Icons.pause,
+                        label: context.l10n.pause, onTap: _pause),
                   ]),
                   const SizedBox(height: 12),
                   TurnTimerBar(
@@ -532,7 +597,11 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
             height: 24,
             child: Center(
               child: over
-                  ? null
+                  ? Text(_resultLabel,
+                      style: TextStyle(
+                          color: _resultColor,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: .4))
                   : TurnCaption(
                       myTurn: _humanTurn,
                       opponentName: args.opponentName,
@@ -543,7 +612,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
           const SizedBox(height: 14),
           SizedBox(
               width: double.infinity,
-              child: GhostButton('Leave game', onTap: _leaveGame)),
+              child: GhostButton(context.l10n.leaveGame, onTap: _leaveGame)),
         ]),
         if (_timeoutText != null)
           Positioned.fill(

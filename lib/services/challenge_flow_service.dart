@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models.dart';
+import 'app_locale_service.dart';
 import 'auth_service.dart';
+import '../l10n/app_localizations.dart';
 
 enum ChallengeStakeKind { free, coins5 }
 
@@ -24,6 +26,15 @@ class ChallengeItem {
   final DateTime? expiresAt;
   int secondsLeft;
 
+  /// Online room created when the challenge was accepted (server only).
+  String? roomId;
+
+  /// `busy` when the player was in a match and the app declined for them.
+  String? declineReason;
+
+  bool get declinedBusy =>
+      status == ChallengeItemStatus.declined && declineReason == 'busy';
+
   ChallengeItem({
     required this.id,
     required this.opponentId,
@@ -37,10 +48,13 @@ class ChallengeItem {
     DateTime? createdAt,
     this.expiresAt,
     this.secondsLeft = 60,
+    this.roomId,
+    this.declineReason,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  String get stakeLabel =>
-      stake == ChallengeStakeKind.free ? 'Free match' : '5 coins';
+  String get stakeLabel => stake == ChallengeStakeKind.free
+      ? l10nNow.freeMatch
+      : '${AppLocaleService.currencySymbol}${l10nNow.coins5}';
 
   ChallengeItem copyWith({
     ChallengeItemStatus? status,
@@ -63,8 +77,25 @@ class ChallengeItem {
       createdAt: createdAt,
       expiresAt: expiresAt,
       secondsLeft: secondsLeft ?? this.secondsLeft,
+      roomId: roomId,
+      declineReason: declineReason,
     );
   }
+
+  /// Room stake as stored on the server (free = 0, coins5 = 5).
+  int get roomStake => stake == ChallengeStakeKind.coins5 ? 5 : 0;
+
+  /// Arguments for `/match-lobby`; with [roomId] the lobby opens the real
+  /// online room, otherwise (signed-out demo) a local match.
+  Map<String, dynamic> lobbyArgs() => {
+        'opponentName': opponentName,
+        'opponentId': opponentId,
+        'stakeLabel': stakeLabel,
+        if (roomId != null) 'roomId': roomId,
+        // Challenger plays O, the player who accepted plays X.
+        if (roomId != null) 'myMark': outgoing ? 'O' : 'X',
+        if (roomId != null) 'stake': roomStake,
+      };
 }
 
 /// Challenge inbox + Supabase realtime (send / accept / decline).
@@ -311,6 +342,8 @@ class ChallengeFlowService {
       createdAt: created,
       expiresAt: expires,
       secondsLeft: status == ChallengeItemStatus.pending ? seconds : 0,
+      roomId: row['room_id'] == null ? null : '${row['room_id']}',
+      declineReason: row['decline_reason'] as String?,
     );
   }
 
@@ -333,7 +366,7 @@ class ChallengeFlowService {
     final c = incomingPopup.value;
     if (c == null || c.status != ChallengeItemStatus.pending) return;
     if (_busyClient) {
-      unawaited(decline(c.id, silent: true));
+      unawaited(declineBusy(c.id));
       return;
     }
     _onIncomingAvailable?.call(c);
@@ -462,7 +495,9 @@ class ChallengeFlowService {
   static void dismissIncomingPopup() => incomingPopup.value = null;
 
   static Future<void> cancel(String id) async {
-    if (AuthService.isSignedIn && !id.startsWith('c_') && !id.startsWith('in_')) {
+    if (AuthService.isSignedIn &&
+        !id.startsWith('c_') &&
+        !id.startsWith('in_')) {
       try {
         await _db.rpc('cancel_challenge', params: {'p_challenge_id': id});
       } catch (e) {
@@ -476,7 +511,9 @@ class ChallengeFlowService {
   }
 
   static Future<void> decline(String id, {bool silent = false}) async {
-    if (AuthService.isSignedIn && !id.startsWith('c_') && !id.startsWith('in_')) {
+    if (AuthService.isSignedIn &&
+        !id.startsWith('c_') &&
+        !id.startsWith('in_')) {
       try {
         final raw = await _db.rpc(
           'respond_challenge',
@@ -498,9 +535,35 @@ class ChallengeFlowService {
     if (incomingPopup.value?.id == id) incomingPopup.value = null;
   }
 
+  /// Player is in a match: decline without a popup and tell the challenger
+  /// they are busy (server notifies them). Falls back to a plain decline on
+  /// servers without 027_notifications.sql.
+  static Future<void> declineBusy(String id) async {
+    if (AuthService.isSignedIn &&
+        !id.startsWith('c_') &&
+        !id.startsWith('in_')) {
+      try {
+        await _db.rpc('decline_challenge_busy', params: {'p_challenge_id': id});
+      } catch (e) {
+        debugPrint('decline_challenge_busy: $e');
+        await decline(id, silent: true);
+        return;
+      }
+    }
+    _mutate(id, (c) {
+      c.status = ChallengeItemStatus.declined;
+      c.declineReason = 'busy';
+      c.secondsLeft = 0;
+    });
+    if (incomingPopup.value?.id == id) incomingPopup.value = null;
+  }
+
   static Future<ChallengeItem?> accept(String id) async {
     ChallengeItem? found;
-    if (AuthService.isSignedIn && !id.startsWith('c_') && !id.startsWith('in_')) {
+    String? roomId;
+    if (AuthService.isSignedIn &&
+        !id.startsWith('c_') &&
+        !id.startsWith('in_')) {
       final raw = await _db.rpc(
         'respond_challenge',
         params: {'p_challenge_id': id, 'p_accept': true},
@@ -510,12 +573,21 @@ class ChallengeFlowService {
       if ('${map['status']}' == 'error') {
         throw Exception('${map['message'] ?? 'Accept failed'}');
       }
+      if (map['room_id'] == null) {
+        // Server without 026_challenge_match.sql: no shared room.
+        throw Exception('Challenge match is not set up on the server yet');
+      }
+      roomId = '${map['room_id']}';
     }
     _mutate(id, (c) {
       c.status = ChallengeItemStatus.accepted;
       c.secondsLeft = 0;
+      c.roomId = roomId ?? c.roomId;
       found = c;
-      if (c.stake == ChallengeStakeKind.coins5 && coins.value >= 5) {
+      // Signed-out demo only; online stakes settle on the server.
+      if (roomId == null &&
+          c.stake == ChallengeStakeKind.coins5 &&
+          coins.value >= 5) {
         coins.value -= 5;
       }
     });
@@ -541,7 +613,8 @@ class ChallengeFlowService {
       ];
 
   static List<ChallengeItem> sent() => [
-        for (final c in items.value) if (c.outgoing) c
+        for (final c in items.value)
+          if (c.outgoing) c
       ];
 
   static List<ChallengeItem> history() => [

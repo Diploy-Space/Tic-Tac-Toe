@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../services/moderation_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../l10n/app_localizations.dart';
 
 class AppealUnderReviewScreen extends StatefulWidget {
   const AppealUnderReviewScreen({super.key});
@@ -57,44 +58,45 @@ class _AppealUnderReviewScreenState extends State<AppealUnderReviewScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const TopBar('Appeal under review'),
+              TopBar(context.l10n.appealUnderReview),
               const SizedBox(height: 24),
               AppCard(
                 borderColor: C.teal,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Appeal submitted successfully',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 18),
+                    Text(
+                      context.l10n.appealSubmitted,
+                      style:
+                          const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
                     ),
                     const SizedBox(height: 12),
-                    Text('Reference: $appealId',
+                    Text(context.l10n.reference(appealId),
                         style: const TextStyle(color: C.muted)),
                     const SizedBox(height: 6),
-                    Text('Submitted: ${_fmt(status?.appealSubmittedAt)}',
+                    Text(
+                        context.l10n
+                            .submittedAt(_fmt(status?.appealSubmittedAt)),
                         style: const TextStyle(color: C.muted)),
                     const SizedBox(height: 6),
-                    Text('Status: $appealStatus',
+                    Text(context.l10n.statusLabel(appealStatus),
                         style: const TextStyle(
                             color: C.teal, fontWeight: FontWeight.w700)),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Your account remains restricted until a moderator finishes review. '
-                'Gameplay, matchmaking, and chat stay locked.',
-                style: TextStyle(color: C.muted, height: 1.4),
+              Text(
+                context.l10n.accountRestricted,
+                style: const TextStyle(color: C.muted, height: 1.4),
               ),
               const Spacer(),
               FilledButton(
                 onPressed: _refresh,
-                child: const Text('Refresh status'),
+                child: Text(context.l10n.refreshStatus),
               ),
               const SizedBox(height: 10),
-              GhostButton('Sign out', onTap: _signOut),
+              GhostButton(context.l10n.signOut, onTap: _signOut),
             ],
           );
         },

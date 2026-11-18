@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/connectivity_service.dart';
 import '../theme.dart';
+import '../l10n/app_localizations.dart';
 
 /// Compact offline strip for Home. Hidden while online / checking.
 class OfflineBanner extends StatelessWidget {
@@ -22,14 +23,14 @@ class OfflineBanner extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: C.border2),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.wifi_off, size: 18, color: C.danger),
-              SizedBox(width: 10),
+              const Icon(Icons.wifi_off, size: 18, color: C.danger),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Offline · Play vs The Doll still works',
-                  style: TextStyle(
+                  context.l10n.offlineBanner,
+                  style: const TextStyle(
                     color: C.muted,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

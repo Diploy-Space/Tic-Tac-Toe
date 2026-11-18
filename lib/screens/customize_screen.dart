@@ -4,6 +4,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
 import '../widgets/painters.dart';
+import '../l10n/app_localizations.dart';
 
 class CustomizeScreen extends StatefulWidget {
   const CustomizeScreen({super.key});
@@ -64,9 +65,18 @@ class _CustomizeScreenState extends State<CustomizeScreen> {
                                   const DollFace(size: 70)
                                 ][i],
                                 const SizedBox(height: 6),
-                                Text(['Player', 'Guard', 'Doll'][i],
-                                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                                Text(cur == i ? 'Equipped' : 'Free',
+                                Text(
+                                    [
+                                      context.l10n.player,
+                                      context.l10n.guard,
+                                      context.l10n.doll
+                                    ][i],
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600)),
+                                Text(
+                                    cur == i
+                                        ? context.l10n.equipped
+                                        : context.l10n.free,
                                     style: TextStyle(
                                         fontSize: 12,
                                         color: cur == i ? C.teal : C.muted)),
@@ -77,13 +87,17 @@ class _CustomizeScreenState extends State<CustomizeScreen> {
     final item = items.firstWhere((c) => c.name == (sel ?? eq.value));
     final has = owned.value.contains(item.name);
     final isEq = eq.value == item.name;
-    final label = isEq ? 'Equipped' : has ? 'Equip' : 'Unlock · ${item.price} coins';
+    final label = isEq
+        ? context.l10n.equipped
+        : has
+            ? context.l10n.equip
+            : context.l10n.unlockFor('${item.price}');
     return PrimaryButton(label,
         onTap: isEq
             ? null
             : () {
                 if (!unlockCosmetic(item)) {
-                  _msg('Not enough coins');
+                  _msg(context.l10n.notEnoughCoins);
                   return;
                 }
                 eq.value = item.name;
@@ -102,17 +116,18 @@ class _CustomizeScreenState extends State<CustomizeScreen> {
             valueListenable: equippedMark,
             builder: (_, eqMark, _____) => SingleChildScrollView(
               child: staggered([
-                const TopBar('Customize'),
+                TopBar(context.l10n.customize),
                 AppCard(
                     borderColor: C.magenta,
                     child: _preview(
                       tab == 1 ? (selBoard ?? eqBoard) : eqBoard,
                       markSkin: tab == 0 ? (selMark ?? eqMark) : eqMark,
                     )),
-                SegRow(
-                    options: const ['Marks', 'Boards', 'Avatars'],
-                    selected: tab,
-                    onChanged: (i) => setState(() => tab = i)),
+                SegRow(options: [
+                  context.l10n.marks,
+                  context.l10n.boards,
+                  context.l10n.avatars
+                ], selected: tab, onChanged: (i) => setState(() => tab = i)),
                 if (tab == 0)
                   CosmeticGrid(
                       items: marksCatalog,

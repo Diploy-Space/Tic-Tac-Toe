@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../models/cloud_match.dart';
 import '../services/auth_service.dart';
 import '../services/match_sync_service.dart';
@@ -7,6 +8,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
 import '../widgets/painters.dart';
+import '../l10n/app_localizations.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -16,6 +18,14 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String duration = 'All';
+
+  /// Filter values stay English; only the label is translated.
+  String _durationLabel(String d) => switch (d) {
+        'Today' => context.l10n.today,
+        '7 days' => context.l10n.days7,
+        '30 days' => context.l10n.days30,
+        _ => context.l10n.all,
+      };
   bool _loading = false;
 
   @override
@@ -74,7 +84,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 : playerStats.played;
 
             return Column(children: [
-              const TopBar('History'),
+              TopBar(context.l10n.history),
               const SizedBox(height: 14),
               AppCard(
                   borderColor: C.magenta,
@@ -98,7 +108,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Tag(signedIn ? 'Cloud' : 'Local'),
+                                        Tag(signedIn
+                                            ? context.l10n.cloud
+                                            : context.l10n.local),
                                         Text(name,
                                             style: const TextStyle(
                                                 fontWeight: FontWeight.w700)),
@@ -109,29 +121,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     Container(
                         padding: const EdgeInsets.only(top: 12),
                         decoration: const BoxDecoration(
-                            border:
-                                Border(top: BorderSide(color: C.border2))),
+                            border: Border(top: BorderSide(color: C.border2))),
                         child: Row(children: [
                           Expanded(
                               child: Column(children: [
-                            const Text('Played',
-                                style:
-                                    TextStyle(color: C.muted, fontSize: 13)),
+                            Text(context.l10n.played,
+                                style: const TextStyle(color: C.muted, fontSize: 13)),
                             Text('$playedCount',
                                 style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800)),
+                                    fontSize: 20, fontWeight: FontWeight.w800)),
                           ])),
                           Expanded(
                               child: Column(children: [
-                            const Text('Duration',
-                                style:
-                                    TextStyle(color: C.muted, fontSize: 13)),
+                            Text(context.l10n.duration,
+                                style: const TextStyle(color: C.muted, fontSize: 13)),
                             PopupMenuButton<String>(
                                 color: C.surface,
                                 initialValue: duration,
-                                onSelected: (v) =>
-                                    setState(() => duration = v),
+                                onSelected: (v) => setState(() => duration = v),
                                 itemBuilder: (_) => [
                                       for (final d in const [
                                         'All',
@@ -140,12 +147,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                         '30 days'
                                       ])
                                         PopupMenuItem(
-                                            value: d, child: Text(d)),
+                                            value: d,
+                                            child: Text(_durationLabel(d))),
                                     ],
                                 child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(duration,
+                                      Text(_durationLabel(duration),
                                           style: const TextStyle(
                                               fontSize: 20,
                                               fontWeight: FontWeight.w800,
@@ -157,17 +165,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ])),
                   ])),
               const SizedBox(height: 14),
-              const AppCard(
-                  padding: EdgeInsets.symmetric(vertical: 12),
+              AppCard(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        Text('Match',
-                            style: TextStyle(fontWeight: FontWeight.w800)),
-                        Text('Result',
-                            style: TextStyle(fontWeight: FontWeight.w800)),
-                        Text('Date',
-                            style: TextStyle(fontWeight: FontWeight.w800)),
+                        Text(context.l10n.match,
+                            style: const TextStyle(fontWeight: FontWeight.w800)),
+                        Text(context.l10n.result,
+                            style: const TextStyle(fontWeight: FontWeight.w800)),
+                        Text(context.l10n.date,
+                            style: const TextStyle(fontWeight: FontWeight.w800)),
                       ])),
               const SizedBox(height: 14),
               Expanded(
@@ -183,13 +191,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _empty() => const SizedBox(
+  Widget _empty() => SizedBox(
       width: double.infinity,
       child: AppCard(
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        ShapeIcon(ShapeKind.circle, size: 40, color: C.muted),
-        SizedBox(height: 12),
-        Text('No history found', style: TextStyle(color: C.muted)),
+        const ShapeIcon(ShapeKind.circle, size: 40, color: C.muted),
+        const SizedBox(height: 12),
+        Text(context.l10n.noHistory, style: const TextStyle(color: C.muted)),
       ])));
 
   Widget _localListView(List<MatchRecord> list) {
@@ -203,7 +211,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           return _row(
             title: m.opponent,
             subtitle:
-                '${m.size}×${m.size}${m.coinDelta != 0 ? ' · ${m.coinDelta > 0 ? '+' : ''}${m.coinDelta}' : ''}',
+                '${m.size}×${m.size}${m.coinDelta != 0 ? ' · ${m.coinDelta > 0 ? '+${AppLocaleService.formatCoinAmount(m.coinDelta)}' : AppLocaleService.formatCoinAmount(m.coinDelta)}' : ''}',
             result: m.result,
             win: win,
             draw: m.result == 'Draw',
@@ -223,7 +231,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           return _row(
             title: m.opponentName ?? m.mode,
             subtitle:
-                '${m.boardSize}×${m.boardSize}${m.coinDelta != 0 ? ' · ${m.coinDelta > 0 ? '+' : ''}${m.coinDelta}' : ''}',
+                '${m.boardSize}×${m.boardSize}${m.coinDelta != 0 ? ' · ${m.coinDelta > 0 ? '+${AppLocaleService.formatCoinAmount(m.coinDelta)}' : AppLocaleService.formatCoinAmount(m.coinDelta)}' : ''}',
             result: label,
             win: m.result == 'win',
             draw: m.result == 'draw',

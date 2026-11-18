@@ -5,6 +5,7 @@ import '../services/moderation_service.dart';
 import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../l10n/app_localizations.dart';
 
 class AccountSuspensionScreen extends StatefulWidget {
   const AccountSuspensionScreen({super.key});
@@ -66,53 +67,52 @@ class _AccountSuspensionScreenState extends State<AccountSuspensionScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const TopBar('Account suspended'),
+              TopBar(context.l10n.accountSuspended),
               const SizedBox(height: 24),
               AppCard(
                 borderColor: C.danger,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Your account has been suspended',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 18),
+                    Text(
+                      context.l10n.accountSuspendedTitle,
+                      style:
+                          const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       status?.suspensionReason ??
-                          'A moderator suspended this account after a report review.',
+                          context.l10n.suspendedByModerator,
                       style: const TextStyle(color: C.muted, height: 1.4),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Suspended: ${_fmt(status?.suspendedAt)}',
+                      context.l10n.suspendedAt(_fmt(status?.suspendedAt)),
                       style: const TextStyle(color: C.muted, fontSize: 13),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'You cannot play matches, join rooms, or use chat while suspended. '
-                'You may submit one appeal for review.',
-                style: TextStyle(color: C.muted, height: 1.4),
+              Text(
+                context.l10n.suspendedRules,
+                style: const TextStyle(color: C.muted, height: 1.4),
               ),
               const Spacer(),
               if (status?.canSubmitAppeal ?? true)
                 FilledButton(
                   onPressed: () =>
                       Navigator.pushNamed(context, '/appeal-submit'),
-                  child: const Text('Submit appeal'),
+                  child: Text(context.l10n.submitAppeal),
                 )
               else
                 FilledButton(
                   onPressed: () => Navigator.pushReplacementNamed(
                       context, '/appeal-under-review'),
-                  child: const Text('View appeal status'),
+                  child: Text(context.l10n.viewAppealStatus),
                 ),
               const SizedBox(height: 10),
-              GhostButton('Sign out', onTap: _signOut),
+              GhostButton(context.l10n.signOut, onTap: _signOut),
             ],
           );
         },

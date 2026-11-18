@@ -5,6 +5,7 @@ import 'package:tic_tac_game/models.dart';
 import 'package:tic_tac_game/services/storage.dart';
 import 'package:tic_tac_game/widgets/extras.dart';
 import 'package:tic_tac_game/widgets/painters.dart';
+import 'package:tic_tac_game/l10n/app_localizations.dart';
 
 void main() {
   setUp(() {
@@ -20,6 +21,8 @@ void main() {
       equippedMark.value = 'Neon';
       await tester.pumpWidget(
         const MaterialApp(
+          localizationsDelegates: L10n.localizationsDelegates,
+          supportedLocales: L10n.supportedLocales,
           home: Scaffold(
             body: Row(
               children: [
@@ -42,6 +45,8 @@ void main() {
       final ghost = marksCatalog.firstWhere((c) => c.name == 'Ghost');
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: L10n.localizationsDelegates,
+          supportedLocales: L10n.supportedLocales,
           home: Scaffold(
             body: CosmeticTile(
               item: ghost,
@@ -60,6 +65,8 @@ void main() {
     testWidgets('every mark catalog skin is accepted by MarkIcon', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: L10n.localizationsDelegates,
+          supportedLocales: L10n.supportedLocales,
           home: Scaffold(
             body: Column(
               children: [

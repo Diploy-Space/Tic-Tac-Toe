@@ -4,6 +4,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/extras.dart';
 import 'dialogs.dart';
+import '../l10n/app_localizations.dart';
 
 /// Shown when online features are used without a connection.
 class OfflineScreen extends StatefulWidget {
@@ -27,8 +28,8 @@ class _OfflineScreenState extends State<OfflineScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Still offline. Check your connection and try again.'),
+      SnackBar(
+        content: Text(context.l10n.stillOffline),
       ),
     );
   }
@@ -40,19 +41,19 @@ class _OfflineScreenState extends State<OfflineScreen> {
         child: SingleChildScrollView(
           child: staggered([
             const Center(child: IconCircle(Icons.wifi_off, size: 110)),
-            const Heading('You’re offline', align: TextAlign.center),
-            const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                    'Online matches and tournaments need a connection. You can still play against The Doll.',
+            Heading(context.l10n.youreOffline, align: TextAlign.center),
+            Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(context.l10n.offlineBody,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: C.muted, fontSize: 15, height: 1.5))),
+                    style:
+                        const TextStyle(color: C.muted, fontSize: 15, height: 1.5))),
             const SizedBox(height: 6),
             PrimaryButton(
-              _retrying ? 'Checking…' : 'Try again',
+              _retrying ? context.l10n.checking : context.l10n.tryAgain,
               onTap: _retrying ? null : _tryAgain,
             ),
-            GhostButton('Play vs The Doll offline',
+            GhostButton(context.l10n.playDollOffline,
                 onTap: () => startVsDoll(context)),
           ], gap: 16),
         ),

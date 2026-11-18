@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
 import '../services/auth_service.dart';
 import '../services/tournament_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
+import '../l10n/app_localizations.dart';
 
 /// Tournament hub — loads live list when migration applied; demo fallback otherwise.
 class TournamentScreen extends StatefulWidget {
@@ -33,9 +35,8 @@ class _TournamentScreenState extends State<TournamentScreen> {
     if (!AuthService.isSignedIn) return;
     await TournamentService.refreshList();
     if (!mounted) return;
-    setState(() =>
-        _usedServer = TournamentService.list.value.isNotEmpty ||
-            TournamentService.error.value == null);
+    setState(() => _usedServer = TournamentService.list.value.isNotEmpty ||
+        TournamentService.error.value == null);
   }
 
   @override
@@ -111,7 +112,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
     if (!mounted) return;
     if (!ok) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(TournamentService.error.value ?? 'Failed')));
+          content: Text(TournamentService.error.value ?? context.l10n.failed)));
       return;
     }
     Navigator.pushNamed(context, '/tournament-joined', arguments: t.id);
@@ -133,16 +134,15 @@ class _TournamentScreenState extends State<TournamentScreen> {
               final players = live != null
                   ? '${live.registeredCount}/${live.maxParticipants}'
                   : '128';
-              final prize = live != null
-                  ? '${live.prizePoolMinor}'
-                  : '2.5K';
+              final prize = live != null ? '${live.prizePoolMinor}' : '2.5K';
 
               return staggered([
-                const TopBar('Tournament'),
+                TopBar(context.l10n.tournament),
                 if (TournamentService.error.value != null && live == null)
                   AppCard(
                     child: Text(
-                      'Server tournaments unavailable — showing demo.\n${TournamentService.error.value}',
+                      context.l10n.serverTournamentsDemo(
+                          '${TournamentService.error.value}'),
                       style: const TextStyle(color: C.muted, height: 1.35),
                     ),
                   ),
@@ -153,7 +153,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
                       Text(
                         live != null
                             ? live.status.toUpperCase()
-                            : 'LIVE EVENT',
+                            : context.l10n.liveEventCaps,
                         style: const TextStyle(
                           color: C.magenta,
                           fontWeight: FontWeight.w800,
@@ -170,8 +170,8 @@ class _TournamentScreenState extends State<TournamentScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      const Text('Ends in',
-                          style: TextStyle(color: C.muted, fontSize: 13)),
+                      Text(context.l10n.endsIn,
+                          style: const TextStyle(color: C.muted, fontSize: 13)),
                       const SizedBox(height: 8),
                       Row(children: [
                         _timeBox(_two(left.inHours), 'hrs'),
@@ -182,30 +182,31 @@ class _TournamentScreenState extends State<TournamentScreen> {
                   ),
                 ),
                 Row(children: [
-                  _stat('$entry', 'Entry'),
-                  _stat(prize, 'Prize pool'),
-                  _stat(players, 'Players'),
+                  _stat('$entry', context.l10n.entry),
+                  _stat(prize, context.l10n.prizePool),
+                  _stat(players, context.l10n.players),
                 ]),
-                const PdfSectionLabel('How it works'),
-                _bullet('Single elimination: lose once and you are out'),
-                _bullet('20 seconds per move'),
-                _bullet('A draw replays the round'),
+                PdfSectionLabel(context.l10n.howItWorks),
+                _bullet(context.l10n.tSingleElim),
+                _bullet(context.l10n.t20Seconds),
+                _bullet(context.l10n.tDrawReplays),
                 ValueListenableBuilder<int>(
                   valueListenable: coins,
                   builder: (_, c, __) => Text(
-                    'Your balance: $c coins',
+                    context.l10n.yourBalance('$c'),
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: C.muted),
                   ),
                 ),
                 if (live != null && !live.iAmRegistered)
                   PdfPinkButton(
-                    'JOIN FOR $entry COINS',
+                    context.l10n.joinForCoins(
+                        AppLocaleService.formatCoinAmount(entry)),
                     onTap: () => _register(live),
                   )
                 else if (live != null && live.iAmRegistered)
                   PdfPinkButton(
-                    "YOU'RE IN — VIEW BRACKET",
+                    context.l10n.youreInViewBracket,
                     onTap: () {
                       TournamentService.activeTournamentId.value = live.id;
                       Navigator.pushNamed(context, '/tournament-bracket',
@@ -214,12 +215,13 @@ class _TournamentScreenState extends State<TournamentScreen> {
                   )
                 else
                   PdfPinkButton(
-                    'JOIN FOR $entry COINS',
+                    context.l10n.joinForCoins(
+                        AppLocaleService.formatCoinAmount(entry)),
                     onTap: () => Navigator.pushNamed(
                         context, '/tournament-join-confirm'),
                   ),
                 PdfGhostButton(
-                  'View bracket',
+                  context.l10n.viewBracket,
                   onTap: () => Navigator.pushNamed(
                     context,
                     '/tournament-bracket',
@@ -227,7 +229,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
                   ),
                 ),
                 if (_usedServer && items.length > 1) ...[
-                  const PdfSectionLabel('Other events'),
+                  PdfSectionLabel(context.l10n.otherEvents),
                   for (final t in items.skip(1))
                     AppCard(
                       child: ListTile(
@@ -236,11 +238,11 @@ class _TournamentScreenState extends State<TournamentScreen> {
                             style:
                                 const TextStyle(fontWeight: FontWeight.w800)),
                         subtitle: Text(
-                          '${t.entryFeeMinor} coins · ${t.registeredCount}/${t.maxParticipants} · ${t.status}',
+                          '${context.l10n.coinsLabel(AppLocaleService.formatCoinAmount(t.entryFeeMinor))} · ${t.registeredCount}/${t.maxParticipants} · ${t.status}',
                           style: const TextStyle(color: C.muted),
                         ),
                         trailing: t.iAmRegistered
-                            ? const Tag('Joined', color: C.teal)
+                            ? Tag(context.l10n.joined, color: C.teal)
                             : null,
                         onTap: t.iAmRegistered
                             ? () => Navigator.pushNamed(

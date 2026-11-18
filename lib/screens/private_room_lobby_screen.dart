@@ -11,6 +11,7 @@ import '../services/qr_code_service.dart';
 import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../l10n/app_localizations.dart';
 
 /// Host waits here until opponent joins (Realtime → active).
 class PrivateRoomLobbyScreen extends StatefulWidget {
@@ -67,8 +68,8 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(s.roomStatus == 'expired'
-              ? 'Room expired'
-              : 'Room cancelled')));
+              ? context.l10n.roomExpired
+              : context.l10n.roomCancelled)));
     }
   }
 
@@ -104,16 +105,16 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
   Future<void> _copy() async {
     await Clipboard.setData(ClipboardData(text: code));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Room code copied')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(context.l10n.roomCodeCopied)));
   }
 
   Future<void> _copyLink() async {
     await Clipboard.setData(
         ClipboardData(text: QrCodeService.shareLinkForCode(code)));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Link copied')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(context.l10n.linkCopied)));
   }
 
   Future<void> _share() async {
@@ -144,14 +145,14 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
 
   String _closesInLabel() {
     final end = expiresAt;
-    if (end == null) return 'Room closes soon if nobody joins.';
+    if (end == null) return context.l10n.roomClosesSoon;
     final left = end.difference(DateTime.now());
-    if (left.isNegative) return 'Room is closing…';
+    if (left.isNegative) return context.l10n.roomClosing;
     final m = left.inMinutes.clamp(0, 99);
     final s = left.inSeconds.remainder(60).clamp(0, 59);
     final mm = m.toString().padLeft(2, '0');
     final ss = s.toString().padLeft(2, '0');
-    return 'Room closes in $mm:$ss if nobody joins.';
+    return context.l10n.roomClosesIn('$mm:$ss');
   }
 
   @override
@@ -187,14 +188,14 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
                 children: [
                   RoundIconBox(
                     Icons.arrow_back_ios_new_rounded,
-                    label: 'Back',
+                    label: context.l10n.back,
                     onTap: () => Navigator.maybePop(context),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'PRIVATE ROOM',
-                      style: TextStyle(
+                      context.l10n.privateRoomCaps,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 18,
                         letterSpacing: 1,
@@ -202,14 +203,14 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 7),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                     decoration: BoxDecoration(
                       color: const Color(0xFF143832),
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
-                      open ? 'ROOM OPEN' : status.toUpperCase(),
+                      open ? context.l10n.roomOpenCaps : status.toUpperCase(),
                       style: const TextStyle(
                         color: C.teal,
                         fontWeight: FontWeight.w800,
@@ -235,9 +236,9 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Text(
-                              'ROOM CODE',
-                              style: TextStyle(
+                            Text(
+                              context.l10n.roomCodeCaps,
+                              style: const TextStyle(
                                 color: C.muted,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -288,9 +289,9 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            const Text(
-                              'Scan to join, or share the link',
-                              style: TextStyle(
+                            Text(
+                              context.l10n.scanOrShare,
+                              style: const TextStyle(
                                 color: C.muted,
                                 fontSize: 12.5,
                               ),
@@ -343,9 +344,9 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Text(
-                                    'JOIN',
-                                    style: TextStyle(
+                                  Text(
+                                    context.l10n.joinCaps,
+                                    style: const TextStyle(
                                       color: C.magenta,
                                       fontSize: 9,
                                       fontWeight: FontWeight.w800,
@@ -366,21 +367,21 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            const Expanded(
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Invite image',
-                                    style: TextStyle(
+                                    context.l10n.inviteImage,
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.w800,
                                       fontSize: 14.5,
                                     ),
                                   ),
-                                  SizedBox(height: 4),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'Code, QR and link in one picture. Send it on WhatsApp or anywhere.',
-                                    style: TextStyle(
+                                    context.l10n.inviteImageBody,
+                                    style: const TextStyle(
                                       color: C.muted,
                                       fontSize: 12,
                                       height: 1.35,
@@ -406,9 +407,9 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
                             ),
                           ),
                           icon: const Icon(Icons.ios_share_rounded, size: 20),
-                          label: const Text(
-                            'SHARE INVITE',
-                            style: TextStyle(
+                          label: Text(
+                            context.l10n.shareInviteCaps,
+                            style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.8,
                             ),
@@ -438,9 +439,9 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Waiting for a friend...',
-                                    style: TextStyle(
+                                  Text(
+                                    context.l10n.waitingForFriend,
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 14,
                                     ),
@@ -463,7 +464,7 @@ class _PrivateRoomLobbyScreenState extends State<PrivateRoomLobbyScreen> {
                       TextButton(
                         onPressed: _busy ? null : _cancel,
                         child: Text(
-                          _busy ? 'Closing…' : 'Close room',
+                          _busy ? context.l10n.closing : context.l10n.closeRoom,
                           style: const TextStyle(
                             color: C.danger,
                             fontWeight: FontWeight.w700,

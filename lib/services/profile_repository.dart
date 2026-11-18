@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_profile.dart';
+import '../l10n/app_localizations.dart';
 
 class ProfileRepository {
   ProfileRepository._();
@@ -38,6 +39,19 @@ class ProfileRepository {
     return UserProfile.fromJson(Map<String, dynamic>.from(row));
   }
 
+  /// Own permanent player number, or null if not available yet.
+  static Future<int?> fetchMyPlayerNo() async {
+    final uid = _db.auth.currentUser?.id;
+    if (uid == null) return null;
+    final row = await _db
+        .from('profiles')
+        .select('player_no')
+        .eq('id', uid)
+        .maybeSingle();
+    final v = row?['player_no'];
+    return v is int ? v : int.tryParse('${v ?? ''}');
+  }
+
   static Future<UserProfile?> fetchOwnWithRetry({
     int attempts = 5,
     Duration delay = const Duration(milliseconds: 400),
@@ -52,7 +66,7 @@ class ProfileRepository {
 
   static Future<void> updateAvatarUrl(String? url) async {
     final uid = _db.auth.currentUser?.id;
-    if (uid == null) throw Exception('Not signed in');
+    if (uid == null) throw Exception(l10nNow.notSignedIn);
     await _db.from('profiles').update({'avatar_url': url}).eq('id', uid);
   }
 
@@ -68,7 +82,7 @@ class ProfileRepository {
     });
     final map = _asMap(raw);
     if (map == null || '${map['status']}' != 'ok') {
-      throw Exception('${map?['message'] ?? 'Update failed'}');
+      throw Exception('${map?['message'] ?? l10nNow.updateFailed}');
     }
     return UserProfile.fromJson(map);
   }
@@ -88,7 +102,7 @@ class ProfileRepository {
     });
     final map = _asMap(raw);
     if (map == null || '${map['status']}' != 'ok') {
-      throw Exception('${map?['message'] ?? 'Update failed'}');
+      throw Exception('${map?['message'] ?? l10nNow.updateFailed}');
     }
     return UserProfile.fromJson(map);
   }

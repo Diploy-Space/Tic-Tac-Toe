@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'l10n/app_localizations.dart';
 import 'models.dart';
@@ -27,6 +26,9 @@ import 'screens/more_games_screen.dart';
 import 'screens/contact_about_screen.dart';
 import 'screens/privacy_screen.dart';
 import 'screens/terms_screen.dart';
+import 'screens/how_to_play_screen.dart';
+import 'screens/app_update_screen.dart';
+import 'services/app_update_service.dart';
 import 'screens/logo_screen.dart' show LogoScreen, LogoSplashScreen;
 import 'screens/intro_screen.dart';
 import 'screens/forgot_password_screen.dart';
@@ -65,7 +67,6 @@ import 'screens/challenge_privacy_screen.dart';
 import 'screens/chat_rules_screen.dart';
 import 'screens/ephemeral_chat_demo_screen.dart';
 import 'screens/tournament_flow_screens.dart';
-import 'screens/how_to_play_flow_screen.dart';
 import 'screens/shop_reward_flow_screens.dart';
 import 'screens/ad_placement_screen.dart';
 import 'screens/referral_code_screen.dart';
@@ -77,6 +78,8 @@ import 'services/moderation_service.dart';
 import 'services/rewarded_ad_service.dart';
 import 'services/privacy_prefs_service.dart';
 import 'services/challenge_flow_service.dart';
+import 'services/notification_service.dart';
+import 'screens/notifications_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,6 +93,10 @@ Future<void> main() async {
   unawaited(RewardedAdService.instance.init());
   unawaited(PrivacyPrefsService.refresh());
   unawaited(SfxService.init());
+  // Local channel + FCM (push is skipped until Firebase is configured).
+  unawaited(NotificationService.init().then((_) {
+    if (AuthService.isSignedIn) return NotificationService.start();
+  }));
   runApp(const TicTacApp());
 }
 
@@ -151,6 +158,8 @@ class _TicTacAppState extends State<TicTacApp> {
     '/challenge-waiting',
     '/challenge-incoming',
     '/challenges',
+    '/notifications',
+    '/notification',
     '/match-lobby',
     '/connection-unstable',
     '/match-abandoned',
@@ -227,13 +236,31 @@ class _TicTacAppState extends State<TicTacApp> {
     return AuthService.isSignedIn ? '/home' : '/';
   }
 
+  /// On launch: if this version is below the minimum supported one in
+  /// Supabase `update.json`, block the app with the update screen.
+  /// Returns true when the app was blocked for a required update.
+  Future<bool> _checkRequiredUpdate() async {
+    if (!AppUpdateService.supported) return false;
+    try {
+      final r = await AppUpdateService.check();
+      if (r.isRequired) {
+        _nav.currentState?.pushNamedAndRemoveUntil('/app-update', (_) => false,
+            arguments: r);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Startup update check: $e');
+    }
+    return false;
+  }
+
   /// Opened straight into Home: still send suspended / under-review
   /// accounts to their moderation screen.
   Future<void> _checkModerationOnStart() async {
     if (_startRoute != '/home') return;
     try {
-      final status = ModerationService.status.value ??
-          await ModerationService.refresh();
+      final status =
+          ModerationService.status.value ?? await ModerationService.refresh();
       final dest = _destinationForModeration(status);
       if (dest != '/home') {
         _nav.currentState?.pushNamedAndRemoveUntil(dest, (r) => false);
@@ -249,8 +276,8 @@ class _TicTacAppState extends State<TicTacApp> {
     if (route != null && _moderationRoutes.contains(route)) return;
     if (route != null && _protectFromAuthRedirect.contains(route)) return;
 
-    final status = ModerationService.status.value ??
-        await ModerationService.refresh();
+    final status =
+        ModerationService.status.value ?? await ModerationService.refresh();
     var dest = _destinationForModeration(status);
     if (dest == '/home' && await ReferralService.shouldShowPrompt()) {
       dest = '/referral-code';
@@ -273,7 +300,8 @@ class _TicTacAppState extends State<TicTacApp> {
         route != null && ChallengeFlowService.busyRoutes.contains(route);
     ChallengeFlowService.setBusyClient(busy);
     if (busy) {
-      unawaited(ChallengeFlowService.decline(c.id, silent: true));
+      // In a match: no popup; the challenger is told this player is busy.
+      unawaited(ChallengeFlowService.declineBusy(c.id));
       return;
     }
     if (route == '/challenge-incoming' || _incomingOpen) return;
@@ -291,15 +319,60 @@ class _TicTacAppState extends State<TicTacApp> {
     super.initState();
     _challengeNavObserver = _ChallengeNavObserver(onChange: _syncChallengeBusy);
     ChallengeFlowService.setIncomingHandler(_presentIncomingChallenge);
+    NotificationService.onOpen = (n) async {
+      final nav = _nav.currentState;
+      if (nav == null) return;
+      // Never pull the player out of a running match.
+      final cur = _currentRouteName();
+      if (cur != null && ChallengeFlowService.busyRoutes.contains(cur)) return;
+      // Still-open challenge → straight to the Accept / Decline popup.
+      if (n.type == 'challenge_request' && AuthService.isSignedIn) {
+        final id = '${n.data['challenge_id'] ?? ''}';
+        await ChallengeFlowService.refresh();
+        for (final c in ChallengeFlowService.items.value) {
+          if (c.id == id &&
+              !c.outgoing &&
+              c.status == ChallengeItemStatus.pending &&
+              c.secondsLeft > 0) {
+            if (_currentRouteName() == '/challenge-incoming' || _incomingOpen) {
+              return;
+            }
+            _incomingOpen = true;
+            _nav.currentState
+                ?.pushNamed('/challenge-incoming', arguments: c)
+                .whenComplete(() => _incomingOpen = false);
+            return;
+          }
+        }
+      }
+      _nav.currentState?.pushNamed('/notification', arguments: n);
+    };
+    NotificationService.isInMatch = () {
+      final cur = _currentRouteName();
+      return cur != null && ChallengeFlowService.busyRoutes.contains(cur);
+    };
     ChallengeFlowService.setOutgoingResolvedHandler((c) {
-      if (_currentRouteName() == '/challenge-waiting') return;
+      final route = _currentRouteName();
+      if (route == '/challenge-waiting') return;
+      if (c.status == ChallengeItemStatus.accepted) {
+        // No "accepted" toast: the challenger goes straight into the match.
+        final busy =
+            route != null && ChallengeFlowService.busyRoutes.contains(route);
+        if (c.roomId != null && !busy) {
+          SfxService.play(Sfx.matchFound);
+          _nav.currentState
+              ?.pushNamed('/match-lobby', arguments: c.lobbyArgs());
+        }
+        return;
+      }
       final ctx = _nav.currentContext;
       if (ctx == null) return;
       final msg = switch (c.status) {
-        ChallengeItemStatus.declined => 'Challenge declined',
-        ChallengeItemStatus.accepted => 'Challenge accepted',
-        ChallengeItemStatus.expired => 'Challenge expired',
-        ChallengeItemStatus.cancelled => 'Challenge cancelled',
+        ChallengeItemStatus.declined when c.declinedBusy =>
+          l10nNow.notifChallengeBusyBody(c.opponentName),
+        ChallengeItemStatus.declined => l10nNow.challengeDeclined,
+        ChallengeItemStatus.expired => l10nNow.challengeExpired,
+        ChallengeItemStatus.cancelled => l10nNow.challengeCancelled,
         _ => null,
       };
       if (msg == null) return;
@@ -315,18 +388,17 @@ class _TicTacAppState extends State<TicTacApp> {
         final ctx = _nav.currentContext;
         if (ctx != null) {
           ScaffoldMessenger.of(ctx).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Your account was suspended. Sign in to view details or appeal.',
-              ),
-            ),
+            SnackBar(content: Text(l10nNow.accountSuspendedSignIn)),
           );
         }
       });
     };
 
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _checkModerationOnStart());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // A required update wins over everything else.
+      if (await _checkRequiredUpdate()) return;
+      await _checkModerationOnStart();
+    });
 
     // After Google / email deep-link, jump into the game once session exists.
     // Recovery OTP / magic-link goes to set-new-password instead of home.
@@ -351,124 +423,124 @@ class _TicTacAppState extends State<TicTacApp> {
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<int>(
         valueListenable: AppLocaleService.revision,
-        builder: (_, __, ___) =>         MaterialApp(
-        navigatorKey: _nav,
-        navigatorObservers: [_challengeNavObserver],
-        title: 'DROTIX',
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(),
-        locale: AppLocaleService.materialSafeLocale,
-        supportedLocales: AppLocaleService.supportedLocales,
-        localeResolutionCallback: (device, supported) {
-          return AppLocaleService.materialSafeLocale;
-        },
-        localizationsDelegates: const [
-          AppLocalizationsDelegate(),
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        initialRoute: _startRoute,
-        // Only the start screen — no Landing underneath Home.
-        onGenerateInitialRoutes: (name) => [
-          MaterialPageRoute(
-            settings: RouteSettings(name: name),
-            builder: (_) => switch (name) {
-              '/intro' => const IntroScreen(),
-              '/home' => const HomeScreen(),
-              _ => const LandingScreen(),
+        builder: (_, __, ___) => MaterialApp(
+          navigatorKey: _nav,
+          navigatorObservers: [_challengeNavObserver],
+          title: 'DROTIX',
+          debugShowCheckedModeBanner: false,
+          theme: buildTheme(),
+          // Selected language; the whole app rebuilds when it changes.
+          locale: Locale(AppLocaleService.languageCode.value),
+          supportedLocales: L10n.supportedLocales,
+          localizationsDelegates: L10n.localizationsDelegates,
+          // In-app notification banner above every screen.
+          builder: (context, child) => Stack(children: [
+            if (child != null) child,
+            const Positioned(
+                top: 0, left: 0, right: 0, child: InAppNotificationBanner()),
+          ]),
+          initialRoute: _startRoute,
+          // Only the start screen — no Landing underneath Home.
+          onGenerateInitialRoutes: (name) => [
+            MaterialPageRoute(
+              settings: RouteSettings(name: name),
+              builder: (_) => switch (name) {
+                '/intro' => const IntroScreen(),
+                '/home' => const HomeScreen(),
+                _ => const LandingScreen(),
+              },
+            ),
+          ],
+          routes: {
+            '/': (_) => const LandingScreen(),
+            '/signin': (_) => const SignInScreen(),
+            '/signup': (_) => const SignUpScreen(),
+            '/home': (_) => const HomeScreen(),
+            '/game': (_) => const GameScreen(),
+            '/ranks': (_) => const LeaderboardScreen(),
+            '/profile': (_) => const ProfileScreen(),
+            '/public-profile': (ctx) {
+              final args = PublicProfileArgs.fromRoute(
+                ModalRoute.of(ctx)?.settings.arguments,
+              );
+              return PublicProfileScreen(userId: args.userId);
             },
-          ),
-        ],
-        routes: {
-          '/': (_) => const LandingScreen(),
-          '/signin': (_) => const SignInScreen(),
-          '/signup': (_) => const SignUpScreen(),
-          '/home': (_) => const HomeScreen(),
-          '/game': (_) => const GameScreen(),
-          '/ranks': (_) => const LeaderboardScreen(),
-          '/profile': (_) => const ProfileScreen(),
-          '/public-profile': (ctx) {
-            final args = PublicProfileArgs.fromRoute(
-              ModalRoute.of(ctx)?.settings.arguments,
-            );
-            return PublicProfileScreen(userId: args.userId);
+            '/challenge-stake': (_) => const ChallengeStakeScreen(),
+            '/challenge-waiting': (_) => const ChallengeWaitingScreen(),
+            '/challenge-incoming': (_) => const ChallengeIncomingScreen(),
+            '/challenges': (_) => const ChallengesListScreen(),
+            '/notifications': (_) => const NotificationsScreen(),
+            '/notification': (_) => const NotificationDetailScreen(),
+            '/match-lobby': (_) => const MatchLobbyScreen(),
+            '/connection-unstable': (_) => const ConnectionUnstableScreen(),
+            '/match-abandoned': (_) => const MatchAbandonedScreen(),
+            '/match-result': (_) => const MatchResultScreen(),
+            '/challenge-privacy': (_) => const ChallengePrivacyScreen(),
+            '/chat-rules': (_) => const ChatRulesScreen(),
+            '/ephemeral-chat': (_) => const EphemeralChatDemoScreen(),
+            '/how-to-play': (_) => const HowToPlayScreen(),
+            '/tournament-join-confirm': (_) =>
+                const TournamentJoinConfirmScreen(),
+            '/tournament-joined': (_) => const TournamentJoinedScreen(),
+            '/tournament-bracket': (_) => const TournamentBracketScreen(),
+            '/tournament-ready': (_) => const TournamentReadyScreen(),
+            '/tournament-match': (_) => const TournamentMatchDemoScreen(),
+            '/tournament-round-result': (_) =>
+                const TournamentRoundResultScreen(),
+            '/tournament-champion': (_) => const TournamentChampionScreen(),
+            '/shop-ad-loading': (_) => const ShopAdLoadingScreen(),
+            // Mock player replaced by the real AdMob flow.
+            '/shop-ad-player': (_) => const ShopAdLoadingScreen(),
+            '/shop-ad-verifying': (_) => const ShopAdVerifyingScreen(),
+            '/shop-reward-earned': (_) => const ShopRewardEarnedScreen(),
+            '/shop-daily-limit': (_) => const ShopDailyLimitScreen(),
+            '/shop-no-video': (_) => const ShopNoVideoScreen(),
+            '/shop-verify-fail': (_) => const ShopVerifyFailScreen(),
+            '/ad-placement': (_) => const AdPlacementScreen(),
+            '/reward-flow': (_) => const RewardFlowOverviewScreen(),
+            '/logo-splash': (_) => const LogoSplashScreen(),
+            '/history': (_) => const HistoryScreen(),
+            '/match-history': (_) => const MatchHistoryScreen(),
+            '/referral-code': (_) => const ReferralCodeScreen(),
+            '/referral-success': (_) => const ReferralSuccessScreen(),
+            '/language': (_) => const LanguageScreen(),
+            '/games': (_) => const MoreGamesScreen(),
+            '/contact': (_) => const ContactAboutScreen(),
+            '/privacy': (_) => const PrivacyScreen(),
+            '/terms': (_) => const TermsScreen(),
+            '/app-update': (_) => const AppUpdateScreen(),
+            '/logo': (_) => const LogoScreen(),
+            '/intro': (_) => const IntroScreen(),
+            '/forgot': (_) => const ForgotPasswordScreen(),
+            '/verify': (_) => const VerifyCodeScreen(),
+            '/reset-password': (_) => const ResetPasswordScreen(),
+            '/offline': (_) => const OfflineScreen(),
+            '/daily': (_) => const DailyRewardScreen(),
+            '/missions': (_) => const MissionsScreen(),
+            '/achievements': (_) => const AchievementsScreen(),
+            '/shop': (_) => const ShopScreen(),
+            '/friends': (_) => const FriendsScreen(),
+            '/events': (_) => const TournamentScreen(),
+            '/customize': (_) => const CustomizeScreen(),
+            '/matching': (_) => const MatchingScreen(),
+            '/offline-ai-picker': (_) => const OfflineAiPickerScreen(),
+            '/online-matching': (_) => const OnlineMatchingScreen(),
+            '/online-room': (_) => const OnlineGameScreen(),
+            '/private-room-lobby': (_) => const PrivateRoomLobbyScreen(),
+            '/join-private-room': (_) => const JoinPrivateRoomScreen(),
+            // Same JOIN ROOM UI (camera + code) as design.
+            '/scan-private-room': (_) => const JoinPrivateRoomScreen(),
+            '/edit-profile': (_) => const EditProfileScreen(),
+            '/wallet': (_) => const WalletScreen(),
+            '/settings': (_) => const SettingsScreen(),
+            '/stats': (_) => const StatsScreen(),
+            '/account-suspended': (_) => const AccountSuspensionScreen(),
+            '/appeal-submit': (_) => const AppealSubmissionScreen(),
+            '/appeal-under-review': (_) => const AppealUnderReviewScreen(),
+            '/admin-moderation': (_) => const AdminModerationScreen(),
+            '/admin-tournament': (_) => const AdminTournamentScreen(),
           },
-          '/challenge-stake': (_) => const ChallengeStakeScreen(),
-          '/challenge-waiting': (_) => const ChallengeWaitingScreen(),
-          '/challenge-incoming': (_) => const ChallengeIncomingScreen(),
-          '/challenges': (_) => const ChallengesListScreen(),
-          '/match-lobby': (_) => const MatchLobbyScreen(),
-          '/connection-unstable': (_) => const ConnectionUnstableScreen(),
-          '/match-abandoned': (_) => const MatchAbandonedScreen(),
-          '/match-result': (_) => const MatchResultScreen(),
-          '/challenge-privacy': (_) => const ChallengePrivacyScreen(),
-          '/chat-rules': (_) => const ChatRulesScreen(),
-          '/ephemeral-chat': (_) => const EphemeralChatDemoScreen(),
-          '/how-to-play': (_) => const Scaffold(
-                backgroundColor: Color(0xFF0A0A0C),
-                body: Center(child: HowToPlayFlowScreen()),
-              ),
-          '/tournament-join-confirm': (_) =>
-              const TournamentJoinConfirmScreen(),
-          '/tournament-joined': (_) => const TournamentJoinedScreen(),
-          '/tournament-bracket': (_) => const TournamentBracketScreen(),
-          '/tournament-ready': (_) => const TournamentReadyScreen(),
-          '/tournament-match': (_) => const TournamentMatchDemoScreen(),
-          '/tournament-round-result': (_) =>
-              const TournamentRoundResultScreen(),
-          '/tournament-champion': (_) => const TournamentChampionScreen(),
-          '/shop-ad-loading': (_) => const ShopAdLoadingScreen(),
-          '/shop-ad-player': (_) => const ShopAdPlayerScreen(),
-          '/shop-ad-verifying': (_) => const ShopAdVerifyingScreen(),
-          '/shop-reward-earned': (_) => const ShopRewardEarnedScreen(),
-          '/shop-daily-limit': (_) => const ShopDailyLimitScreen(),
-          '/shop-no-video': (_) => const ShopNoVideoScreen(),
-          '/shop-verify-fail': (_) => const ShopVerifyFailScreen(),
-          '/ad-placement': (_) => const AdPlacementScreen(),
-          '/reward-flow': (_) => const RewardFlowOverviewScreen(),
-          '/logo-splash': (_) => const LogoSplashScreen(),
-          '/history': (_) => const HistoryScreen(),
-          '/match-history': (_) => const MatchHistoryScreen(),
-          '/referral-code': (_) => const ReferralCodeScreen(),
-          '/referral-success': (_) => const ReferralSuccessScreen(),
-          '/language': (_) => const LanguageScreen(),
-          '/games': (_) => const MoreGamesScreen(),
-          '/contact': (_) => const ContactAboutScreen(),
-          '/privacy': (_) => const PrivacyScreen(),
-          '/terms': (_) => const TermsScreen(),
-          '/logo': (_) => const LogoScreen(),
-          '/intro': (_) => const IntroScreen(),
-          '/forgot': (_) => const ForgotPasswordScreen(),
-          '/verify': (_) => const VerifyCodeScreen(),
-          '/reset-password': (_) => const ResetPasswordScreen(),
-          '/offline': (_) => const OfflineScreen(),
-          '/daily': (_) => const DailyRewardScreen(),
-          '/missions': (_) => const MissionsScreen(),
-          '/achievements': (_) => const AchievementsScreen(),
-          '/shop': (_) => const ShopScreen(),
-          '/friends': (_) => const FriendsScreen(),
-          '/events': (_) => const TournamentScreen(),
-          '/customize': (_) => const CustomizeScreen(),
-          '/matching': (_) => const MatchingScreen(),
-          '/offline-ai-picker': (_) => const OfflineAiPickerScreen(),
-          '/online-matching': (_) => const OnlineMatchingScreen(),
-          '/online-room': (_) => const OnlineGameScreen(),
-          '/private-room-lobby': (_) => const PrivateRoomLobbyScreen(),
-          '/join-private-room': (_) => const JoinPrivateRoomScreen(),
-          // Same JOIN ROOM UI (camera + code) as design.
-          '/scan-private-room': (_) => const JoinPrivateRoomScreen(),
-          '/edit-profile': (_) => const EditProfileScreen(),
-          '/wallet': (_) => const WalletScreen(),
-          '/settings': (_) => const SettingsScreen(),
-          '/stats': (_) => const StatsScreen(),
-          '/account-suspended': (_) => const AccountSuspensionScreen(),
-          '/appeal-submit': (_) => const AppealSubmissionScreen(),
-          '/appeal-under-review': (_) => const AppealUnderReviewScreen(),
-          '/admin-moderation': (_) => const AdminModerationScreen(),
-          '/admin-tournament': (_) => const AdminTournamentScreen(),
-        },
-      ),
+        ),
       );
 }
 
@@ -485,8 +557,7 @@ class _ChallengeNavObserver extends NavigatorObserver {
       _notify();
 
   @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
-      _notify();
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _notify();
 
   @override
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>

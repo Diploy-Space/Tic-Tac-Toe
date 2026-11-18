@@ -5,6 +5,7 @@ import '../services/moderation_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
+import '../l10n/app_localizations.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -53,7 +54,7 @@ class _SignInScreenState extends State<SignInScreen> {
     final email = _email.text.trim();
     final password = _password.text;
     if (email.isEmpty || password.isEmpty) {
-      _toast('Enter email and password');
+      _toast(context.l10n.enterEmailPassword);
       return;
     }
     setState(() => _loading = true);
@@ -78,27 +79,27 @@ class _SignInScreenState extends State<SignInScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: C.surface,
-        title: const Text('Email not confirmed'),
+        title: Text(context.l10n.emailNotConfirmed),
         content: Text(
-          'Register সফল হয়েছে, কিন্তু email এখনো confirm হয়নি.\n\n'
-          'Inbox / Spam এ confirmation link খুলে confirm করো, তারপর আবার Sign in করো.\n\n$email',
+          context.l10n.emailNotConfirmedBody(email),
           style: const TextStyle(color: C.muted, height: 1.4),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('OK', style: TextStyle(color: C.muted))),
+              child: Text(context.l10n.ok,
+                  style: const TextStyle(color: C.muted))),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Resend email',
-                  style: TextStyle(color: C.pinkText))),
+              child: Text(context.l10n.resendEmail,
+                  style: const TextStyle(color: C.pinkText))),
         ],
       ),
     );
     if (resend == true) {
       try {
         await AuthService.resendSignupConfirmation(email);
-        _toast('Confirmation email পাঠানো হয়েছে — inbox চেক করো');
+        _toast(context.l10n.confirmationEmailSent);
         if (!mounted) return;
         Navigator.pushNamed(context, '/verify', arguments: email);
       } catch (err) {
@@ -112,9 +113,9 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       final launched = await AuthService.signInWithGoogle();
       if (!launched) {
-        _toast('Could not open Google sign-in');
+        _toast(context.l10n.couldNotOpenGoogle);
       } else {
-        _toast('Complete Google sign-in, then return to the app');
+        _toast(context.l10n.completeGoogleReturnApp);
       }
     } catch (e) {
       _toast(AuthService.messageFromError(e));
@@ -131,7 +132,7 @@ class _SignInScreenState extends State<SignInScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const FadeUp(index: 0, child: TopBar('Sign in')),
+            FadeUp(index: 0, child: TopBar(context.l10n.signIn)),
             const SizedBox(height: 28),
             const FadeUp(
               index: 1,
@@ -141,16 +142,16 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
             ),
             const SizedBox(height: 18),
-            const FadeUp(
+            FadeUp(
               index: 2,
-              child: Heading('Welcome back', size: 30),
+              child: Heading(context.l10n.welcomeBack, size: 30),
             ),
             const SizedBox(height: 8),
-            const FadeUp(
+            FadeUp(
               index: 3,
               child: Text(
-                'Player, your seat is waiting.',
-                style: TextStyle(
+                context.l10n.seatWaiting,
+                style: const TextStyle(
                   color: C.muted,
                   fontSize: 14,
                   height: 1.3,
@@ -162,7 +163,7 @@ class _SignInScreenState extends State<SignInScreen> {
               index: 4,
               child: AppField(
                 icon: Icons.mail_outline,
-                hint: 'Email',
+                hint: context.l10n.email,
                 type: TextInputType.emailAddress,
                 controller: _email,
                 textInputAction: TextInputAction.next,
@@ -173,7 +174,7 @@ class _SignInScreenState extends State<SignInScreen> {
               index: 5,
               child: AppField(
                 icon: Icons.lock_outline,
-                hint: 'Password',
+                hint: context.l10n.password,
                 obscure: true,
                 obscureToggle: false,
                 controller: _password,
@@ -188,11 +189,11 @@ class _SignInScreenState extends State<SignInScreen> {
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
                   onTap: () => Navigator.pushNamed(context, '/forgot'),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Text(
-                      'Forgot password?',
-                      style: TextStyle(
+                      context.l10n.forgotPassword,
+                      style: const TextStyle(
                         color: C.muted,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -206,18 +207,18 @@ class _SignInScreenState extends State<SignInScreen> {
             FadeUp(
               index: 7,
               child: PrimaryButton(
-                _loading ? 'Please wait…' : 'Sign in',
+                _loading ? context.l10n.pleaseWait : context.l10n.signIn,
                 onTap: _loading ? null : _signIn,
                 color: const Color(0xFFD4156B),
               ),
             ),
             const SizedBox(height: 16),
-            const FadeUp(
+            FadeUp(
               index: 8,
               child: Center(
                 child: Text(
-                  'Or',
-                  style: TextStyle(
+                  context.l10n.or,
+                  style: const TextStyle(
                     color: C.muted,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -228,7 +229,7 @@ class _SignInScreenState extends State<SignInScreen> {
             const SizedBox(height: 16),
             FadeUp(
               index: 9,
-              child: GhostButton('Continue with Google',
+              child: GhostButton(context.l10n.continueWithGoogle,
                   onTap: _loading ? null : _google),
             ),
             const Spacer(),
@@ -238,17 +239,17 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: GestureDetector(
                   onTap: () =>
                       Navigator.pushReplacementNamed(context, '/signup'),
-                  child: const Text.rich(
+                  child: Text.rich(
                     TextSpan(
-                      text: 'New here? ',
-                      style: TextStyle(
+                      text: '${context.l10n.newHere} ',
+                      style: const TextStyle(
                         color: C.muted,
                         fontSize: 14,
                       ),
                       children: [
                         TextSpan(
-                          text: 'Register',
-                          style: TextStyle(
+                          text: context.l10n.register,
+                          style: const TextStyle(
                             color: Color(0xFFD4156B),
                             fontWeight: FontWeight.w700,
                             fontSize: 14,

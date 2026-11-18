@@ -1,10 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../game/ai.dart';
+import '../game/board.dart';
 import '../models.dart';
+import '../services/app_locale_service.dart';
+import '../services/sfx_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/pdf_ui.dart';
+import '../l10n/app_localizations.dart';
 
 /// PDF pages 21–28 tournament flow.
 
@@ -17,52 +23,52 @@ class TournamentJoinConfirmScreen extends StatelessWidget {
     return AppScaffold(
       child: Column(
         children: [
-          const TopBar('Tournament'),
+          TopBar(context.l10n.tournament),
           const Spacer(),
           PdfModalCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Join Weekend Showdown?',
+                Text(context.l10n.joinTournamentQuestion('Weekend Showdown'),
                     style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                        const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
                 const SizedBox(height: 16),
                 Row(children: [
-                  const Text('Entry fee', style: TextStyle(color: C.muted)),
+                  Text(context.l10n.entryFee,
+                      style: const TextStyle(color: C.muted)),
                   const Spacer(),
-                  const Icon(Icons.diamond, color: C.teal, size: 16),
+                  const CurrencyMark(size: 16, color: C.teal),
                   const SizedBox(width: 4),
-                  const Text('25',
+                  Text(AppLocaleService.formatCoinAmount(25),
                       style: TextStyle(
                           color: C.teal, fontWeight: FontWeight.w800)),
                 ]),
                 const SizedBox(height: 10),
                 Row(children: [
-                  const Text('Balance after',
-                      style: TextStyle(color: C.muted)),
+                  Text(context.l10n.balanceAfter,
+                      style: const TextStyle(color: C.muted)),
                   const Spacer(),
-                  Text('${coins.value} → $after',
+                  Text('${AppLocaleService.formatCoinAmount(coins.value)} → ${AppLocaleService.formatCoinAmount(after)}',
                       style: const TextStyle(fontWeight: FontWeight.w700)),
                 ]),
                 const SizedBox(height: 14),
-                const Text(
-                  'Single elimination. If you lose a round you are out, and the entry fee is not returned.',
-                  style: TextStyle(color: C.muted, height: 1.4, fontSize: 13),
+                Text(
+                  context.l10n.tSingleElimFee,
+                  style: const TextStyle(color: C.muted, height: 1.4, fontSize: 13),
                 ),
                 const SizedBox(height: 18),
-                PdfPinkButton('CONFIRM & JOIN', onTap: () {
+                PdfPinkButton(context.l10n.confirmJoinCaps, onTap: () {
                   if (coins.value < 25) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Not enough coins')),
+                      SnackBar(content: Text(context.l10n.notEnoughCoins)),
                     );
                     return;
                   }
                   coins.value -= 25;
-                  Navigator.pushReplacementNamed(
-                      context, '/tournament-joined');
+                  Navigator.pushReplacementNamed(context, '/tournament-joined');
                 }),
                 const SizedBox(height: 10),
-                PdfGhostButton('Not now',
+                PdfGhostButton(context.l10n.notNow,
                     onTap: () => Navigator.pop(context)),
               ],
             ),
@@ -105,41 +111,41 @@ class _TournamentJoinedScreenState extends State<TournamentJoinedScreen> {
     return AppScaffold(
       child: SingleChildScrollView(
         child: staggered([
-          const TopBar('Tournament'),
+          TopBar(context.l10n.tournament),
           PdfModalCard(
             borderColor: C.teal,
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "YOU'RE IN",
-                  style: TextStyle(
+                  context.l10n.youreInCaps,
+                  style: const TextStyle(
                     color: C.teal,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 2,
                     fontSize: 11,
                   ),
                 ),
-                SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 8),
+                const Text(
                   'WEEKEND SHOWDOWN',
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 22,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
-                  'Your first match is set when the round opens.',
-                  style: TextStyle(color: C.muted, height: 1.35),
+                  context.l10n.firstMatchSet,
+                  style: const TextStyle(color: C.muted, height: 1.35),
                 ),
               ],
             ),
           ),
           Row(children: [
-            _stat('25', 'Entry'),
-            _stat('2.5K', 'Prize pool'),
-            _stat('128', 'Players'),
+            _stat('25', context.l10n.entry),
+            _stat('2.5K', context.l10n.prizePool),
+            _stat('128', context.l10n.players),
           ]),
           AppCard(
             child: Row(
@@ -153,16 +159,16 @@ class _TournamentJoinedScreenState extends State<TournamentJoinedScreen> {
                       color: C.teal, shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Waiting for the round to open',
-                          style: TextStyle(fontWeight: FontWeight.w800)),
-                      SizedBox(height: 4),
+                      Text(context.l10n.waitingRoundOpen,
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 4),
                       Text(
-                        'Stay in the app. We will alert you when your match is ready.',
-                        style: TextStyle(color: C.muted, height: 1.35),
+                        context.l10n.stayInApp,
+                        style: const TextStyle(color: C.muted, height: 1.35),
                       ),
                     ],
                   ),
@@ -176,14 +182,13 @@ class _TournamentJoinedScreenState extends State<TournamentJoinedScreen> {
               contentPadding: EdgeInsets.zero,
               value: remind,
               onChanged: (v) => setState(() => remind = v),
-              title: const Text('Remind me before my match'),
+              title: Text(context.l10n.remindMe),
               activeTrackColor: C.teal,
             ),
           ),
-          PdfPinkButton('VIEW BRACKET',
-              onTap: () =>
-                  Navigator.pushNamed(context, '/tournament-bracket')),
-          PdfGhostButton('Back to events',
+          PdfPinkButton(context.l10n.viewBracketCaps,
+              onTap: () => Navigator.pushNamed(context, '/tournament-bracket')),
+          PdfGhostButton(context.l10n.backToEvents,
               onTap: () => Navigator.pushNamedAndRemoveUntil(
                   context, '/events', (r) => false)),
         ]),
@@ -200,12 +205,12 @@ class TournamentBracketScreen extends StatelessWidget {
     return AppScaffold(
       child: Column(
         children: [
-          const TopBar('Bracket'),
-          const Align(
+          TopBar(context.l10n.bracket),
+          Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Round of 16 · 8 matches, 4 shown. You are highlighted.',
-              style: TextStyle(color: C.muted, fontSize: 13),
+              context.l10n.bracketInfo,
+              style: const TextStyle(color: C.muted, fontSize: 13),
             ),
           ),
           const SizedBox(height: 12),
@@ -215,22 +220,24 @@ class TournamentBracketScreen extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _col('Round of 16', [
-                    _slot('You', 'rahul256', highlight: true),
+                  _col(context.l10n.roundOf16, [
+                    _slot(context.l10n.you, 'rahul256', highlight: true),
                     _slot('diployteam', 'anik'),
-                    _slot('TBD', 'TBD'),
-                    _slot('TBD', 'TBD'),
+                    _slot(context.l10n.tbd, context.l10n.tbd),
+                    _slot(context.l10n.tbd, context.l10n.tbd),
                   ]),
                   const SizedBox(width: 12),
-                  _col('Quarter', [
-                    _slot('TBD', 'TBD'),
-                    _slot('TBD', 'TBD'),
+                  _col(context.l10n.quarter, [
+                    _slot(context.l10n.tbd, context.l10n.tbd),
+                    _slot(context.l10n.tbd, context.l10n.tbd),
                   ]),
                   const SizedBox(width: 12),
-                  _col('Semi', [_slot('TBD', 'TBD')]),
+                  _col(context.l10n.semi,
+                      [_slot(context.l10n.tbd, context.l10n.tbd)]),
                   const SizedBox(width: 12),
-                  _col('Final', [
-                    _slot('Champion', 'TBD', champion: true),
+                  _col(context.l10n.finalRound, [
+                    _slot(context.l10n.achChampion, context.l10n.tbd,
+                        champion: true),
                   ]),
                 ],
               ),
@@ -239,25 +246,25 @@ class TournamentBracketScreen extends StatelessWidget {
           AppCard(
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Your next match',
-                          style: TextStyle(fontWeight: FontWeight.w800)),
-                      Text('Round of 16 · vs rahul256',
-                          style: TextStyle(color: C.muted, fontSize: 13)),
+                      Text(context.l10n.yourNextMatch,
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                      Text(context.l10n.roundOf16Vs('rahul256'),
+                          style: const TextStyle(color: C.muted, fontSize: 13)),
                     ],
                   ),
                 ),
                 const Text('02:00',
-                    style: TextStyle(
-                        color: C.teal, fontWeight: FontWeight.w800)),
+                    style:
+                        TextStyle(color: C.teal, fontWeight: FontWeight.w800)),
               ],
             ),
           ),
           const SizedBox(height: 10),
-          PdfPinkButton('GO TO MATCH', onTap: () {
+          PdfPinkButton(context.l10n.goToMatchCaps, onTap: () {
             Navigator.pushNamed(context, '/tournament-ready');
           }),
         ],
@@ -344,24 +351,26 @@ class _TournamentReadyScreenState extends State<TournamentReadyScreen> {
         children: [
           const TopBar('Weekend Showdown'),
           const Spacer(),
-          const PdfSectionLabel('Round of 16'),
+          PdfSectionLabel(context.l10n.roundOf16),
           const SizedBox(height: 8),
-          const Text(
-            'YOUR MATCH IS READY',
+          Text(
+            context.l10n.yourMatchReadyCaps,
             textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24),
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24),
           ),
           const SizedBox(height: 28),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              const Column(children: [
-                PdfGradientAvatar('Y', size: 72),
-                SizedBox(height: 8),
-                Text('You', style: TextStyle(fontWeight: FontWeight.w800)),
+              Column(children: [
+                const PdfGradientAvatar('Y', size: 72),
+                const SizedBox(height: 8),
+                Text(context.l10n.you,
+                    style: const TextStyle(fontWeight: FontWeight.w800)),
               ]),
               const Text('vs',
-                  style: TextStyle(color: C.muted, fontWeight: FontWeight.w700)),
+                  style:
+                      TextStyle(color: C.muted, fontWeight: FontWeight.w700)),
               Column(children: [
                 Container(
                   decoration: BoxDecoration(
@@ -377,8 +386,8 @@ class _TournamentReadyScreenState extends State<TournamentReadyScreen> {
             ],
           ),
           const SizedBox(height: 28),
-          const Text('STARTS IN',
-              style: TextStyle(
+          Text(context.l10n.startsInCaps,
+              style: const TextStyle(
                   color: C.muted,
                   letterSpacing: 2,
                   fontWeight: FontWeight.w700,
@@ -387,13 +396,13 @@ class _TournamentReadyScreenState extends State<TournamentReadyScreen> {
               style: const TextStyle(
                   fontSize: 56, fontWeight: FontWeight.w900, color: C.magenta)),
           const Spacer(),
-          const Text(
-            'If you do not join in time, your opponent advances.',
+          Text(
+            context.l10n.opponentAdvances,
             textAlign: TextAlign.center,
-            style: TextStyle(color: C.muted),
+            style: const TextStyle(color: C.muted),
           ),
           const SizedBox(height: 12),
-          PdfPinkButton("I'M READY", onTap: () {
+          PdfPinkButton(context.l10n.imReadyCaps, onTap: () {
             t?.cancel();
             Navigator.pushReplacementNamed(context, '/tournament-match');
           }),
@@ -412,22 +421,26 @@ class TournamentMatchDemoScreen extends StatefulWidget {
 }
 
 class _TournamentMatchDemoScreenState extends State<TournamentMatchDemoScreen> {
-  int left = 14;
+  // You are X (shown magenta), rahul256 is O. Internally the AI engine
+  // always plays 'X', so the board stores you as 'O' and the rival as 'X';
+  // [_shown] swaps them for display.
+  static const _me = 'O';
+  static const _rival = 'X';
+  static const _turnSeconds = 20;
+  static const _rivalName = 'rahul256';
+
+  Board board = Board(3);
+  String turn = _me;
+  int left = _turnSeconds;
+  bool over = false;
   Timer? t;
+  int _round = 0; // bumps on draw replays; stale AI moves are ignored
 
   @override
   void initState() {
     super.initState();
-    t = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      if (left <= 1) {
-        t?.cancel();
-        Navigator.pushReplacementNamed(context, '/tournament-round-result',
-            arguments: true);
-        return;
-      }
-      setState(() => left--);
-    });
+    SfxService.play(Sfx.countdownGo);
+    _startClock();
   }
 
   @override
@@ -435,6 +448,98 @@ class _TournamentMatchDemoScreenState extends State<TournamentMatchDemoScreen> {
     t?.cancel();
     super.dispose();
   }
+
+  void _startClock() {
+    t?.cancel();
+    left = _turnSeconds;
+    t = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || over) return;
+      if (left <= 1) {
+        _timeUp();
+        return;
+      }
+      setState(() => left--);
+      if (left <= 5) SfxService.play(Sfx.countdownTick);
+    });
+  }
+
+  /// Run out of time and the move is skipped.
+  void _timeUp() {
+    if (turn != _me) {
+      setState(() => left = _turnSeconds);
+      return;
+    }
+    _nextTurn();
+  }
+
+  void _tap(int i) {
+    if (over || turn != _me || board.cells[i] != null) return;
+    _place(i, _me);
+  }
+
+  void _place(int i, String mark) {
+    if (vibrationOn.value) HapticFeedback.lightImpact();
+    SfxService.place(mark == _me ? 'X' : 'O');
+    setState(() => board.cells[i] = mark);
+    if (board.winsAt(i, mark)) {
+      _finish(mark == _me);
+      return;
+    }
+    if (board.isFull) {
+      _replayRound();
+      return;
+    }
+    _nextTurn();
+  }
+
+  void _nextTurn() {
+    setState(() => turn = turn == _me ? _rival : _me);
+    _startClock();
+    if (turn == _rival) _rivalMove();
+  }
+
+  Future<void> _rivalMove() async {
+    final round = _round;
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    if (!mounted || over || round != _round) return;
+    final pick = await GameAi.chooseMoveAsync(board.clone(), 'Medium');
+    if (!mounted || over || round != _round || turn != _rival) return;
+    if (pick < 0 || pick >= board.cells.length || board.cells[pick] != null) {
+      final empty = board.emptyCells;
+      if (empty.isEmpty) return;
+      _place(empty.first, _rival);
+      return;
+    }
+    _place(pick, _rival);
+  }
+
+  /// A draw replays the round.
+  void _replayRound() {
+    SfxService.play(Sfx.draw);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(context.l10n.tDrawReplays)));
+    setState(() {
+      _round++;
+      board = Board(3);
+      turn = _me;
+    });
+    _startClock();
+  }
+
+  void _finish(bool won) {
+    over = true;
+    t?.cancel();
+    SfxService.play(won ? Sfx.win : Sfx.lose);
+    // Let the final board show for a moment.
+    Future<void>.delayed(const Duration(milliseconds: 1100), () {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/tournament-round-result',
+          arguments: won);
+    });
+  }
+
+  String? _shown(String? m) => m == null ? null : (m == _me ? 'X' : 'O');
 
   Widget _mark(String? m) => Container(
         decoration: BoxDecoration(
@@ -467,17 +572,26 @@ class _TournamentMatchDemoScreenState extends State<TournamentMatchDemoScreen> {
     return AppScaffold(
       child: Column(
         children: [
-          const Row(
+          Row(
             children: [
-              Text('ROUND OF 16',
-                  style: TextStyle(
-                      color: C.magenta,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.5,
-                      fontSize: 12)),
-              Spacer(),
-              Text('Weekend Showdown',
-                  style: TextStyle(color: C.muted, fontSize: 12)),
+              Flexible(
+                child: Text(context.l10n.roundOf16Caps,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: C.magenta,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
+                        fontSize: 12)),
+              ),
+              const SizedBox(width: 8),
+              const Spacer(),
+              const Flexible(
+                child: Text('Weekend Showdown',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: C.muted, fontSize: 12)),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -485,12 +599,13 @@ class _TournamentMatchDemoScreenState extends State<TournamentMatchDemoScreen> {
             children: [
               const PdfGradientAvatar('Y', size: 44),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('You', style: TextStyle(fontWeight: FontWeight.w800)),
-                    Text('X', style: TextStyle(color: C.magenta)),
+                    Text(context.l10n.you,
+                        style: const TextStyle(fontWeight: FontWeight.w800)),
+                    const Text('X', style: TextStyle(color: C.magenta)),
                   ],
                 ),
               ),
@@ -517,15 +632,12 @@ class _TournamentMatchDemoScreenState extends State<TournamentMatchDemoScreen> {
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
               children: [
-                _mark('X'),
-                _mark(null),
-                _mark('O'),
-                _mark(null),
-                _mark('X'),
-                _mark(null),
-                _mark('O'),
-                _mark(null),
-                _mark(null),
+                for (var i = 0; i < 9; i++)
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _tap(i),
+                    child: _mark(_shown(board.cells[i])),
+                  ),
               ],
             ),
           ),
@@ -537,32 +649,26 @@ class _TournamentMatchDemoScreenState extends State<TournamentMatchDemoScreen> {
               borderRadius: BorderRadius.circular(99),
               border: Border.all(color: C.border),
             ),
-            child: const Text.rich(
+            child: Text.rich(
               TextSpan(children: [
                 TextSpan(
-                    text: 'Your move',
+                    text: turn == _me
+                        ? context.l10n.yourMove
+                        : context.l10n.isThinking(_rivalName),
                     style: TextStyle(
-                        color: C.magenta, fontWeight: FontWeight.w800)),
+                        color: turn == _me ? C.magenta : C.teal,
+                        fontWeight: FontWeight.w800)),
                 TextSpan(
-                    text: '  ·  20s per move',
-                    style: TextStyle(color: C.muted)),
+                    text: '  ·  ${context.l10n.perMove20s}',
+                    style: const TextStyle(color: C.muted)),
               ]),
               textAlign: TextAlign.center,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Run out of time and the move is skipped.',
-            style: TextStyle(color: C.muted, fontSize: 13),
-          ),
-          TextButton(
-            onPressed: () {
-              t?.cancel();
-              Navigator.pushReplacementNamed(context, '/tournament-round-result',
-                  arguments: false);
-            },
-            child: const Text('Preview eliminated',
-                style: TextStyle(color: C.muted)),
+          Text(
+            context.l10n.timeSkipped,
+            style: const TextStyle(color: C.muted, fontSize: 13),
           ),
         ],
       ),
@@ -581,7 +687,7 @@ class TournamentRoundResultScreen extends StatelessWidget {
         children: [
           const Spacer(),
           Text(
-            'ROUND OF 16',
+            context.l10n.roundOf16Caps,
             style: TextStyle(
               color: win ? C.teal : C.magenta,
               fontWeight: FontWeight.w800,
@@ -591,7 +697,7 @@ class TournamentRoundResultScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            win ? 'YOU WIN' : 'ELIMINATED',
+            win ? context.l10n.youWinCaps : context.l10n.eliminatedCaps,
             style: TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.w900,
@@ -607,8 +713,8 @@ class TournamentRoundResultScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             win
-                ? 'You advance to the Quarter-final'
-                : 'Great run in the Weekend Showdown',
+                ? context.l10n.advanceQuarter
+                : context.l10n.greatRun('Weekend Showdown'),
             textAlign: TextAlign.center,
             style: const TextStyle(color: C.muted),
           ),
@@ -618,24 +724,24 @@ class TournamentRoundResultScreen extends StatelessWidget {
             child: Column(
               children: [
                 if (win) ...[
-                  _kv('Next round', 'Quarter-final'),
-                  _kv('Opponent', 'Waiting for other matches'),
-                  _kv('Players left', '8', last: true),
+                  _kv(context.l10n.nextRound, context.l10n.quarterFinal),
+                  _kv(context.l10n.opponent, context.l10n.waitingOtherMatches),
+                  _kv(context.l10n.playersLeft, '8', last: true),
                 ] else ...[
-                  _kv('You finished', 'Top 16'),
-                  _kv('Rounds won', '3', last: true),
+                  _kv(context.l10n.youFinished, context.l10n.top16),
+                  _kv(context.l10n.roundsWon, '3', last: true),
                 ],
               ],
             ),
           ),
           const Spacer(),
           PdfPinkButton(
-            win ? 'VIEW BRACKET' : 'WATCH THE BRACKET',
+            win ? context.l10n.viewBracketCaps : context.l10n.watchBracketCaps,
             onTap: () => Navigator.pushNamed(context, '/tournament-bracket'),
           ),
           const SizedBox(height: 10),
           PdfGhostButton(
-            win ? 'Back to event' : 'Back to events',
+            win ? context.l10n.backToEvent : context.l10n.backToEvents,
             onTap: () => Navigator.pushNamedAndRemoveUntil(
                 context, '/events', (r) => false),
           ),
@@ -683,7 +789,7 @@ class TournamentChampionScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'CHAMPION',
+            context.l10n.championCaps,
             style: TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.w900,
@@ -697,8 +803,7 @@ class TournamentChampionScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text('Prize added to your balance',
-              style: TextStyle(color: C.muted)),
+          Text(context.l10n.prizeAdded, style: const TextStyle(color: C.muted)),
           const SizedBox(height: 10),
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -713,17 +818,17 @@ class TournamentChampionScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 28),
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
-            child: PdfSectionLabel('Podium'),
+            child: PdfSectionLabel(context.l10n.podium),
           ),
           const SizedBox(height: 8),
-          _podium('1', 'You', gold: true),
+          _podium('1', context.l10n.you, gold: true),
           _podium('2', 'rahul256'),
           _podium('3', 'anik'),
           const Spacer(),
           PdfPinkButton(
-            'BACK TO EVENTS',
+            context.l10n.backToEventsCaps,
             onTap: () => Navigator.pushNamedAndRemoveUntil(
                 context, '/events', (r) => false),
           ),

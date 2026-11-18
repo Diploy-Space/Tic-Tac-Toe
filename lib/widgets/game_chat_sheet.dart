@@ -9,8 +9,7 @@ import '../theme.dart';
 import 'extras.dart';
 import 'pdf_ui.dart';
 import 'report_user_sheet.dart';
-
-const _quickReplies = ['Good move!', 'Close one!', 'GG', 'Rematch?'];
+import '../l10n/app_localizations.dart';
 
 /// Opens in-game chat bottom sheet matching PDF live-chat design.
 Future<void> openGameChatSheet(
@@ -87,6 +86,7 @@ class _GameChatPanelState extends State<GameChatPanel> {
     GameChatService.attach(widget.roomId);
     GameChatService.markRead();
     GameChatService.messages.addListener(_stickToBottom);
+    GameChatService.blockedReason.addListener(_onBlockedChanged);
     OnlineRealtimeService.state.addListener(_onRoomMeta);
     // Tip only for 2s; Report button stays.
     _reportTipTimer = Timer(const Duration(seconds: 2), () {
@@ -99,11 +99,24 @@ class _GameChatPanelState extends State<GameChatPanel> {
   void dispose() {
     _reportTipTimer?.cancel();
     OnlineRealtimeService.state.removeListener(_onRoomMeta);
+    GameChatService.blockedReason.removeListener(_onBlockedChanged);
     GameChatService.messages.removeListener(_stickToBottom);
     _input.dispose();
     _scroll.dispose();
     super.dispose();
   }
+
+  void _onBlockedChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Opponent's chat privacy forbids my messages (server-checked).
+  bool get _blocked => GameChatService.blockedReason.value != null;
+
+  String _blockedText(String opp) =>
+      GameChatService.blockedReason.value == 'friends_only'
+          ? context.l10n.chatBlockedFriendsOnly(opp)
+          : context.l10n.chatBlockedNobody(opp);
 
   void _onRoomMeta() {
     final room = OnlineRealtimeService.state.value;
@@ -131,7 +144,7 @@ class _GameChatPanelState extends State<GameChatPanel> {
   }
 
   Future<void> _send([String? preset]) async {
-    if (_sending) return;
+    if (_sending || _blocked) return;
     final text = (preset ?? _input.text).trim();
     if (text.isEmpty) return;
     setState(() => _sending = true);
@@ -148,7 +161,7 @@ class _GameChatPanelState extends State<GameChatPanel> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            GameChatService.error.value ?? 'Could not stop chat',
+            GameChatService.error.value ?? context.l10n.couldNotStopChat,
           ),
         ),
       );
@@ -163,7 +176,7 @@ class _GameChatPanelState extends State<GameChatPanel> {
   Widget build(BuildContext context) {
     final myId = AuthService.user?.id;
     final opp = widget.opponentName.trim().isEmpty
-        ? 'Opponent'
+        ? context.l10n.opponent
         : widget.opponentName.trim();
     final oppLetter = opp[0].toUpperCase();
 
@@ -223,11 +236,11 @@ class _GameChatPanelState extends State<GameChatPanel> {
                               );
                             }
                             if (msgs.isEmpty) {
-                              return const Center(
+                              return Center(
                                 child: Text(
-                                  'No messages yet.\nQuick replies work too.',
+                                  context.l10n.noMessagesYet,
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(color: C.muted),
+                                  style: const TextStyle(color: C.muted),
                                 ),
                               );
                             }
@@ -249,9 +262,9 @@ class _GameChatPanelState extends State<GameChatPanel> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Messages stay for this match',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.messagesStayForMatch,
+                      style: const TextStyle(
                         color: C.muted,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -266,7 +279,12 @@ class _GameChatPanelState extends State<GameChatPanel> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  for (final q in _quickReplies) ...[
+                  for (final q in [
+                    context.l10n.quickGoodMove,
+                    context.l10n.quickCloseOne,
+                    context.l10n.quickGg,
+                    context.l10n.rematchQuestion,
+                  ]) ...[
                     _ChatQuickChip(
                       q,
                       onTap: () => _send(q),
@@ -282,6 +300,7 @@ class _GameChatPanelState extends State<GameChatPanel> {
               builder: (_, live, __) => ValueListenableBuilder<String?>(
                 valueListenable: GameChatService.error,
                 builder: (_, err, ___) {
+                  if (_blocked) err = _blockedText(opp);
                   if (err != null) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 6),
@@ -296,11 +315,11 @@ class _GameChatPanelState extends State<GameChatPanel> {
                     );
                   }
                   if (!live) {
-                    return const Padding(
-                      padding: EdgeInsets.only(bottom: 6),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
                       child: Text(
-                        'Connecting chat… (polling active)',
-                        style: TextStyle(color: C.muted, fontSize: 11),
+                        context.l10n.connectingChat,
+                        style: const TextStyle(color: C.muted, fontSize: 11),
                       ),
                     );
                   }
@@ -316,7 +335,7 @@ class _GameChatPanelState extends State<GameChatPanel> {
                     height: 48,
                     child: TextField(
                       controller: _input,
-                      enabled: !_sending,
+                      enabled: !_sending && !_blocked,
                       maxLength: 500,
                       style: const TextStyle(
                         color: C.text,
@@ -324,7 +343,7 @@ class _GameChatPanelState extends State<GameChatPanel> {
                       ),
                       decoration: InputDecoration(
                         counterText: '',
-                        hintText: 'Type a message',
+                        hintText: context.l10n.typeMessage,
                         hintStyle: const TextStyle(
                           color: C.muted,
                           fontWeight: FontWeight.w500,
@@ -361,11 +380,11 @@ class _GameChatPanelState extends State<GameChatPanel> {
                     color: C.magenta,
                     borderRadius: BorderRadius.circular(14),
                     child: InkWell(
-                      onTap: _sending ? null : () => _send(),
+                      onTap: _sending || _blocked ? null : () => _send(),
                       borderRadius: BorderRadius.circular(14),
                       child: Center(
                         child: Text(
-                          _sending ? '…' : 'Send',
+                          _sending ? '…' : context.l10n.send,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
@@ -422,9 +441,9 @@ class _PlayerHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'You',
-                style: TextStyle(
+              Text(
+                context.l10n.you,
+                style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                   color: C.text,
@@ -503,9 +522,9 @@ class _StatusRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Text(
-              'Chat on',
-              style: TextStyle(
+            Text(
+              context.l10n.chatOn,
+              style: const TextStyle(
                 color: C.teal,
                 fontWeight: FontWeight.w800,
                 fontSize: 13,
@@ -526,9 +545,9 @@ class _StatusRow extends StatelessWidget {
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                 ),
-                child: const Text(
-                  'Stop chat',
-                  style: TextStyle(
+                child: Text(
+                  context.l10n.stopChat,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
@@ -628,22 +647,22 @@ class _ReportTipBubble extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: C.magenta, width: 1.5),
           ),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'REPORT BUTTON',
-                style: TextStyle(
+                context.l10n.reportButtonCaps,
+                style: const TextStyle(
                   color: C.magenta,
                   fontWeight: FontWeight.w800,
                   fontSize: 11,
                   letterSpacing: 1.1,
                 ),
               ),
-              SizedBox(height: 6),
+              const SizedBox(height: 6),
               Text(
-                'Top right of the live chat, next to Stop chat. Always visible while chat is on.\nTap → pick a reason → add details and screenshots → submit.',
-                style: TextStyle(
+                context.l10n.reportButtonHelp,
+                style: const TextStyle(
                   color: C.text,
                   fontSize: 12,
                   height: 1.35,
@@ -773,8 +792,7 @@ class _PdfBubble extends StatelessWidget {
                   },
             child: Container(
               margin: const EdgeInsets.only(bottom: 4),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.sizeOf(context).width * 0.68,
               ),
